@@ -1,0 +1,9 @@
+- [x] Fix date display in LaporanPembelianController.php by adding formatted date column
+- [x] Update pembelian.blade.php to use formatted date column
+- [x] Fix date display in Transaksi/PembelianController.php by converting to DataTables format
+- [x] Update transaksi/pembelian/index.blade.php to use formatted columns
+- [x] Remove external CDN language file to fix CORS error
+- [x] Add local language strings to DataTables
+- [x] Add "No" column header to match DataTables index column
+- [ ] Test the page to verify date displays correctly and pagination works
+- [ ] If NaN persists, investigate data query issues
