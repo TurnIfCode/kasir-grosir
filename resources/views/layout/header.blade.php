@@ -53,15 +53,18 @@
       padding-top: 1rem;
       box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
       overflow-y: auto;
+      z-index: 1050;
+      transition: transform 0.3s ease;
     }
 
     .sidebar .nav-link {
       color: black;
       text-decoration: none;
-      padding: 10px 20px;
+      padding: 12px 20px; /* Increased padding for touch */
       border-radius: 5px;
       margin: 2px 10px;
       font-weight: 500;
+      font-size: 16px; /* Larger font for touch */
     }
 
     .sidebar .nav-link.active,
@@ -71,7 +74,7 @@
     }
 
     .sidebar .collapse .nav-link {
-      font-size: 14px;
+      font-size: 15px; /* Slightly larger */
       padding-left: 35px;
     }
 
@@ -89,15 +92,26 @@
     .main {
       margin-left: 240px;
       padding: 20px;
+      transition: margin-left 0.3s ease;
     }
 
     .navbar-custom {
       background: #007bff;
       color: white;
+      height: 60px; /* Taller navbar for touch */
     }
 
     .navbar-custom i {
       color: white;
+    }
+
+    .navbar-custom .btn {
+      font-size: 16px; /* Larger buttons */
+      padding: 8px 16px;
+    }
+
+    .navbar-custom .navbar-brand {
+      font-size: 18px;
     }
 
     .card {
@@ -106,13 +120,74 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
 
-    @media (max-width: 768px) {
+    /* Overlay for mobile sidebar */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1040;
+    }
+
+    /* Tablet: 768px to 1024px */
+    @media (min-width: 768px) and (max-width: 1024px) {
       .sidebar {
+        width: 200px; /* Slightly narrower for tablets */
+      }
+
+      .sidebar .nav-link {
+        padding: 10px 15px;
+        font-size: 15px;
+      }
+
+      .main {
+        margin-left: 200px;
+      }
+
+      .sidebar-overlay {
         display: none;
+      }
+
+      .navbar-custom .btn {
+        font-size: 15px;
+        padding: 6px 12px;
+      }
+    }
+
+    /* Mobile: max-width 767px */
+    @media (max-width: 767px) {
+      .sidebar {
+        transform: translateX(-100%);
+        width: 280px; /* Wider for mobile overlay */
+      }
+
+      .sidebar.show {
+        transform: translateX(0);
       }
 
       .main {
         margin-left: 0;
+      }
+
+      .sidebar-overlay {
+        display: none;
+      }
+
+      .navbar-custom .btn {
+        font-size: 16px;
+        padding: 10px 16px; /* Larger for touch */
+      }
+
+      .navbar-custom .navbar-brand {
+        font-size: 16px;
+      }
+
+      .sidebar .nav-link {
+        padding: 15px 20px; /* Even larger for mobile */
+        font-size: 16px;
       }
     }
 
@@ -148,6 +223,7 @@
         </a>
       </li>
 
+      @if(auth()->user()->role == 'ADMIN')
       <!-- Dropdown: User -->
       <li class="nav-item">
         <a href="#menuUser" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuUser" role="button" aria-expanded="false">
@@ -165,7 +241,7 @@
           <i class="fa fa-database me-2"></i> Master Data
         </a>
         <ul class="collapse nav flex-column ms-3" id="menuMasterData" data-bs-parent="#sidebarMenu">
-          
+
           <!-- Kategori -->
           <li class="nav-item">
             <a href="#menuKategori" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuKategori" role="button" aria-expanded="false">
@@ -216,7 +292,7 @@
               <li><a class="nav-link" href="{{ route('harga-barang.index') }}">Data</a></li>
             </ul>
           </li>
-          
+
         </ul>
       </li>
           <!-- Supplier -->
@@ -249,31 +325,38 @@
           <li><a class="nav-link" href="{{ route('pembelian.index') }}">Lihat Daftar</a></li>
         </ul>
       </li>
+      @endif
+
+      @if(auth()->user()->role == 'ADMIN' || auth()->user()->role == 'KASIR')
           <!-- Penjualan -->
           <li class="nav-item">
             <a href="#menuPenjualan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPenjualan" role="button" aria-expanded="false">
               <i class="fas fa-shopping-cart"></i> Penjualan
             </a>
-        <ul class="collapse nav flex-column ms-3" id="menuPenjualan" data-bs-parent="#menuMasterData">
+        <ul class="collapse nav flex-column ms-3" id="menuPenjualan" data-bs-parent="#sidebarMenu">
           <li><a class="nav-link" href="{{ route('penjualan.create') }}">Tambah Penjualan</a></li>
           <li><a class="nav-link" href="{{ route('penjualan.index') }}">Lihat Daftar</a></li>
         </ul>
       </li>
+      @endif
 
+      @if(auth()->user()->role == 'ADMIN' || auth()->user()->role == 'GUDANG')
       <!-- Stok Opname -->
       <li class="nav-item">
         <a class="nav-link" href="{{ route('stok-opname.index') }}">
           <i class="fas fa-clipboard-check me-2"></i> Stok Opname
         </a>
       </li>
+      @endif
 
+      @if(auth()->user()->role == 'ADMIN')
       <!-- Laporan -->
       <li class="nav-item">
         <a href="#menuLaporan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuLaporan" role="button" aria-expanded="false">
           <i class="fas fa-chart-bar"></i> Laporan
         </a>
         <ul class="collapse nav flex-column ms-3" id="menuLaporan" data-bs-parent="#sidebarMenu">
-          <leli><a class="nav-link" href="{{ route('laporan.pembelian') }}"><i class="fas fa-shopping-cart"></i> Laporan Pembelian</a></li>
+          <li><a class="nav-link" href="{{ route('laporan.pembelian') }}"><i class="fas fa-shopping-cart"></i> Laporan Pembelian</a></li>
           <li><a class="nav-link" href="{{ route('laporan.penjualan') }}"><i class="fas fa-cash-register"></i> Laporan Penjualan</a></li>
           <li><a class="nav-link" href="{{ route('laporan.laba-rugi') }}"><i class="fas fa-chart-line"></i> Laba Rugi</a></li>
           <li><a class="nav-link" href="{{ route('laporan.stok-barang') }}"><i class="fas fa-boxes"></i> Stok Barang</a></li>
@@ -282,21 +365,25 @@
           <li><a class="nav-link" href="{{ route('laporan.stok-opname') }}"><i class="fas fa-clipboard-check"></i> Stok Opname</a></li>
         </ul>
       </li>
+      @endif
     </ul>
   </nav>
+
+  <!-- Sidebar Overlay for Mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <div class="main">
   <!-- Navbar -->
   <nav class="navbar navbar-expand navbar-custom mb-4">
     <div class="container-fluid">
-      <button class="btn btn-outline-light d-md-none me-2" id="sidebarToggle"><i class="fa fa-bars"></i></button>
+      <button class="btn btn-outline-light me-2" id="sidebarToggle"><i class="fa fa-bars"></i></button>
       <span class="navbar-brand text-white fw-bold"></span>
       <div class="d-flex align-items-center">
         <i class="fa fa-bell me-3"></i>
         <i class="fa fa-envelope me-3"></i>
-        <span class="me-3">Welcome, <strong>{{ auth()->user()->name }}</strong></span>
+        <span class="me-3 d-none d-sm-inline">Welcome, <strong>{{ auth()->user()->name }}</strong></span>
         <div class="dropdown">
-          <img src="https://i.pravatar.cc/30" class="rounded-circle dropdown-toggle" alt="User" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+          <img src="{{ asset('assets/images/logo/logo.png') }}" class="rounded-circle dropdown-toggle" alt="User" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
           <ul class="dropdown-menu" aria-labelledby="userDropdown">
             <li><a class="dropdown-item" href="#"><i class="fa fa-user me-2"></i> Profile</a></li>
             <li><hr class="dropdown-divider"></li>
@@ -366,5 +453,36 @@
         $('a[href="#menuPenjualan"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
       }
+
+      // Sidebar toggle functionality
+      $('#sidebarToggle').click(function() {
+        $('.sidebar').toggleClass('show');
+        if ($(window).width() < 768) {
+          $('#sidebarOverlay').toggle();
+        }
+      });
+
+      // Close sidebar when clicking overlay (only on mobile)
+      $('#sidebarOverlay').click(function() {
+        if ($(window).width() < 768) {
+          $('.sidebar').removeClass('show');
+          $(this).hide();
+        }
+      });
+
+      // Close sidebar on mobile when clicking a nav link (only for actual links, not dropdown toggles)
+      $('.sidebar .nav-link').not('.dropdown-toggle').click(function() {
+        if ($(window).width() < 768) {
+          $('.sidebar').removeClass('show');
+          $('#sidebarOverlay').hide();
+        }
+      });
+
+      // Prevent closing sidebar when clicking on dropdown toggles
+      $('.sidebar .dropdown-toggle').click(function(e) {
+        e.preventDefault();
+        var target = $(this).attr('data-bs-target');
+        $(target).collapse('toggle');
+      });
     });
   </script>

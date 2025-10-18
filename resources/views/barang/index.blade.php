@@ -26,7 +26,7 @@
 
 <!-- Modal Edit Barang -->
 <div class="modal fade" id="editBarangModal" tabindex="-1" aria-labelledby="editBarangModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="editBarangModalLabel">Edit Barang</h5>
@@ -181,7 +181,24 @@ $(document).ready(function() {
       { data: 'multi_satuan', name: 'multi_satuan' },
       { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
     ],
-    order: [[2, 'asc']]
+    order: [[2, 'asc']],
+    responsive: true,
+    pageLength: 10,
+    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+    language: {
+      search: "Cari:",
+      lengthMenu: "Tampilkan _MENU_ data per halaman",
+      zeroRecords: "Data tidak ditemukan",
+      info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+      infoEmpty: "Tidak ada data yang tersedia",
+      infoFiltered: "(difilter dari _MAX_ total data)",
+      paginate: {
+        first: "Pertama",
+        last: "Terakhir",
+        next: "Selanjutnya",
+        previous: "Sebelumnya"
+      }
+    }
   });
 
   // Inisialisasi validator

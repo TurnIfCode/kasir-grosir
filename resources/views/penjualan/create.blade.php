@@ -14,13 +14,13 @@
                     <form id="penjualanForm">
                         @csrf
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <div class="mb-3">
                                     <label for="kode_penjualan" class="form-label">Kode Penjualan</label>
                                     <input type="text" class="form-control" id="kode_penjualan" name="kode_penjualan" readonly>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <div class="mb-3">
                                     <label for="tanggal_penjualan" class="form-label">Tanggal Penjualan <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" id="tanggal_penjualan" name="tanggal_penjualan" value="{{ date('Y-m-d') }}" required>
@@ -28,7 +28,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <div class="mb-3">
                                     <label for="pelanggan_id" class="form-label">Pelanggan</label>
                                     <select class="form-select" id="pelanggan_id" name="pelanggan_id">
@@ -39,7 +39,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <div class="mb-3">
                                     <label for="catatan" class="form-label">Catatan</label>
                                     <textarea class="form-control" id="catatan" name="catatan" rows="2"></textarea>
@@ -68,13 +68,13 @@
                         <div class="card mt-4">
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-12 col-md-6">
                                         <div class="mb-3">
                                             <label for="diskon" class="form-label">Diskon</label>
                                             <input type="number" class="form-control" id="diskon" name="diskon" value="0" min="0" step="0.01" onchange="calculateTotal()">
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-12 col-md-6">
                                         <div class="mb-3">
                                             <label for="ppn" class="form-label">PPN</label>
                                             <input type="number" class="form-control" id="ppn" name="ppn" value="0" min="0" step="0.01" onchange="calculateTotal()">
@@ -88,13 +88,13 @@
                         <div class="card mt-4">
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-12 col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Total</label>
                                             <input type="text" class="form-control" id="total" readonly>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-12 col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Grand Total</label>
                                             <input type="text" class="form-control" id="grandTotal" readonly>
@@ -112,7 +112,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    <div class="col-12 col-md-4">
                                         <div class="mb-3">
                                             <label for="jenis_pembayaran" class="form-label">Jenis Pembayaran <span class="text-danger">*</span></label>
                                             <select class="form-select" id="jenis_pembayaran" name="jenis_pembayaran" required onchange="togglePaymentFields()">
@@ -123,13 +123,13 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-12 col-md-4">
                                         <div class="mb-3 tunai-field" style="display: none;">
                                             <label for="dibayar" class="form-label">Dibayar</label>
                                             <input type="number" class="form-control" id="dibayar" name="dibayar" min="0" step="0.01" onchange="calculateKembalian()" onkeyup="calculateKembalian()">
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-12 col-md-4">
                                         <div class="mb-3 tunai-field" style="display: none;">
                                             <label for="kembalian" class="form-label">Kembalian</label>
                                             <input type="number" class="form-control" id="kembalian" readonly>
@@ -150,11 +150,11 @@
                             </div>
                         </div>
 
-                        <div class="mt-4">
-                            <button type="button" class="btn btn-primary" onclick="submitForm()">
+                        <div class="mt-4 d-flex flex-column flex-sm-row gap-2">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="submitForm()">
                                 <i class="fas fa-save"></i> Simpan Penjualan
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="resetForm()">Reset</button>
                         </div>
                     </form>
                 </div>
