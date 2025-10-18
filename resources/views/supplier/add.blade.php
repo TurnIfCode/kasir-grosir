@@ -9,8 +9,9 @@
       <div class="row">
         <div class="col-md-6">
           <div class="form-group mb-3">
-            <label for="kode_supplier">Kode Supplier *</label>
-            <input type="text" class="form-control" id="kode_supplier" name="kode_supplier">
+            <label for="kode_supplier">Kode Supplier</label>
+            <input type="text" class="form-control" id="kode_supplier" name="kode_supplier" readonly>
+            <small class="form-text text-muted">Kode supplier akan di-generate otomatis</small>
           </div>
         </div>
         <div class="col-md-6">
@@ -83,13 +84,17 @@
 @section('scripts')
 <script>
 $(document).ready(function() {
+  // Generate kode supplier otomatis saat halaman load
+  $.ajax({
+    url: "{{ route('supplier.generate-kode') }}",
+    type: "GET",
+    success: function(response) {
+      $('#kode_supplier').val(response.kode_supplier);
+    }
+  });
   $("#btnSave").click(function() {
     $('#addSupplierForm').validate({
       rules: {
-        kode_supplier: {
-          required: true,
-          minlength: 3
-        },
         nama_supplier: {
           required: true,
           minlength: 3
@@ -99,10 +104,6 @@ $(document).ready(function() {
         }
       },
       messages: {
-        kode_supplier: {
-          required: "Kode Supplier wajib diisi",
-          minlength: "Kode Supplier minimal 3 karakter"
-        },
         nama_supplier: {
           required: "Nama Supplier wajib diisi",
           minlength: "Nama Supplier minimal 3 karakter"

@@ -55,7 +55,7 @@ class KonversiSatuanController extends Controller
                     'barang' => $k->barang ? $k->barang->nama_barang : '-',
                     'satuan_dasar' => $k->satuanDasar ? $k->satuanDasar->nama_satuan : '-',
                     'satuan_konversi' => $k->satuanKonversi ? $k->satuanKonversi->nama_satuan : '-',
-                    'nilai_konversi' => number_format($k->nilai_konversi, 2),
+                    'nilai_konversi' => round($k->nilai_konversi),
                     'harga_beli' => 'Rp ' . number_format($k->harga_beli, 0, ',', '.'),
                     'harga_jual' => 'Rp ' . number_format($k->harga_jual, 0, ',', '.'),
                     'status' => $k->status,

@@ -1,6 +1,16 @@
-@include('layouts.header')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Rekap Harian</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+</head>
+<body>
+    @include('layout.header')
 
-<div class="container mt-4">
+    <div class="container mt-4">
     <h3 class="mb-3">Laporan Rekap Harian</h3>
 
     <!-- Filter -->
@@ -8,7 +18,7 @@
         <label for="tanggal">Tanggal:</label>
         <input type="date" id="tanggal" name="tanggal" value="{{ date('Y-m-d') }}" class="form-control d-inline-block w-auto">
         <button type="button" id="btnFilter" class="btn btn-primary btn-sm ms-2">Tampilkan</button>
-        <a href="{{ route('laporan.rekap-harian.export_pdf', ['tanggal' => date('Y-m-d')]) }}" target="_blank" id="btnExportPDF" class="btn btn-danger btn-sm ms-2">Export PDF</a>
+        <a href="{{ route('laporan.rekap_harian.export_pdf', ['tanggal' => date('Y-m-d')]) }}" target="_blank" id="btnExportPDF" class="btn btn-danger btn-sm ms-2">Export PDF</a>
     </form>
 
     <!-- Ringkasan -->
@@ -64,9 +74,16 @@
             </tr>
         </thead>
     </table>
-</div>
+    </div>
 
-@include('layouts.footer')
+    @include('layout.footer')
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+</body>
+</html>
 
 <script>
 $(document).ready(function() {
@@ -75,7 +92,7 @@ $(document).ready(function() {
         processing: true,
         serverSide: true,
         ajax: {
-            url: '{{ route("laporan.rekap-harian.data") }}',
+            url: '{{ route("laporan.rekap_harian.data") }}',
             data: function(d) {
                 d.tanggal = $('#tanggal').val();
                 d.type = 'penjualan';
@@ -99,7 +116,7 @@ $(document).ready(function() {
         processing: true,
         serverSide: true,
         ajax: {
-            url: '{{ route("laporan.rekap-harian.data") }}',
+            url: '{{ route("laporan.rekap_harian.data") }}',
             data: function(d) {
                 d.tanggal = $('#tanggal').val();
                 d.type = 'pembelian';
@@ -122,7 +139,7 @@ $(document).ready(function() {
     // Load ringkasan data
     function loadRingkasan() {
         $.ajax({
-            url: '{{ route("laporan.rekap-harian.data") }}',
+            url: '{{ route("laporan.rekap_harian.data") }}',
             data: { tanggal: $('#tanggal').val() },
             success: function(data) {
                 $('#total_penjualan').text(data.total_penjualan);
@@ -145,7 +162,7 @@ $(document).ready(function() {
 
         // Update export PDF link
         var tanggal = $('#tanggal').val();
-        $('#btnExportPDF').attr('href', '{{ route("laporan.rekap-harian.export_pdf") }}?tanggal=' + tanggal);
+        $('#btnExportPDF').attr('href', '{{ route("laporan.rekap_harian.export_pdf") }}?tanggal=' + tanggal);
     });
 
     // Load initial data

@@ -69,22 +69,22 @@ class PelangganController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_pelanggan' => 'required|string|max:50|unique:pelanggan,kode_pelanggan',
             'nama_pelanggan' => 'required|string|max:150',
             'telepon' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:100',
             'alamat' => 'nullable|string',
             'status' => 'required|in:aktif,non_aktif'
         ], [
-            'kode_pelanggan.required' => 'Kode Pelanggan wajib diisi',
-            'kode_pelanggan.unique' => 'Kode Pelanggan sudah terdaftar',
             'nama_pelanggan.required' => 'Nama Pelanggan wajib diisi',
             'email.email' => 'Format email tidak valid',
             'status.required' => 'Status wajib dipilih'
         ]);
 
+        // Generate kode_pelanggan otomatis
+        $kodePelanggan = $this->generateKodePelanggan();
+
         Pelanggan::create([
-            'kode_pelanggan' => $request->kode_pelanggan,
+            'kode_pelanggan' => $kodePelanggan,
             'nama_pelanggan' => $request->nama_pelanggan,
             'telepon' => $request->telepon,
             'email' => $request->email,
@@ -149,5 +149,18 @@ class PelangganController extends Controller
             'status' => true,
             'message' => 'Pelanggan berhasil dihapus'
         ]);
+    }
+
+    public function generateKode()
+    {
+        $kodePelanggan = $this->generateKodePelanggan();
+        return response()->json(['kode_pelanggan' => $kodePelanggan]);
+    }
+
+    private function generateKodePelanggan()
+    {
+        $lastPelanggan = Pelanggan::orderBy('id', 'desc')->first();
+        $nextNumber = $lastPelanggan ? intval(substr($lastPelanggan->kode_pelanggan, 3)) + 1 : 1;
+        return 'PLG' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 }

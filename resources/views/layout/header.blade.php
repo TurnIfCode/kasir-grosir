@@ -8,7 +8,7 @@
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  
+    
   <!-- Font Awesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
@@ -260,18 +260,26 @@
         </ul>
       </li>
 
+      <!-- Stok Opname -->
+      <li class="nav-item">
+        <a class="nav-link" href="{{ route('stok-opname.index') }}">
+          <i class="fas fa-clipboard-check me-2"></i> Stok Opname
+        </a>
+      </li>
+
       <!-- Laporan -->
       <li class="nav-item">
         <a href="#menuLaporan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuLaporan" role="button" aria-expanded="false">
           <i class="fas fa-chart-bar"></i> Laporan
         </a>
         <ul class="collapse nav flex-column ms-3" id="menuLaporan" data-bs-parent="#sidebarMenu">
-          <li><a class="nav-link" href="{{ route('laporan.pembelian') }}"><i class="fas fa-shopping-cart"></i> Laporan Pembelian</a></li>
+          <leli><a class="nav-link" href="{{ route('laporan.pembelian') }}"><i class="fas fa-shopping-cart"></i> Laporan Pembelian</a></li>
           <li><a class="nav-link" href="{{ route('laporan.penjualan') }}"><i class="fas fa-cash-register"></i> Laporan Penjualan</a></li>
           <li><a class="nav-link" href="{{ route('laporan.laba-rugi') }}"><i class="fas fa-chart-line"></i> Laba Rugi</a></li>
           <li><a class="nav-link" href="{{ route('laporan.stok-barang') }}"><i class="fas fa-boxes"></i> Stok Barang</a></li>
-          <!-- <li><a class="nav-link" href="{{ route('laporan.rekap_harian') }}"><i class="fas fa-calendar-day"></i> Rekap Harian</a></li>
-          <li><a class="nav-link" href="{{ route('laporan.rekap_bulanan') }}"><i class="fas fa-calendar-alt"></i> Rekap Bulanan</a></li> -->
+          <li><a class="nav-link" href="{{ route('laporan.rekap_harian') }}"><i class="fas fa-calendar-day"></i> Rekap Harian</a></li>
+                    <li><a class="nav-link" href="{{ route('laporan.rekap_bulanan') }}"><i class="fas fa-calendar-alt"></i> Rekap Bulanan</a></li>
+          <li><a class="nav-link" href="{{ route('laporan.stok-opname') }}"><i class="fas fa-clipboard-check"></i> Stok Opname</a></li>
         </ul>
       </li>
     </ul>

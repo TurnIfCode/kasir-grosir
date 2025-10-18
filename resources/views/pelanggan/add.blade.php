@@ -9,8 +9,9 @@
       <div class="row">
         <div class="col-md-6">
           <div class="form-group mb-3">
-            <label for="kode_pelanggan">Kode Pelanggan *</label>
-            <input type="text" class="form-control" id="kode_pelanggan" name="kode_pelanggan">
+            <label for="kode_pelanggan">Kode Pelanggan</label>
+            <input type="text" class="form-control" id="kode_pelanggan" name="kode_pelanggan" readonly>
+            <small class="form-text text-muted">Kode pelanggan akan di-generate otomatis</small>
           </div>
         </div>
         <div class="col-md-6">
@@ -63,13 +64,17 @@
 @section('scripts')
 <script>
 $(document).ready(function() {
+  // Generate kode pelanggan otomatis saat halaman load
+  $.ajax({
+    url: "{{ route('pelanggan.generate-kode') }}",
+    type: "GET",
+    success: function(response) {
+      $('#kode_pelanggan').val(response.kode_pelanggan);
+    }
+  });
   $("#btnSave").click(function() {
     $('#addPelangganForm').validate({
       rules: {
-        kode_pelanggan: {
-          required: true,
-          minlength: 3
-        },
         nama_pelanggan: {
           required: true,
           minlength: 3
@@ -79,10 +84,6 @@ $(document).ready(function() {
         }
       },
       messages: {
-        kode_pelanggan: {
-          required: "Kode Pelanggan wajib diisi",
-          minlength: "Kode Pelanggan minimal 3 karakter"
-        },
         nama_pelanggan: {
           required: "Nama Pelanggan wajib diisi",
           minlength: "Nama Pelanggan minimal 3 karakter"

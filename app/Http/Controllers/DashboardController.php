@@ -83,8 +83,9 @@ class DashboardController extends Controller
         // 5) TRANSAKSI PENJUALAN TERBARU
         // --------------------------------
         $transaksiTerbaru = DB::table('penjualan')
-            ->select('kode_penjualan', 'tanggal_penjualan', 'grand_total', 'created_by')
-            ->orderByDesc('tanggal_penjualan')
+            ->join('users', 'penjualan.created_by', '=', 'users.id')
+            ->select('penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.grand_total', 'users.name as created_by_name')
+            ->orderByDesc('penjualan.tanggal_penjualan')
             ->limit(10)
             ->get();
 

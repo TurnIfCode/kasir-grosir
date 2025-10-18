@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/find', [SupplierController::class, 'find'])->name('supplier.find');
         Route::put('/{id}/update', [SupplierController::class, 'update'])->name('supplier.update');
         Route::delete('/{id}/delete', [SupplierController::class, 'delete'])->name('supplier.delete');
+        Route::get('/generate-kode', [SupplierController::class, 'generateKode'])->name('supplier.generate-kode');
     });
 
     Route::prefix('pelanggan')->group(function () {
@@ -115,6 +116,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/find', [PelangganController::class, 'find'])->name('pelanggan.find');
         Route::put('/{id}/update', [PelangganController::class, 'update'])->name('pelanggan.update');
         Route::delete('/{id}/delete', [PelangganController::class, 'delete'])->name('pelanggan.delete');
+        Route::get('/generate-kode', [PelangganController::class, 'generateKode'])->name('pelanggan.generate-kode');
     });
 
     Route::prefix('pembelian')->group(function () {
@@ -180,7 +182,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/rekap_bulanan', [\App\Http\Controllers\LaporanRekapBulananController::class, 'index'])->name('laporan.rekap_bulanan');
         Route::get('/rekap_bulanan/data', [\App\Http\Controllers\LaporanRekapBulananController::class, 'getData'])->name('laporan.rekap_bulanan.data');
         Route::get('/rekap_bulanan/export-pdf', [\App\Http\Controllers\LaporanRekapBulananController::class, 'exportPdf'])->name('laporan.rekap_bulanan.export_pdf');
+
+        Route::get('/stok-opname', [\App\Http\Controllers\LaporanStokOpnameController::class, 'index'])->name('laporan.stok-opname');
+        Route::get('/stok-opname/data', [\App\Http\Controllers\LaporanStokOpnameController::class, 'getData'])->name('laporan.stok-opname.data');
+        Route::get('/stok-opname/{id}', [\App\Http\Controllers\LaporanStokOpnameController::class, 'show'])->name('laporan.stok-opname.show');
+        Route::get('/stok-opname/{id}/export-pdf', [\App\Http\Controllers\LaporanStokOpnameController::class, 'exportPDF'])->name('laporan.stok-opname.export-pdf');
     });
+
+    // Stok Opname Routes
+    Route::resource('stok-opname', \App\Http\Controllers\StokOpnameController::class);
+    Route::post('stok-opname/{id}/update-status', [\App\Http\Controllers\StokOpnameController::class, 'updateStatus'])->name('stok-opname.updateStatus');
 
 
 

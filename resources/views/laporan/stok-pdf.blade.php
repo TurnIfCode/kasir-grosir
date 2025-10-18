@@ -72,7 +72,7 @@
                     <td>{{ $item->nama_barang }}</td>
                     <td>{{ $item->nama_kategori }}</td>
                     <td>{{ $item->nama_satuan }}</td>
-                    <td style="text-align: right;">{{ number_format($item->stok_akhir, 0, ',', '.') }}</td>
+                    <td style="text-align: right;">{{ round($item->stok_akhir) }}</td>
                 </tr>
             @empty
                 <tr>

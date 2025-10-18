@@ -50,7 +50,7 @@ class BarangController extends Controller
                     'nama_barang' => $barang->nama_barang,
                     'kategori' => $barang->kategori ? $barang->kategori->nama_kategori : '-',
                     'satuan_dasar' => $barang->satuan ? $barang->satuan->nama_satuan : '-',
-                    'stok' => number_format($barang->stok, 2),
+                    'stok' => round($barang->stok),
                     'harga_beli' => 'Rp ' . number_format($barang->harga_beli, 0, ',', '.'),
                     'harga_jual' => 'Rp ' . number_format($barang->harga_jual, 0, ',', '.'),
                     'multi_satuan' => $barang->multi_satuan,

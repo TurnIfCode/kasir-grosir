@@ -75,7 +75,6 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_supplier' => 'required|string|max:50|unique:supplier,kode_supplier',
             'nama_supplier' => 'required|string|max:150',
             'kontak_person' => 'nullable|string|max:100',
             'telepon' => 'nullable|string|max:50',
@@ -85,15 +84,16 @@ class SupplierController extends Controller
             'provinsi' => 'nullable|string|max:100',
             'status' => 'required|in:aktif,nonaktif'
         ], [
-            'kode_supplier.required' => 'Kode Supplier wajib diisi',
-            'kode_supplier.unique' => 'Kode Supplier sudah terdaftar',
             'nama_supplier.required' => 'Nama Supplier wajib diisi',
             'email.email' => 'Format email tidak valid',
             'status.required' => 'Status wajib dipilih'
         ]);
 
+        // Generate kode_supplier otomatis
+        $kodeSupplier = $this->generateKodeSupplier();
+
         Supplier::create([
-            'kode_supplier' => $request->kode_supplier,
+            'kode_supplier' => $kodeSupplier,
             'nama_supplier' => $request->nama_supplier,
             'kontak_person' => $request->kontak_person,
             'telepon' => $request->telepon,
@@ -167,5 +167,18 @@ class SupplierController extends Controller
             'status' => true,
             'message' => 'Supplier berhasil dihapus'
         ]);
+    }
+
+    public function generateKode()
+    {
+        $kodeSupplier = $this->generateKodeSupplier();
+        return response()->json(['kode_supplier' => $kodeSupplier]);
+    }
+
+    private function generateKodeSupplier()
+    {
+        $lastSupplier = Supplier::orderBy('id', 'desc')->first();
+        $nextNumber = $lastSupplier ? intval(substr($lastSupplier->kode_supplier, 3)) + 1 : 1;
+        return 'SUP' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 }

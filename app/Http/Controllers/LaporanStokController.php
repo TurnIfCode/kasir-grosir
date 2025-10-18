@@ -41,7 +41,7 @@ class LaporanStokController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->editColumn('stok_akhir', fn($row) => number_format($row->stok_akhir, 0, ',', '.'))
+            ->editColumn('stok_akhir', fn($row) => round($row->stok_akhir))
             ->make(true);
     }
 

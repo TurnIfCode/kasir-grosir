@@ -74,7 +74,7 @@
           <tr>
             <td>{{ $b->kode_barang }}</td>
             <td>{{ $b->nama_barang }}</td>
-            <td>{{ $b->stok }}</td>
+            <td>{{ round($b->stok) }}</td>
           </tr>
         @empty
           <tr><td colspan="3" class="text-center">Semua stok aman</td></tr>
@@ -101,7 +101,7 @@
             <td>{{ $trx->kode_penjualan }}</td>
             <td>{{ \Carbon\Carbon::parse($trx->tanggal_penjualan)->format('d/m/Y') }}</td>
             <td>Rp {{ number_format($trx->grand_total, 0, ',', '.') }}</td>
-            <td>{{ $trx->created_by }}</td>
+            <td>{{ $trx->created_by_name }}</td>
           </tr>
         @empty
           <tr><td colspan="4" class="text-center">Belum ada transaksi</td></tr>
