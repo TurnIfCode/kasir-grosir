@@ -83,9 +83,9 @@
           <div class="mb-3">
             <label for="logo" class="form-label">Logo Toko</label>
             <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
-            @if($profilToko->logo)
+            @if(file_exists(public_path('assets/images/logo/logo.png')))
               <div class="mt-2">
-                <img src="{{ asset('storage/' . $profilToko->logo) }}" alt="Logo Toko" height="100" class="img-thumbnail">
+                <img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo Toko" height="100" class="img-thumbnail">
               </div>
             @endif
           </div>

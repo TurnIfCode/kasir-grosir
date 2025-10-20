@@ -1,4 +1,3 @@
-# TODO: Reorder Barang Form Fields
-
-- [x] Edit resources/views/barang/add.blade.php: Remove row and column classes to stack fields vertically.
-- [x] Edit resources/views/barang/index.blade.php: In the edit modal, remove row and column classes, stack fields vertically.
+- [x] Edit resources/views/login.blade.php: Replace conditional logo display with direct img tag using assets/images/logo/logo.png
+- [x] Edit resources/views/layout/header.blade.php: Replace conditionals for sidebar and navbar logos with direct img tags using assets/images/logo/logo.png
+- [ ] Verify logos display correctly on login, menu, and profile pages

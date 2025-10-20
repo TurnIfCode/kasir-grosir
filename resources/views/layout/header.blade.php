@@ -216,14 +216,7 @@
   <!-- Sidebar -->
   <nav class="sidebar">
     <h4 class="text-center mb-4">
-      @php
-        $profilToko = \App\Models\ProfilToko::first();
-      @endphp
-      @if($profilToko && $profilToko->logo)
-        <img src="{{ asset('storage/' . $profilToko->logo) }}" alt="{{ $profilToko->nama_toko ?? 'Logo' }}" class="img-fluid" style="max-height: 40px;">
-      @else
-        <img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 40px;">
-      @endif
+      <img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 40px;">
     </h4>
 
     <ul class="nav flex-column" id="sidebarMenu">
@@ -417,14 +410,7 @@
         <i class="fa fa-envelope me-3"></i>
         <span class="me-3 d-none d-sm-inline">Welcome, <strong>{{ auth()->user()->name }}</strong></span>
         <div class="dropdown">
-          @php
-            $profilToko = \App\Models\ProfilToko::first();
-          @endphp
-          @if($profilToko && $profilToko->logo)
-            <img src="{{ asset('storage/' . $profilToko->logo) }}" class="rounded-circle dropdown-toggle" alt="{{ $profilToko->nama_toko ?? 'User' }}" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
-          @else
-            <img src="{{ asset('assets/images/logo/logo.png') }}" class="rounded-circle dropdown-toggle" alt="User" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
-          @endif
+          <img src="{{ asset('assets/images/logo/logo.png') }}" class="rounded-circle dropdown-toggle" alt="User" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
           <ul class="dropdown-menu" aria-labelledby="userDropdown">
             <li><a class="dropdown-item" href="#"><i class="fa fa-user me-2"></i> Profile</a></li>
             <li><hr class="dropdown-divider"></li>
@@ -510,25 +496,18 @@
       // Sidebar toggle functionality
       $('#sidebarToggle').click(function() {
         $('.sidebar').toggleClass('show');
-        if ($(window).width() < 768) {
-          $('#sidebarOverlay').toggle();
-        }
       });
 
-      // Close sidebar when clicking overlay (only on mobile)
+      // Close sidebar when clicking overlay
       $('#sidebarOverlay').click(function() {
-        if ($(window).width() < 768) {
-          $('.sidebar').removeClass('show');
-          $(this).hide();
-        }
+        $('.sidebar').removeClass('show');
+        $(this).hide();
       });
 
-      // Close sidebar on mobile when clicking a nav link (only for actual links, not dropdown toggles)
+      // Close sidebar when clicking a nav link (only for actual links, not dropdown toggles)
       $('.sidebar .nav-link').not('.dropdown-toggle').click(function() {
-        if ($(window).width() < 768) {
-          $('.sidebar').removeClass('show');
-          $('#sidebarOverlay').hide();
-        }
+        $('.sidebar').removeClass('show');
+        $('#sidebarOverlay').hide();
       });
 
       // Prevent closing sidebar when clicking on dropdown toggles

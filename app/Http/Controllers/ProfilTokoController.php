@@ -54,14 +54,10 @@ class ProfilTokoController extends Controller
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
-            // Hapus logo lama jika ada
-            if ($profilToko->logo && Storage::disk('public')->exists($profilToko->logo)) {
-                Storage::disk('public')->delete($profilToko->logo);
-            }
-
-            // Upload logo baru
-            $logoPath = $request->file('logo')->store('uploads/logo_toko', 'public');
-            $validated['logo'] = $logoPath;
+            // Simpan logo ke public/assets/images/logo/logo.png, overwrite jika ada
+            $logoPath = public_path('assets/images/logo/logo.png');
+            $request->file('logo')->move(dirname($logoPath), 'logo.png');
+            $validated['logo'] = 'assets/images/logo/logo.png';
         } else {
             // Jika tidak ada file baru, gunakan logo lama
             unset($validated['logo']);
