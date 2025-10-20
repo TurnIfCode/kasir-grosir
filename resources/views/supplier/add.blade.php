@@ -6,73 +6,53 @@
     <form id="addSupplierForm" action="#" method="POST">
       @csrf
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="kode_supplier">Kode Supplier</label>
-            <input type="text" class="form-control" id="kode_supplier" name="kode_supplier" readonly>
-            <small class="form-text text-muted">Kode supplier akan di-generate otomatis</small>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="nama_supplier">Nama Supplier *</label>
-            <input type="text" class="form-control" id="nama_supplier" name="nama_supplier">
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="kode_supplier">Kode Supplier</label>
+        <input type="text" class="form-control" id="kode_supplier" name="kode_supplier" readonly>
+        <small class="form-text text-muted">Kode supplier akan di-generate otomatis</small>
       </div>
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="kontak_person">Kontak Person</label>
-            <input type="text" class="form-control" id="kontak_person" name="kontak_person">
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="telepon">Telepon</label>
-            <input type="text" class="form-control" id="telepon" name="telepon">
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="nama_supplier">Nama Supplier*</label>
+        <input type="text" class="form-control" id="nama_supplier" name="nama_supplier">
       </div>
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="email">Email</label>
-            <input type="email" class="form-control" id="email" name="email">
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="status">Status *</label>
-            <select class="form-control" id="status" name="status">
-              <option value="aktif">Aktif</option>
-              <option value="nonaktif">Nonaktif</option>
-            </select>
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="kontak_person">Kontak</label>
+        <input type="text" class="form-control" id="kontak_person" name="kontak_person">
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="telepon">Telepon</label>
+        <input type="text" class="form-control" id="telepon" name="telepon">
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="email">Email</label>
+        <input type="email" class="form-control" id="email" name="email">
       </div>
 
       <div class="form-group mb-3">
         <label for="alamat">Alamat</label>
-        <textarea class="form-control" id="alamat" name="alamat" rows="3"></textarea>
+        <textarea class="form-control" id="alamat" name="alamat" rows="3">-</textarea>
       </div>
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="kota">Kota</label>
-            <input type="text" class="form-control" id="kota" name="kota">
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="provinsi">Provinsi</label>
-            <input type="text" class="form-control" id="provinsi" name="provinsi">
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="kota">Kota</label>
+        <input type="text" class="form-control" id="kota" name="kota">
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="provinsi">Provinsi</label>
+        <input type="text" class="form-control" id="provinsi" name="provinsi">
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="status">Status *</label>
+        <select class="form-control" id="status" name="status">
+          <option value="aktif">Aktif</option>
+          <option value="nonaktif">Nonaktif</option>
+        </select>
       </div>
 
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
@@ -93,6 +73,21 @@ $(document).ready(function() {
     }
   });
   $("#btnSave").click(function() {
+    if ($('[name="kontak_person"]').val() == '') {
+      $('[name="kontak_person"]').val('-');
+    }
+    if ($('[name="telepon"]').val() == '') {
+      $('[name="telepon"]').val('-');
+    }
+    if ($('[name="kota"]').val() == '') {
+      $('[name="kota"]').val('-');
+    }
+    if ($('[name="provinsi"]').val() == '') {
+      $('[name="provinsi"]').val('-');
+    }
+    if ($('[name="alamat"]').val() == '') {
+      $('[name="alamat"]').val('-');
+    }
     $('#addSupplierForm').validate({
       rules: {
         nama_supplier: {

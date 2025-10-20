@@ -20,16 +20,15 @@ class SatuanController extends Controller
             $length = $request->get('length');
             $search = $request->get('search')['value'];
 
-            $query = Satuan::query();
+            $query = Satuan::where('status', 'AKTIF');
 
             if (!empty($search)) {
                 $query->where('kode_satuan', 'like', '%' . $search . '%')
                       ->orWhere('nama_satuan', 'like', '%' . $search . '%')
-                      ->orWhere('deskripsi', 'like', '%' . $search . '%')
-                      ->orWhere('status', 'like', '%' . $search . '%');
+                      ->orWhere('deskripsi', 'like', '%' . $search . '%');
             }
 
-            $totalRecords = Satuan::count();
+            $totalRecords = Satuan::where('status', 'AKTIF')->count();
             $filteredRecords = $query->count();
 
             $satuans = $query->skip($start)->take($length)->get();
@@ -37,11 +36,12 @@ class SatuanController extends Controller
             $data = [];
             foreach ($satuans as $satuan) {
                 $data[] = [
+                    'id' => $satuan->id,
                     'kode_satuan' => $satuan->kode_satuan,
                     'nama_satuan' => $satuan->nama_satuan,
                     'deskripsi' => $satuan->deskripsi,
                     'status' => $satuan->status,
-                    'aksi' => '<a id="btnEdit" data-id="' . $satuan->id . '" class="btn btn-sm btn-warning">Edit</a> <a data-id="' . $satuan->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a id="btnDetail" data-id="' . $satuan->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a id="btnEdit" data-id="' . $satuan->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a data-id="' . $satuan->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -107,6 +107,8 @@ class SatuanController extends Controller
         $satuan->status = $status;
         $satuan->created_by = auth()->check() ? auth()->user()->id : null;
         $satuan->updated_by = auth()->check() ? auth()->user()->id : null;
+        $satuan->created_at = now();
+        $satuan->updated_at = now();
         $satuan->save();
 
         return response()->json([
@@ -117,7 +119,7 @@ class SatuanController extends Controller
 
     public function find($id)
     {
-        $satuan = Satuan::find($id);
+        $satuan = Satuan::with(['creator', 'updater'])->find($id);
         if (!$satuan) {
             return response()->json([
                 'status' => false,
@@ -125,9 +127,13 @@ class SatuanController extends Controller
             ]);
         }
 
+        $data = $satuan->toArray();
+        $data['created_by'] = $satuan->creator ? $satuan->creator->name : '-';
+        $data['updated_by'] = $satuan->updater ? $satuan->updater->name : '-';
+
         return response()->json([
             'status' => true,
-            'data' => $satuan
+            'data' => $data
         ]);
     }
 
@@ -163,6 +169,7 @@ class SatuanController extends Controller
         $satuan->deskripsi = $deskripsi;
         $satuan->status = $status;
         $satuan->updated_by = auth()->check() ? auth()->user()->id : null;
+        $satuan->updated_at = now();
         $satuan->save();
 
         return response()->json([

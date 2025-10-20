@@ -20,6 +20,28 @@
   </div>
 </div>
 
+<!-- Modal Detail User -->
+<div class="modal fade" id="detailUserModal" tabindex="-1" aria-labelledby="detailUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailUserModalLabel">Detail User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="userDetailBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Tambah User -->
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="updateUserModal" aria-hidden="true">
   <div class="modal-dialog">
@@ -152,6 +174,40 @@ $(document).ready(function() {
         }
       });
     }
+  });
+
+  // Ketika klik tombol Detail di table -> tampilkan modal detail
+  $(document).on('click', '#btnDetail', function() {
+    var userId = $(this).data('id');
+
+    $.ajax({
+      url: '/user/' + userId + '/find',
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var user = response.data;
+          var detailHtml = '';
+
+          // Format data untuk tabel detail
+          detailHtml += '<tr><td><strong>Username</strong></td><td>' + (user.username || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Nama Lengkap</strong></td><td>' + (user.name || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Role</strong></td><td>' + (user.role || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Status</strong></td><td>' + (user.status || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (user.created_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Pada</strong></td><td>' + (user.created_at || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (user.updated_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Pada</strong></td><td>' + (user.updated_at || '-') + '</td></tr>';
+
+          $('#userDetailBody').html(detailHtml);
+          $('#detailUserModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
   });
 
   // Ketika klik tombol Edit di table -> isi form + simpan userId

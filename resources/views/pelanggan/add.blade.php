@@ -6,53 +6,38 @@
     <form id="addPelangganForm" action="#" method="POST">
       @csrf
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="kode_pelanggan">Kode Pelanggan</label>
-            <input type="text" class="form-control" id="kode_pelanggan" name="kode_pelanggan" readonly>
-            <small class="form-text text-muted">Kode pelanggan akan di-generate otomatis</small>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="nama_pelanggan">Nama Pelanggan *</label>
-            <input type="text" class="form-control" id="nama_pelanggan" name="nama_pelanggan">
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="kode_pelanggan">Kode Pelanggan</label>
+        <input type="text" class="form-control" id="kode_pelanggan" name="kode_pelanggan" readonly>
+        <small class="form-text text-muted">Kode pelanggan akan di-generate otomatis</small>
       </div>
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="telepon">Telepon</label>
-            <input type="text" class="form-control" id="telepon" name="telepon">
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="email">Email</label>
-            <input type="email" class="form-control" id="email" name="email">
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="nama_pelanggan">Nama Pelanggan *</label>
+        <input type="text" class="form-control" id="nama_pelanggan" name="nama_pelanggan">
       </div>
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="alamat">Alamat</label>
-            <textarea class="form-control" id="alamat" name="alamat" rows="3"></textarea>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group mb-3">
-            <label for="status">Status *</label>
-            <select class="form-control" id="status" name="status">
-              <option value="aktif">Aktif</option>
-              <option value="non_aktif">Non Aktif</option>
-            </select>
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="telepon">Telepon</label>
+        <input type="text" class="form-control" id="telepon" name="telepon">
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="email">Email</label>
+        <input type="email" class="form-control" id="email" name="email">
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="alamat">Alamat</label>
+        <textarea class="form-control" id="alamat" name="alamat" rows="3"></textarea>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="status">Status *</label>
+        <select class="form-control" id="status" name="status">
+          <option value="aktif">Aktif</option>
+          <option value="non_aktif">Non Aktif</option>
+        </select>
       </div>
 
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>

@@ -11,9 +11,8 @@ class KonversiSatuanController extends Controller
 {
     public function index()
     {
-        $barang = Barang::where('status', 'aktif')->get();
         $satuan = Satuan::where('status', 'aktif')->get();
-        return view('konversi.index', compact('barang', 'satuan'));
+        return view('konversi.index', compact('satuan'));
     }
 
     public function data(Request $request)
@@ -50,7 +49,8 @@ class KonversiSatuanController extends Controller
             $data = [];
             $no = $start + 1;
             foreach ($konversi as $k) {
-                $data[] = [
+            $data[] = [
+                    'id' => $k->id,
                     'DT_RowIndex' => $no++,
                     'barang' => $k->barang ? $k->barang->nama_barang : '-',
                     'satuan_dasar' => $k->satuanDasar ? $k->satuanDasar->nama_satuan : '-',
@@ -59,7 +59,7 @@ class KonversiSatuanController extends Controller
                     'harga_beli' => 'Rp ' . number_format($k->harga_beli, 0, ',', '.'),
                     'harga_jual' => 'Rp ' . number_format($k->harga_jual, 0, ',', '.'),
                     'status' => $k->status,
-                    'aksi' => '<a href="#" id="btnEdit" data-id="' . $k->id . '" class="btn btn-sm btn-warning">Edit</a> <a href="#" data-id="' . $k->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $k->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>'
                 ];
             }
 
@@ -76,9 +76,8 @@ class KonversiSatuanController extends Controller
 
     public function add()
     {
-        $barang = Barang::where('status', 'aktif')->get();
         $satuan = Satuan::where('status', 'aktif')->get();
-        return view('konversi.add', compact('barang', 'satuan'));
+        return view('konversi.add', compact('satuan'));
     }
 
     public function store(Request $request)
@@ -167,6 +166,8 @@ class KonversiSatuanController extends Controller
         $konversi->harga_beli = $hargaBeli;
         $konversi->harga_jual = $hargaJual;
         $konversi->status = $status;
+        $konversi->created_at = now();
+        $konversi->updated_at = now();
         $konversi->save();
 
         return response()->json([
@@ -177,7 +178,7 @@ class KonversiSatuanController extends Controller
 
     public function find($id)
     {
-        $konversi = KonversiSatuan::with('barang', 'satuanDasar', 'satuanKonversi')->find($id);
+        $konversi = KonversiSatuan::with('barang', 'satuanDasar', 'satuanKonversi', 'creator', 'updater')->find($id);
         if (!$konversi) {
             return response()->json([
                 'status' => false,
@@ -185,9 +186,13 @@ class KonversiSatuanController extends Controller
             ]);
         }
 
+        $data = $konversi->toArray();
+        $data['created_by'] = $konversi->creator ? $konversi->creator->name : '-';
+        $data['updated_by'] = $konversi->updater ? $konversi->updater->name : '-';
+
         return response()->json([
             'status' => true,
-            'data' => $konversi
+            'data' => $data
         ]);
     }
 
@@ -278,6 +283,7 @@ class KonversiSatuanController extends Controller
         $konversi->harga_beli = $hargaBeli;
         $konversi->harga_jual = $hargaJual;
         $konversi->status = $status;
+        $konversi->updated_at = now();
         $konversi->save();
 
         return response()->json([

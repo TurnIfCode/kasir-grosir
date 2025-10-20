@@ -6,19 +6,13 @@
       @csrf
 
       <div class="form-group">
-        <label for="barang_id">Pilih Barang</label>
-        <select name="barang_id" id="barang_id" class="form-control" required>
-          <option value="">-- Pilih Barang --</option>
-          @if(isset($barang))
-            @foreach($barang as $b)
-              <option value="{{ $b->id }}">{{ $b->kode_barang }} - {{ $b->nama_barang }}</option>
-            @endforeach
-          @endif
-        </select>
+        <label for="barang_id">Pilih Barang *</label>
+        <input type="text" class="form-control barang-autocomplete" id="barang_nama" name="barang_nama" placeholder="Ketik nama, kode barang atau scan barcode" required>
+        <input type="hidden" name="barang_id" id="barang_id" required>
       </div>
 
       <div class="form-group">
-        <label for="satuan_dasar_id">Satuan Dasar</label>
+        <label for="satuan_dasar_id">Satuan Dasar *</label>
         <select name="satuan_dasar_id" id="satuan_dasar_id" class="form-control" required>
           <option value="">-- Pilih Satuan Dasar --</option>
           @if(isset($satuan))
@@ -30,7 +24,7 @@
       </div>
 
       <div class="form-group">
-        <label for="satuan_konversi_id">Satuan Konversi</label>
+        <label for="satuan_konversi_id">Satuan Konversi *</label>
         <select name="satuan_konversi_id" id="satuan_konversi_id" class="form-control" required>
           <option value="">-- Pilih Satuan Konversi --</option>
           @if(isset($satuan))
@@ -42,21 +36,21 @@
       </div>
 
       <div class="form-group">
-        <label for="nilai_konversi">Nilai Konversi</label>
+        <label for="nilai_konversi">Nilai Konversi *</label>
         <input type="number" step="0.01" name="nilai_konversi" id="nilai_konversi"
                class="form-control" placeholder="contoh: 12 (1 pack = 12 bungkus)" required>
       </div>
 
       <div class="form-group">
-        <label for="harga_beli">Harga Beli Satuan Konversi</label>
+        <label for="harga_beli">Harga Beli Satuan Konversi *</label>
         <input type="number" step="0.01" name="harga_beli" id="harga_beli"
-               class="form-control" placeholder="contoh: 324000">
+               class="form-control" placeholder="contoh: 324000" required>
       </div>
 
       <div class="form-group">
-        <label for="harga_jual">Harga Jual Satuan Konversi</label>
+        <label for="harga_jual">Harga Jual Satuan Konversi *</label>
         <input type="number" step="0.01" name="harga_jual" id="harga_jual"
-               class="form-control" placeholder="contoh: 384000">
+               class="form-control" placeholder="contoh: 384000" required>
       </div>
 
       <div class="form-group">
@@ -80,6 +74,7 @@
             <th>Harga Beli</th>
             <th>Harga Jual</th>
             <th>Status</th>
+            <th>Aksi</th>
           </tr>
         </thead>
         <tbody id="konversiTableBody">
@@ -119,6 +114,7 @@ $(document).ready(function() {
             html += '<td>' + k.harga_beli + '</td>';
             html += '<td>' + k.harga_jual + '</td>';
             html += '<td>' + k.status + '</td>';
+            html += '<td><a href="#" data-id="' + k.id + '" class="btn btn-sm btn-danger btn-delete"><i class="fas fa-trash"></i></a></td>';
             html += '</tr>';
           });
           $('#konversiTableBody').html(html);
@@ -130,10 +126,86 @@ $(document).ready(function() {
     });
   }
 
+  // Autocomplete barang
+  $('.barang-autocomplete').autocomplete({
+    source: function(request, response) {
+      $.ajax({
+        url: '{{ route("barang.search") }}',
+        dataType: 'json',
+        data: { q: request.term },
+        success: function(data) {
+          if (data.status === 'success') {
+            response($.map(data.data, function(item) {
+              return {
+                label: item.kode_barang + ' - ' + item.nama_barang,
+                value: item.nama_barang,
+                id: item.id
+              };
+            }));
+          }
+        }
+      });
+    },
+    minLength: 2,
+    select: function(event, ui) {
+      $('#barang_id').val(ui.item.id);
+      $('#barang_nama').val(ui.item.value);
+      loadKonversiTable(ui.item.id);
+      return false;
+    }
+  });
+
   // On barang change, load konversi table
-  $('#barang_id').on('change', function() {
-    var barangId = $(this).val();
-    loadKonversiTable(barangId);
+  $('#barang_nama').on('input', function() {
+    if ($(this).val() === '') {
+      $('#barang_id').val('');
+      loadKonversiTable('');
+    }
+  });
+
+  // Handle delete button click
+  $(document).on('click', '.btn-delete', function(e) {
+    e.preventDefault();
+    var konversiId = $(this).data('id');
+    var barangId = $('#barang_id').val();
+
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Data konversi satuan akan dihapus permanen!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: '{{ route("konversi-satuan.delete", ":id") }}'.replace(':id', konversiId),
+          type: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+          },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil',
+              text: response.message
+            }).then(function() {
+              // Reload konversi table
+              loadKonversiTable(barangId);
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan'
+            });
+          }
+        });
+      }
+    });
   });
 
   // Add validation rule for different satuan
@@ -144,7 +216,7 @@ $(document).ready(function() {
   $("#addKonversiForm").click(function() {
     $('#addKonversiForm').validate({
       rules: {
-        barang_id: {
+        barang_nama: {
           required: true
         },
         satuan_dasar_id: {
@@ -160,34 +232,38 @@ $(document).ready(function() {
           min: 0.01
         },
         harga_beli: {
+          required: true,
           number: true,
           min: 0
         },
         harga_jual: {
+          required: true,
           number: true,
           min: 0
         }
       },
       messages: {
-        barang_id: {
-          required: "Barang wajib dipilih"
+        barang_nama: {
+          required: "Barang harus diisi"
         },
         satuan_dasar_id: {
-          required: "Satuan Dasar wajib dipilih"
+          required: "Satuan Dasar harus diisi"
         },
         satuan_konversi_id: {
-          required: "Satuan Konversi wajib dipilih"
+          required: "Satuan Konversi harus diisi"
         },
         nilai_konversi: {
-          required: "Nilai Konversi wajib diisi",
+          required: "Nilai Konversi harus diisi",
           number: "Nilai Konversi harus berupa angka",
           min: "Nilai Konversi harus lebih dari 0"
         },
         harga_beli: {
+          required: "Harga Beli Satuan Konversi harus diisi",
           number: "Harga Beli harus berupa angka",
           min: "Harga Beli tidak boleh negatif"
         },
         harga_jual: {
+          required: "Harga Jual Satuan Konversi harus diisi",
           number: "Harga Jual harus berupa angka",
           min: "Harga Jual tidak boleh negatif"
         }
@@ -208,6 +284,7 @@ $(document).ready(function() {
               loadKonversiTable(barangId);
               // Reset form
               form.reset();
+              $('#barang_nama').val('');
             });
           },
           error: function(xhr) {

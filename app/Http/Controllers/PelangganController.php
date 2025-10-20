@@ -51,7 +51,7 @@ class PelangganController extends Controller
                     'email' => $pelanggan->email ?: '-',
                     'alamat' => $pelanggan->alamat ?: '-',
                     'status' => $pelanggan->status,
-                    'aksi' => '<a href="#" id="btnEdit" data-id="' . $pelanggan->id . '" class="btn btn-sm btn-warning">Edit</a> <a href="#" data-id="' . $pelanggan->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $pelanggan->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $pelanggan->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $pelanggan->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -90,7 +90,9 @@ class PelangganController extends Controller
             'email' => $request->email,
             'alamat' => $request->alamat,
             'status' => $request->status,
-            'created_by' => auth()->check() ? auth()->user()->id : null
+            'created_by' => auth()->check() ? auth()->user()->id : null,
+            'created_at' => now(),
+            'updated_at' => now()
         ]);
 
         return response()->json([
@@ -101,8 +103,11 @@ class PelangganController extends Controller
 
     public function find($id)
     {
-        $pelanggan = Pelanggan::findOrFail($id);
-        return response()->json($pelanggan);
+        $pelanggan = Pelanggan::with(['creator', 'updater'])->findOrFail($id);
+        $data = $pelanggan->toArray();
+        $data['created_by'] = $pelanggan->creator ? $pelanggan->creator->name : '-';
+        $data['updated_by'] = $pelanggan->updater ? $pelanggan->updater->name : '-';
+        return response()->json($data);
     }
 
     public function update(Request $request, $id)
@@ -131,7 +136,8 @@ class PelangganController extends Controller
             'email' => $request->email,
             'alamat' => $request->alamat,
             'status' => $request->status,
-            'updated_by' => auth()->check() ? auth()->user()->id : null
+            'updated_by' => auth()->check() ? auth()->user()->id : null,
+            'updated_at' => now()
         ]);
 
         return response()->json([

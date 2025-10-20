@@ -43,7 +43,7 @@ class UserController extends Controller
                     'name' => $user->name,
                     'role' => $user->role,
                     'status' => $user->status,
-                    'aksi' => '<a id="btnEdit" data-id="' . $user->id . '" class="btn btn-sm btn-warning">Edit</a> <a data-id="' . $user->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a id="btnDetail" data-id="' . $user->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a id="btnEdit" data-id="' . $user->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a data-id="' . $user->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 

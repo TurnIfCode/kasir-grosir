@@ -12,6 +12,8 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PelangganController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\KasController;
+use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
 
 Route::get('/', function () {
@@ -106,6 +108,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}/update', [SupplierController::class, 'update'])->name('supplier.update');
         Route::delete('/{id}/delete', [SupplierController::class, 'delete'])->name('supplier.delete');
         Route::get('/generate-kode', [SupplierController::class, 'generateKode'])->name('supplier.generate-kode');
+        Route::get('/search', [SupplierController::class, 'search'])->name('supplier.search');
     });
 
     Route::prefix('pelanggan')->group(function () {
@@ -126,6 +129,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [\App\Http\Controllers\Transaksi\PembelianController::class, 'store'])->name('pembelian.store');
 
         // AJAX endpoints menggunakan API dari master-barang
+        Route::get('/autocomplete-barang', [\App\Http\Controllers\Transaksi\PembelianController::class, 'autocompleteBarang'])->name('pembelian.autocomplete-barang');
 
         Route::get('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'show'])->name('pembelian.show');
         Route::get('/{id}/edit', [\App\Http\Controllers\Transaksi\PembelianController::class, 'edit'])->name('pembelian.edit');
@@ -193,6 +197,35 @@ Route::middleware('auth')->group(function () {
     Route::resource('stok-opname', \App\Http\Controllers\StokOpnameController::class);
     Route::post('stok-opname/{id}/update-status', [\App\Http\Controllers\StokOpnameController::class, 'updateStatus'])->name('stok-opname.updateStatus');
 
+    // Kas Routes
+    Route::prefix('kas')->group(function () {
+        Route::get('/', [KasController::class, 'index'])->name('kas.index');
+        Route::get('/data', [KasController::class, 'data'])->name('kas.data');
+        Route::get('/create', [KasController::class, 'create'])->name('kas.create');
+        Route::post('/store', [KasController::class, 'store'])->name('kas.store');
+        Route::get('/{id}/edit', [KasController::class, 'edit'])->name('kas.edit');
+        Route::put('/{id}/update', [KasController::class, 'update'])->name('kas.update');
+        Route::delete('/{id}/delete', [KasController::class, 'destroy'])->name('kas.delete');
+        Route::get('/masuk', function () {
+            return redirect()->route('kas.create', ['tipe' => 'masuk']);
+        })->name('kas.masuk');
+        Route::get('/keluar', function () {
+            return redirect()->route('kas.create', ['tipe' => 'keluar']);
+        })->name('kas.keluar');
+    });
 
+    // Kas Saldo Routes
+    Route::prefix('kas-saldo')->group(function () {
+        Route::get('/', [KasSaldoController::class, 'index'])->name('kas-saldo.index');
+        Route::get('/data', [KasSaldoController::class, 'data'])->name('kas-saldo.data');
+        Route::get('/create', [KasSaldoController::class, 'create'])->name('kas-saldo.create');
+        Route::post('/store', [KasSaldoController::class, 'store'])->name('kas-saldo.store');
+        Route::get('/{id}/edit', [KasSaldoController::class, 'edit'])->name('kas-saldo.edit');
+        Route::put('/{id}/update', [KasSaldoController::class, 'update'])->name('kas-saldo.update');
+        Route::delete('/{id}/delete', [KasSaldoController::class, 'destroy'])->name('kas-saldo.delete');
+    });
+
+    // Profil Toko Routes
+    Route::resource('profil-toko', \App\Http\Controllers\ProfilTokoController::class)->only(['index', 'update']);
 
 });

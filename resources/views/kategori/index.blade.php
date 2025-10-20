@@ -21,6 +21,28 @@
   </div>
 </div>
 
+<!-- Modal Detail Kategori -->
+<div class="modal fade" id="detailKategoriModal" tabindex="-1" aria-labelledby="detailKategoriModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailKategoriModalLabel">Detail Kategori</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="kategoriDetailBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edit Kategori -->
 <div class="modal fade" id="editKategoriModal" tabindex="-1" aria-labelledby="editKategoriModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -43,13 +65,13 @@
           </div>
           <div class="mb-3">
             <label for="deskripsi" class="form-label">Deskripsi</label>
-            <input type="text" class="form-control" id="editDeskripsi" name="deskripsi">
+            <input type="text" class="form-control" id="editDeskripsi" name="deskripsi" placeholder="-">
           </div>
           <div class="mb-3">
             <label for="status" class="form-label">Status Aktif</label>
             <select class="form-control" id="editStatus" name="status" required>
-              <option value="AKTIF">AKTIF</option>
-              <option value="NONAKTIF">NONAKTIF</option>
+              <option value="aktif">AKTIF</option>
+              <option value="nonaktif">TIDAK AKTIF</option>
             </select>
           </div>
         </form>
@@ -106,6 +128,11 @@ $(document).ready(function() {
       $(element).removeClass('is-invalid');
     },
     submitHandler: function(form) {
+      // Set default deskripsi jika kosong
+      if (!$('#editDeskripsi').val().trim()) {
+        $('#editDeskripsi').val('-');
+      }
+
       var kategoriId = $('#kategoriId').val();
       if (!kategoriId) {
         Swal.fire('Error', 'Kategori ID tidak ditemukan. Coba lagi.', 'error');
@@ -141,6 +168,40 @@ $(document).ready(function() {
         }
       });
     }
+  });
+
+  // Detail handler
+  $(document).on('click', '#btnDetail', function() {
+    var kategoriId = $(this).data('id');
+
+    $.ajax({
+      url: '{{ route("kategori.find", ":id") }}'.replace(':id', kategoriId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var kategori = response.data;
+          var detailHtml = '';
+
+          // Format data untuk tabel detail
+          detailHtml += '<tr><td><strong>Kode Kategori</strong></td><td>' + (kategori.kode_kategori || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Nama Kategori</strong></td><td>' + (kategori.nama_kategori || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Deskripsi</strong></td><td>' + (kategori.deskripsi || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Status</strong></td><td>' + (kategori.status || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (kategori.created_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Pada</strong></td><td>' + (kategori.created_at || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (kategori.updated_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Pada</strong></td><td>' + (kategori.updated_at || '-') + '</td></tr>';
+
+          $('#kategoriDetailBody').html(detailHtml);
+          $('#detailKategoriModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
   });
 
   // Edit handler

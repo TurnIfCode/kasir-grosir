@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Dashboard - GrosirIndo</title>
   <link rel="icon" href="{{ asset('assets/icon/icon.ico') }}">
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <!-- Font Awesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
@@ -38,7 +42,7 @@
 
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
+      font-family: 'Inter', sans-serif;
       background-color: #f8f9fa;
     }
 
@@ -212,7 +216,14 @@
   <!-- Sidebar -->
   <nav class="sidebar">
     <h4 class="text-center mb-4">
-      <img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 40px;">
+      @php
+        $profilToko = \App\Models\ProfilToko::first();
+      @endphp
+      @if($profilToko && $profilToko->logo)
+        <img src="{{ asset('storage/' . $profilToko->logo) }}" alt="{{ $profilToko->nama_toko ?? 'Logo' }}" class="img-fluid" style="max-height: 40px;">
+      @else
+        <img src="{{ asset('assets/images/logo/logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 40px;">
+      @endif
     </h4>
 
     <ul class="nav flex-column" id="sidebarMenu">
@@ -350,6 +361,19 @@
       @endif
 
       @if(auth()->user()->role == 'ADMIN')
+      <!-- Keuangan -->
+      <li class="nav-item">
+        <a href="#menuKeuangan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuKeuangan" role="button" aria-expanded="false">
+          <i class="fas fa-money-bill-wave"></i> Keuangan
+        </a>
+        <ul class="collapse nav flex-column ms-3" id="menuKeuangan" data-bs-parent="#sidebarMenu">
+          <li><a class="nav-link" href="{{ route('kas.masuk') }}"><i class="fas fa-plus-circle"></i> Kas Masuk</a></li>
+          <li><a class="nav-link" href="{{ route('kas.keluar') }}"><i class="fas fa-minus-circle"></i> Kas Keluar</a></li>
+          <li><a class="nav-link" href="{{ route('kas.index') }}"><i class="fas fa-list"></i> Daftar Transaksi Kas</a></li>
+          <li><a class="nav-link" href="{{ route('kas-saldo.index') }}"><i class="fas fa-chart-line"></i> Arus Kas (Cash Flow)</a></li>
+        </ul>
+      </li>
+
       <!-- Laporan -->
       <li class="nav-item">
         <a href="#menuLaporan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuLaporan" role="button" aria-expanded="false">
@@ -363,6 +387,16 @@
           <li><a class="nav-link" href="{{ route('laporan.rekap_harian') }}"><i class="fas fa-calendar-day"></i> Rekap Harian</a></li>
                     <li><a class="nav-link" href="{{ route('laporan.rekap_bulanan') }}"><i class="fas fa-calendar-alt"></i> Rekap Bulanan</a></li>
           <li><a class="nav-link" href="{{ route('laporan.stok-opname') }}"><i class="fas fa-clipboard-check"></i> Stok Opname</a></li>
+        </ul>
+      </li>
+
+      <!-- Pengaturan -->
+      <li class="nav-item">
+        <a href="#menuPengaturan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPengaturan" role="button" aria-expanded="false">
+          <i class="fas fa-cog"></i> Pengaturan
+        </a>
+        <ul class="collapse nav flex-column ms-3" id="menuPengaturan" data-bs-parent="#sidebarMenu">
+          <li><a class="nav-link" href="{{ route('profil-toko.index') }}"><i class="fas fa-store"></i> Profil Toko</a></li>
         </ul>
       </li>
       @endif
@@ -383,7 +417,14 @@
         <i class="fa fa-envelope me-3"></i>
         <span class="me-3 d-none d-sm-inline">Welcome, <strong>{{ auth()->user()->name }}</strong></span>
         <div class="dropdown">
-          <img src="{{ asset('assets/images/logo/logo.png') }}" class="rounded-circle dropdown-toggle" alt="User" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
+          @php
+            $profilToko = \App\Models\ProfilToko::first();
+          @endphp
+          @if($profilToko && $profilToko->logo)
+            <img src="{{ asset('storage/' . $profilToko->logo) }}" class="rounded-circle dropdown-toggle" alt="{{ $profilToko->nama_toko ?? 'User' }}" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
+          @else
+            <img src="{{ asset('assets/images/logo/logo.png') }}" class="rounded-circle dropdown-toggle" alt="User" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; width: 30px; height: 30px; object-fit: cover;">
+          @endif
           <ul class="dropdown-menu" aria-labelledby="userDropdown">
             <li><a class="dropdown-item" href="#"><i class="fa fa-user me-2"></i> Profile</a></li>
             <li><hr class="dropdown-divider"></li>
@@ -451,6 +492,18 @@
         $('a[href="#menuMasterData"]').addClass('active');
         $('#menuPenjualan').addClass('show');
         $('a[href="#menuPenjualan"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/kas')) {
+        $('#menuKeuangan').addClass('show');
+        $('a[href="#menuKeuangan"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/kas-saldo')) {
+        $('#menuKeuangan').addClass('show');
+        $('a[href="#menuKeuangan"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/profil-toko')) {
+        $('#menuPengaturan').addClass('show');
+        $('a[href="#menuPengaturan"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
       }
 

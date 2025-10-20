@@ -57,7 +57,7 @@ class SupplierController extends Controller
                     'kota' => $supplier->kota ?: '-',
                     'provinsi' => $supplier->provinsi ?: '-',
                     'status' => $supplier->status,
-                    'aksi' => '<a href="#" id="btnEdit" data-id="' . $supplier->id . '" class="btn btn-sm btn-warning">Edit</a> <a href="#" data-id="' . $supplier->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $supplier->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $supplier->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $supplier->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -102,7 +102,9 @@ class SupplierController extends Controller
             'kota' => $request->kota,
             'provinsi' => $request->provinsi,
             'status' => $request->status,
-            'created_by' => auth()->check() ? auth()->user()->name : null
+            'created_by' => auth()->check() ? auth()->user()->name : null,
+            'created_at' => now(),
+            'updated_at' => now()
         ]);
 
         return response()->json([
@@ -113,8 +115,11 @@ class SupplierController extends Controller
 
     public function find($id)
     {
-        $supplier = Supplier::findOrFail($id);
-        return response()->json($supplier);
+        $supplier = Supplier::with(['creator', 'updater'])->findOrFail($id);
+        $data = $supplier->toArray();
+        $data['created_by'] = $supplier->creator ? $supplier->creator->name : '-';
+        $data['updated_by'] = $supplier->updater ? $supplier->updater->name : '-';
+        return response()->json($data);
     }
 
     public function update(Request $request, $id)
@@ -149,7 +154,8 @@ class SupplierController extends Controller
             'kota' => $request->kota,
             'provinsi' => $request->provinsi,
             'status' => $request->status,
-            'updated_by' => auth()->check() ? auth()->user()->name : null
+            'updated_by' => auth()->check() ? auth()->user()->name : null,
+            'updated_at' => now()
         ]);
 
         return response()->json([
@@ -173,6 +179,21 @@ class SupplierController extends Controller
     {
         $kodeSupplier = $this->generateKodeSupplier();
         return response()->json(['kode_supplier' => $kodeSupplier]);
+    }
+
+    public function search(Request $request)
+    {
+        $q = $request->get('q');
+        $suppliers = Supplier::where('nama_supplier', 'like', '%' . $q . '%')
+                            ->orWhere('kode_supplier', 'like', '%' . $q . '%')
+                            ->where('status', 'aktif')
+                            ->limit(10)
+                            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $suppliers
+        ]);
     }
 
     private function generateKodeSupplier()

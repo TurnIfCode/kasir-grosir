@@ -29,14 +29,16 @@ class PembelianController extends Controller
 
     public function create()
     {
-        $suppliers = Supplier::where('status', 'AKTIF')->get();
-        $barangs = Barang::where('status', 'AKTIF')->get();
-        $satuans = Satuan::where('status', 'AKTIF')->get();
-        return view('transaksi.pembelian.create', compact('suppliers', 'barangs', 'satuans'));
+        return view('transaksi.pembelian.create');
     }
 
     public function store(Request $request)
     {
+        // Handle details from JSON string if sent from list
+        if ($request->has('details') && is_string($request->details)) {
+            $request->merge(['details' => json_decode($request->details, true)]);
+        }
+
         $validator = Validator::make($request->all(), [
             'supplier_id' => 'required|exists:supplier,id',
             'tanggal_pembelian' => 'required|date',
@@ -232,6 +234,36 @@ class PembelianController extends Controller
         $barang->save();
     }
 
+    public function autocompleteBarang(Request $request)
+    {
+        $query = $request->get('q', '');
+
+        $barangs = Barang::where('status', 'AKTIF')
+            ->where(function ($q) use ($query) {
+                $q->where('nama_barang', 'like', '%' . $query . '%')
+                  ->orWhere('kode_barang', 'like', '%' . $query . '%')
+                  ->orWhere('barcode', 'like', '%' . $query . '%');
+            })
+            ->limit(10)
+            ->get();
+
+        $results = $barangs->map(function ($barang) {
+            return [
+                'id' => $barang->id,
+                'label' => $barang->kode_barang . ' - ' . $barang->nama_barang . ($barang->barcode ? ' (' . $barang->barcode . ')' : ''),
+                'value' => $barang->nama_barang,
+                'kode_barang' => $barang->kode_barang,
+                'nama_barang' => $barang->nama_barang,
+                'barcode' => $barang->barcode
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $results
+        ]);
+    }
+
     public function data(Request $request)
     {
         $query = Pembelian::with(['supplier']);
@@ -299,6 +331,11 @@ class PembelianController extends Controller
                 'status' => false,
                 'message' => 'Pembelian yang sudah selesai tidak dapat diupdate'
             ]);
+        }
+
+        // Handle details from JSON string if sent from list
+        if ($request->has('details') && is_string($request->details)) {
+            $request->merge(['details' => json_decode($request->details, true)]);
         }
 
         $validator = Validator::make($request->all(), [

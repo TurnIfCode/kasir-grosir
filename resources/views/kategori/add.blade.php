@@ -6,21 +6,21 @@
       @csrf
       <div class="mb-3">
         <label for="kode_kategori" class="form-label">Kode Kategori*</label>
-        <input type="input" class="form-control" id="kode_kategori" name="kode_kategori">
+        <input type="input" class="form-control" id="kode_kategori" name="kode_kategori" required>
       </div>
       <div class="mb-3">
         <label for="nama_kategori" class="form-label">Kategori*</label>
-        <input type="input" class="form-control" id="nama_kategori" name="nama_kategori">
+        <input type="input" class="form-control" id="nama_kategori" name="nama_kategori" required>
       </div>
       <div class="mb-3">
         <label for="deskripsi">Deksripsi</label>
-        <textarea name="deskripsi" id="deskripsi" class="form-control"></textarea>
+        <textarea name="deskripsi" id="deskripsi" class="form-control" placeholder="-"></textarea>
       </div>
       <div class="mb-3">
         <label for="status" class="form-label">Status Aktif</label>
         <select class="form-control" id="status" name="status" required>
-          <option value="AKTIF">AKTIF</option>
-          <option value="TIDAK AKTIF">TIDAK AKTIF</option>
+          <option value="aktif">AKTIF</option>
+          <option value="nonaktif">TIDAK AKTIF</option>
         </select>
       </div>
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
@@ -53,6 +53,11 @@ $(document).ready(function() {
         }
       },
       submitHandler: function(form) {
+        // Set default deskripsi jika kosong
+        if (!$('#deskripsi').val().trim()) {
+          $('#deskripsi').val('-');
+        }
+
         $.ajax({
           url: "{{ route('kategori.store') }}",
           type: "POST",

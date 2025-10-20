@@ -10,7 +10,14 @@
 <body>
     <div class="login-container">
         <div class="logo">
-            <img src="{{ asset('assets/images/logo/logo.png') }}" alt="GrosirIndo Logo">
+            @php
+                $profilToko = \App\Models\ProfilToko::first();
+            @endphp
+            @if($profilToko && $profilToko->logo)
+                <img src="{{ asset('storage/' . $profilToko->logo) }}" alt="{{ $profilToko->nama_toko ?? 'Logo Toko' }}">
+            @else
+                <img src="{{ asset('assets/images/logo/logo.png') }}" alt="GrosirIndo Logo">
+            @endif
         </div>
 
         <form method="POST" action="{{ route('login.post') }}">

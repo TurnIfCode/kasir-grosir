@@ -6,21 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Barang extends Model
 {
-    public $timestamps = false;
-
     protected $table = 'barang';
 
     protected $fillable = [
         'kode_barang',
         'nama_barang',
         'kategori_id',
-        'satuan_dasar',
+        'satuan_id',
         'stok',
-        'harga_ecer',
-        'harga_grosir',
-        'min_grosir_qty',
-        'konversi_satuan',
-        'barcode',
+        'harga_beli',
+        'harga_jual',
+        'multi_satuan',
         'deskripsi',
         'status',
         'created_by',
@@ -28,10 +24,9 @@ class Barang extends Model
     ];
 
     protected $casts = [
-        'stok' => 'decimal:2',
-        'harga_ecer' => 'decimal:2',
-        'harga_grosir' => 'decimal:2',
-        'konversi_satuan' => 'array',
+        'stok' => 'integer',
+        'harga_beli' => 'decimal:2',
+        'harga_jual' => 'decimal:2',
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s'
     ];
@@ -44,5 +39,20 @@ class Barang extends Model
     public function satuan()
     {
         return $this->belongsTo(Satuan::class, 'satuan_id');
+    }
+
+    public function barcodes()
+    {
+        return $this->hasMany(BarangBarcode::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

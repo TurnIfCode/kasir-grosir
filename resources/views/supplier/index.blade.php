@@ -79,6 +79,39 @@ $(document).ready(function() {
     });
   });
 
+  // Detail handler
+  $(document).on('click', '#btnDetail', function() {
+    var supplierId = $(this).data('id');
+    $.ajax({
+      url: '{{ route("supplier.find", ":id") }}'.replace(':id', supplierId),
+      type: 'GET',
+      success: function(response) {
+        var detailHtml = '';
+
+        // Format data untuk tabel detail
+        detailHtml += '<tr><td><strong>Kode Supplier</strong></td><td>' + (response.kode_supplier || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Nama Supplier</strong></td><td>' + (response.nama_supplier || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Kontak</strong></td><td>' + (response.kontak_person || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Telepon</strong></td><td>' + (response.telepon || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Email</strong></td><td>' + (response.email || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Alamat</strong></td><td>' + (response.alamat || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Kota</strong></td><td>' + (response.kota || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Provinsi</strong></td><td>' + (response.provinsi || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Status</strong></td><td>' + (response.status || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (response.created_by || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Tanggal Dibuat</strong></td><td>' + (response.created_at ? new Date(response.created_at).toLocaleString('id-ID') : '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (response.updated_by || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Tanggal Diubah</strong></td><td>' + (response.updated_at ? new Date(response.updated_at).toLocaleString('id-ID') : '-') + '</td></tr>';
+
+        $('#supplierDetailBody').html(detailHtml);
+        $('#detailSupplierModal').modal('show');
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
+  });
+
   // Delete handler
   $(document).on('click', '#btnDelete', function() {
     var supplierId = $(this).data('id');
@@ -138,68 +171,54 @@ $(document).ready(function() {
         <form id="editSupplierForm" action="#" method="POST">
           @csrf
           <input type="hidden" id="supplierId" name="id">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_kode_supplier" class="form-label">Kode Supplier*</label>
-                <input type="text" class="form-control" id="edit_kode_supplier" name="kode_supplier" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_nama_supplier" class="form-label">Nama Supplier*</label>
-                <input type="text" class="form-control" id="edit_nama_supplier" name="nama_supplier" required>
-              </div>
-            </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_kode_supplier">Kode Supplier</label>
+            <input type="text" class="form-control" id="edit_kode_supplier" name="kode_supplier" readonly>
+            <small class="form-text text-muted">Kode supplier tidak dapat diubah</small>
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_kontak_person" class="form-label">Kontak Person</label>
-                <input type="text" class="form-control" id="edit_kontak_person" name="kontak_person">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_telepon" class="form-label">Telepon</label>
-                <input type="text" class="form-control" id="edit_telepon" name="telepon">
-              </div>
-            </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_nama_supplier">Nama Supplier*</label>
+            <input type="text" class="form-control" id="edit_nama_supplier" name="nama_supplier">
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="edit_email" name="email">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_status" class="form-label">Status*</label>
-                <select class="form-control" id="edit_status" name="status" required>
-                  <option value="aktif">Aktif</option>
-                  <option value="nonaktif">Nonaktif</option>
-                </select>
-              </div>
-            </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_kontak_person">Kontak</label>
+            <input type="text" class="form-control" id="edit_kontak_person" name="kontak_person">
           </div>
-          <div class="mb-3">
-            <label for="edit_alamat" class="form-label">Alamat</label>
-            <textarea class="form-control" id="edit_alamat" name="alamat" rows="3"></textarea>
+
+          <div class="form-group mb-3">
+            <label for="edit_telepon">Telepon</label>
+            <input type="text" class="form-control" id="edit_telepon" name="telepon">
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_kota" class="form-label">Kota</label>
-                <input type="text" class="form-control" id="edit_kota" name="kota">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_provinsi" class="form-label">Provinsi</label>
-                <input type="text" class="form-control" id="edit_provinsi" name="provinsi">
-              </div>
-            </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_email">Email</label>
+            <input type="email" class="form-control" id="edit_email" name="email">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_alamat">Alamat</label>
+            <textarea class="form-control" id="edit_alamat" name="alamat" rows="3">-</textarea>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_kota">Kota</label>
+            <input type="text" class="form-control" id="edit_kota" name="kota">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_provinsi">Provinsi</label>
+            <input type="text" class="form-control" id="edit_provinsi" name="provinsi">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="edit_status">Status *</label>
+            <select class="form-control" id="edit_status" name="status">
+              <option value="aktif">Aktif</option>
+              <option value="nonaktif">Nonaktif</option>
+            </select>
           </div>
         </form>
       </div>
@@ -237,6 +256,21 @@ $(document).ready(function() {
 
   // Submit form handler
   $('#editSupplierForm').on('submit', function(e) {
+    if ($('[name="kontak_person"]').val() == '') {
+      $('[name="kontak_person"]').val('-');
+    }
+    if ($('[name="telepon"]').val() == '') {
+      $('[name="telepon"]').val('-');
+    }
+    if ($('[name="kota"]').val() == '') {
+      $('[name="kota"]').val('-');
+    }
+    if ($('[name="provinsi"]').val() == '') {
+      $('[name="provinsi"]').val('-');
+    }
+    if ($('[name="alamat"]').val() == '') {
+      $('[name="alamat"]').val('-');
+    }
     e.preventDefault();
     var formData = new FormData(this);
     formData.append('_method', 'PUT');
@@ -271,5 +305,27 @@ $(document).ready(function() {
   });
 });
 </script>
+
+<!-- Modal Detail Supplier -->
+<div class="modal fade" id="detailSupplierModal" tabindex="-1" aria-labelledby="detailSupplierModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailSupplierModalLabel">Detail Supplier</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="supplierDetailBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 @include('layout.footer')

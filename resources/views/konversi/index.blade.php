@@ -23,6 +23,28 @@
   </div>
 </div>
 
+<!-- Modal Detail Konversi Satuan -->
+<div class="modal fade" id="detailKonversiModal" tabindex="-1" aria-labelledby="detailKonversiModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailKonversiModalLabel">Detail Konversi Satuan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="konversiDetailBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edit Konversi Satuan -->
 <div class="modal fade" id="editKonversiModal" tabindex="-1" aria-labelledby="editKonversiModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -38,14 +60,8 @@
 
           <div class="form-group">
             <label for="edit_barang_id">Pilih Barang</label>
-            <select name="barang_id" id="edit_barang_id" class="form-control" required>
-              <option value="">-- Pilih Barang --</option>
-              @if(isset($barang))
-                @foreach($barang as $b)
-                  <option value="{{ $b->id }}">{{ $b->kode_barang }} - {{ $b->nama_barang }}</option>
-                @endforeach
-              @endif
-            </select>
+            <input type="text" class="form-control barang-autocomplete" id="edit_barang_nama" placeholder="Ketik nama, kode barang atau scan barcode" required>
+            <input type="hidden" name="barang_id" id="edit_barang_id" required>
           </div>
 
           <div class="form-group">
@@ -109,31 +125,60 @@
 
 @section('scripts')
 <script>
+function number_format(number, decimals, dec_point, thousands_sep) {
+  number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
+  var n = !isFinite(+number) ? 0 : +number,
+    prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+    sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+    dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+    s = '',
+    toFixedFix = function (n, prec) {
+      var k = Math.pow(10, prec);
+      return '' + Math.round(n * k) / k;
+    };
+  // Fix for IE parseFloat(0.55).toFixed(0) = 0;
+  s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+  if (s[0].length > 3) {
+    s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+  }
+  if ((s[1] || '').length < prec) {
+    s[1] = s[1] || '';
+    s[1] += new Array(prec - s[1].length + 1).join('0');
+  }
+  return s.join(dec);
+}
+
 $(document).ready(function() {
-  // Load categories for edit modal
-  function loadBarang() {
-    $.ajax({
-      url: '{{ route("barang.data") }}',
-      type: 'GET',
-      data: {
-        length: 1000 // Get all barang
+  // Autocomplete barang for edit modal
+  $(document).on('focus', '.barang-autocomplete', function() {
+    $(this).autocomplete({
+      source: function(request, response) {
+        $.ajax({
+          url: '{{ route("barang.search") }}',
+          dataType: 'json',
+          data: { q: request.term },
+          success: function(data) {
+            if (data.status === 'success') {
+              response($.map(data.data, function(item) {
+                return {
+                  label: item.kode_barang + ' - ' + item.nama_barang,
+                  value: item.nama_barang,
+                  id: item.id
+                };
+              }));
+            }
+          }
+        });
       },
-      success: function(response) {
-        if (response.data) {
-          var options = '<option value="">-- Pilih Barang --</option>';
-          response.data.forEach(function(b) {
-            options += '<option value="' + b.id + '">' + b.kode_barang + ' - ' + b.nama_barang + '</option>';
-          });
-          $('#edit_barang_id').html(options);
-        }
-      },
-      error: function(xhr) {
-        console.log('Error loading barang');
+      minLength: 2,
+      select: function(event, ui) {
+        var row = $(this).closest('.modal-body');
+        row.find('#edit_barang_id').val(ui.item.id);
+        row.find('#edit_barang_nama').val(ui.item.value);
+        return false;
       }
     });
-  }
-
-  loadBarang();
+  });
 
   // DataTable
   var table = $('#konversiTable').DataTable({
@@ -238,6 +283,43 @@ $(document).ready(function() {
     }
   });
 
+  // Detail handler
+  $(document).on('click', '#btnDetail', function() {
+    var konversiId = $(this).data('id');
+
+    $.ajax({
+      url: '{{ route("konversi-satuan.find", ":id") }}'.replace(':id', konversiId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var konversi = response.data;
+          var detailHtml = '';
+
+          // Format data untuk tabel detail
+          detailHtml += '<tr><td><strong>Barang</strong></td><td>' + (konversi.barang ? konversi.barang.nama_barang : '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Satuan Dasar</strong></td><td>' + (konversi.satuan_dasar ? konversi.satuan_dasar.nama_satuan : '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Satuan Konversi</strong></td><td>' + (konversi.satuan_konversi ? konversi.satuan_konversi.nama_satuan : '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Nilai Konversi</strong></td><td>' + Math.round(konversi.nilai_konversi || 0) + '</td></tr>';
+          detailHtml += '<tr><td><strong>Harga Beli</strong></td><td>Rp ' + (konversi.harga_beli ? number_format(konversi.harga_beli, 0, ',', '.') : '0') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Harga Jual</strong></td><td>Rp ' + (konversi.harga_jual ? number_format(konversi.harga_jual, 0, ',', '.') : '0') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Status</strong></td><td>' + (konversi.status || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (konversi.created_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Pada</strong></td><td>' + (konversi.created_at || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (konversi.updated_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Pada</strong></td><td>' + (konversi.updated_at || '-') + '</td></tr>';
+
+          $('#konversiDetailBody').html(detailHtml);
+          $('#detailKonversiModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
+  });
+
   // Edit handler
   $(document).on('click', '#btnEdit', function() {
     var konversiId = $(this).data('id');
@@ -250,6 +332,7 @@ $(document).ready(function() {
         if (response.status) {
           var konversi = response.data;
           $('#edit_barang_id').val(konversi.barang_id);
+          $('#edit_barang_nama').val(konversi.barang ? konversi.barang.nama_barang : '');
           $('#edit_satuan_dasar_id').val(konversi.satuan_dasar_id);
           $('#edit_satuan_konversi_id').val(konversi.satuan_konversi_id);
           $('#edit_nilai_konversi').val(parseFloat(konversi.nilai_konversi).toFixed(2));

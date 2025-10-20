@@ -21,6 +21,28 @@
   </div>
 </div>
 
+<!-- Modal Detail Satuan -->
+<div class="modal fade" id="detailSatuanModal" tabindex="-1" aria-labelledby="detailSatuanModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailSatuanModalLabel">Detail Satuan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="satuanDetailBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edit Satuan -->
 <div class="modal fade" id="editSatuanModal" tabindex="-1" aria-labelledby="editSatuanModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -43,7 +65,7 @@
           </div>
           <div class="mb-3">
             <label for="edit_deskripsi" class="form-label">Deskripsi</label>
-            <input type="text" class="form-control" id="edit_deskripsi" name="deskripsi">
+            <input type="text" class="form-control" id="edit_deskripsi" name="deskripsi" placeholder="-">
           </div>
           <div class="mb-3">
             <label for="edit_status" class="form-label">Status Aktif</label>
@@ -101,6 +123,11 @@ $(document).ready(function() {
       $(element).removeClass('is-invalid');
     },
     submitHandler: function(form) {
+      // Set default deskripsi jika kosong
+      if (!$('#edit_deskripsi').val().trim()) {
+        $('#edit_deskripsi').val('-');
+      }
+
       var satuanId = $('#satuanId').val();
       if (!satuanId) {
         console.error('satuanId kosong');
@@ -138,6 +165,40 @@ $(document).ready(function() {
         }
       });
     }
+  });
+
+  // Detail handler
+  $(document).on('click', '#btnDetail', function() {
+    var satuanId = $(this).data('id');
+
+    $.ajax({
+      url: '/satuan/' + satuanId + '/find',
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var satuan = response.data;
+          var detailHtml = '';
+
+          // Format data untuk tabel detail
+          detailHtml += '<tr><td><strong>Kode Satuan</strong></td><td>' + (satuan.kode_satuan || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Nama Satuan</strong></td><td>' + (satuan.nama_satuan || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Deskripsi</strong></td><td>' + (satuan.deskripsi || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Status</strong></td><td>' + (satuan.status || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (satuan.created_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Pada</strong></td><td>' + (satuan.created_at || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (satuan.updated_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Pada</strong></td><td>' + (satuan.updated_at || '-') + '</td></tr>';
+
+          $('#satuanDetailBody').html(detailHtml);
+          $('#detailSatuanModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
   });
 
   // Klik Edit

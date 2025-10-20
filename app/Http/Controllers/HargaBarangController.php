@@ -51,7 +51,7 @@ class HargaBarangController extends Controller
                     'tipe_harga' => $h->tipe_harga,
                     'harga' => 'Rp ' . number_format($h->harga, 0, ',', '.'),
                     'status' => $h->status,
-                    'aksi' => '<a href="#" id="btnEdit" data-id="' . $h->id . '" class="btn btn-sm btn-warning">Edit</a> <a href="#" data-id="' . $h->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $h->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $h->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $h->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -104,7 +104,9 @@ class HargaBarangController extends Controller
                 'satuan_id' => $data['satuan_id'],
                 'tipe_harga' => $data['tipe_harga'],
                 'harga' => $data['harga'],
-                'status' => $data['status']
+                'status' => $data['status'],
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
 
             $savedCount++;
@@ -153,7 +155,8 @@ class HargaBarangController extends Controller
             'satuan_id' => $request->satuan_id,
             'tipe_harga' => $request->tipe_harga,
             'harga' => $request->harga,
-            'status' => $request->status
+            'status' => $request->status,
+            'updated_at' => now()
         ]);
 
         return redirect()->route('harga-barang.index')->with('success', 'Harga barang berhasil diperbarui');

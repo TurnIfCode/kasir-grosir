@@ -70,6 +70,36 @@ $(document).ready(function() {
     });
   });
 
+  // Detail handler
+  $(document).on('click', '#btnDetail', function() {
+    var pelangganId = $(this).data('id');
+    $.ajax({
+      url: '{{ route("pelanggan.find", ":id") }}'.replace(':id', pelangganId),
+      type: 'GET',
+      success: function(response) {
+        var detailHtml = '';
+
+        // Format data untuk tabel detail
+        detailHtml += '<tr><td><strong>Kode Pelanggan</strong></td><td>' + (response.kode_pelanggan || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Nama Pelanggan</strong></td><td>' + (response.nama_pelanggan || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Telepon</strong></td><td>' + (response.telepon || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Email</strong></td><td>' + (response.email || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Alamat</strong></td><td>' + (response.alamat || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Status</strong></td><td>' + (response.status || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (response.created_by || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Tanggal Dibuat</strong></td><td>' + (response.created_at ? new Date(response.created_at).toLocaleString('id-ID') : '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (response.updated_by || '-') + '</td></tr>';
+        detailHtml += '<tr><td><strong>Tanggal Diubah</strong></td><td>' + (response.updated_at ? new Date(response.updated_at).toLocaleString('id-ID') : '-') + '</td></tr>';
+
+        $('#pelangganDetailBody').html(detailHtml);
+        $('#detailPelangganModal').modal('show');
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
+  });
+
   // Delete handler
   $(document).on('click', '#btnDelete', function() {
     var pelangganId = $(this).data('id');
@@ -129,50 +159,32 @@ $(document).ready(function() {
         <form id="editPelangganForm" action="#" method="POST">
           @csrf
           <input type="hidden" id="pelangganId" name="id">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_kode_pelanggan" class="form-label">Kode Pelanggan*</label>
-                <input type="text" class="form-control" id="edit_kode_pelanggan" name="kode_pelanggan" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_nama_pelanggan" class="form-label">Nama Pelanggan*</label>
-                <input type="text" class="form-control" id="edit_nama_pelanggan" name="nama_pelanggan" required>
-              </div>
-            </div>
+          <div class="mb-3">
+            <label for="edit_kode_pelanggan" class="form-label">Kode Pelanggan</label>
+            <input type="text" class="form-control" id="edit_kode_pelanggan" name="kode_pelanggan" required>
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_telepon" class="form-label">Telepon</label>
-                <input type="text" class="form-control" id="edit_telepon" name="telepon">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="edit_email" name="email">
-              </div>
-            </div>
+          <div class="mb-3">
+            <label for="edit_nama_pelanggan" class="form-label">Nama Pelanggan *</label>
+            <input type="text" class="form-control" id="edit_nama_pelanggan" name="nama_pelanggan" required>
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_alamat" class="form-label">Alamat</label>
-                <textarea class="form-control" id="edit_alamat" name="alamat" rows="3"></textarea>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="edit_status" class="form-label">Status*</label>
-                <select class="form-control" id="edit_status" name="status" required>
-                  <option value="aktif">Aktif</option>
-                  <option value="non_aktif">Non Aktif</option>
-                </select>
-              </div>
-            </div>
+          <div class="mb-3">
+            <label for="edit_telepon" class="form-label">Telepon</label>
+            <input type="text" class="form-control" id="edit_telepon" name="telepon">
+          </div>
+          <div class="mb-3">
+            <label for="edit_email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="edit_email" name="email">
+          </div>
+          <div class="mb-3">
+            <label for="edit_alamat" class="form-label">Alamat</label>
+            <textarea class="form-control" id="edit_alamat" name="alamat" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="edit_status" class="form-label">Status *</label>
+            <select class="form-control" id="edit_status" name="status" required>
+              <option value="aktif">Aktif</option>
+              <option value="non_aktif">Non Aktif</option>
+            </select>
           </div>
         </form>
       </div>
@@ -244,5 +256,27 @@ $(document).ready(function() {
   });
 });
 </script>
+
+<!-- Modal Detail Pelanggan -->
+<div class="modal fade" id="detailPelangganModal" tabindex="-1" aria-labelledby="detailPelangganModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailPelangganModalLabel">Detail Pelanggan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="pelangganDetailBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 @include('layout.footer')

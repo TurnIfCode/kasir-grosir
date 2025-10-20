@@ -15,16 +15,15 @@ class KategoriController extends Controller
             $length = $request->get('length');
             $search = $request->get('search') ? $request->get('search')['value'] : '';
 
-            $query = Kategori::query();
+            $query = Kategori::where('status', 'AKTIF');
 
             if (!empty($search)) {
                 $query->where('kode_kategori', 'like', '%' . $search . '%')
                       ->orWhere('nama_kategori', 'like', '%' . $search . '%')
-                      ->orWhere('deskripsi', 'like', '%' . $search . '%')
-                      ->orWhere('status', 'like', '%' . $search . '%');
+                      ->orWhere('deskripsi', 'like', '%' . $search . '%');
             }
 
-            $totalRecords = Kategori::count();
+            $totalRecords = Kategori::where('status', 'AKTIF')->count();
             $filteredRecords = $query->count();
 
             $kategoris = $query->skip($start)->take($length)->get();
@@ -37,7 +36,7 @@ class KategoriController extends Controller
                     'nama_kategori' => $kategori->nama_kategori,
                     'deskripsi' => $kategori->deskripsi,
                     'status' => $kategori->status,
-                    'aksi' => '<a href="#" id="btnEdit" data-id="' . $kategori->id . '" class="btn btn-sm btn-warning">Edit</a> <a href="#" data-id="' . $kategori->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $kategori->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $kategori->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $kategori->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -116,6 +115,8 @@ class KategoriController extends Controller
         $kategoriModel->status = $status;
         $kategoriModel->created_by = auth()->check() ? auth()->user()->id : null;
         $kategoriModel->updated_by = auth()->check() ? auth()->user()->id : null;
+        $kategoriModel->created_at = now();
+        $kategoriModel->updated_at = now();
         $kategoriModel->save();
 
         return response()->json([
@@ -126,7 +127,7 @@ class KategoriController extends Controller
 
     public function find($id)
     {
-        $kategori = Kategori::find($id);
+        $kategori = Kategori::with(['creator', 'updater'])->find($id);
         if (!$kategori) {
             return response()->json([
                 'status' => false,
@@ -134,9 +135,13 @@ class KategoriController extends Controller
             ]);
         }
 
+        $data = $kategori->toArray();
+        $data['created_by'] = $kategori->creator ? $kategori->creator->name : '-';
+        $data['updated_by'] = $kategori->updater ? $kategori->updater->name : '-';
+
         return response()->json([
             'status' => true,
-            'data' => $kategori
+            'data' => $data
         ]);
     }
 
@@ -204,6 +209,7 @@ class KategoriController extends Controller
         $kategori->deskripsi = $deskripsi;
         $kategori->status = $status;
         $kategori->updated_by = auth()->check() ? auth()->user()->id : null;
+        $kategori->updated_at = now();
         $kategori->save();
 
         return response()->json([

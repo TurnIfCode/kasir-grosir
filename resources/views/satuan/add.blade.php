@@ -14,7 +14,7 @@
       </div>
       <div class="mb-3">
         <label for="deskripsi" class="form-label">Deskripsi</label>
-        <input type="text" class="form-control" id="deskripsi" name="deskripsi">
+        <input type="text" class="form-control" id="deskripsi" name="deskripsi" placeholder="-">
       </div>
       <div class="mb-3">
         <label for="status" class="form-label">Status Aktif</label>
@@ -53,6 +53,11 @@ $(document).ready(function() {
         }
       },
       submitHandler: function(form) {
+        // Set default deskripsi jika kosong
+        if (!$('#deskripsi').val().trim()) {
+          $('#deskripsi').val('-');
+        }
+
         $.ajax({
           url: "{{ route('satuan.store') }}",
           type: "POST",
