@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Pembelian Harian / Periodik</title>
+    <title>Laporan Penjualan Harian / Periodik</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -75,7 +75,7 @@
     <div class="container-fluid mt-4">
         <div class="row">
             <div class="col-12">
-                <h1 class="mb-4 fw-bold text-primary">Laporan Pembelian Harian / Periodik</h1>
+                <h1 class="mb-4 fw-bold text-primary">Laporan Penjualan Harian / Periodik</h1>
 
                 <!-- Filter Section -->
                 <div class="filter-section">
@@ -90,19 +90,21 @@
                             <input type="date" class="form-control" id="tanggal_sampai" name="tanggal_sampai" value="{{ date('Y-m-d') }}">
                         </div>
                         <div class="col-md-3">
-                            <label for="supplier_id" class="form-label">Supplier</label>
-                            <select class="form-control" id="supplier_id" name="supplier_id">
-                                <option value="all">Semua Supplier</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}">{{ $supplier->nama_supplier }}</option>
+                            <label for="kasir_id" class="form-label">Pilihan Kasir</label>
+                            <select class="form-control" id="kasir_id" name="kasir_id">
+                                <option value="all">Semua Kasir</option>
+                                @foreach($kasirs as $kasir)
+                                    <option value="{{ $kasir->id }}">{{ $kasir->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label for="jenis_pembayaran" class="form-label">Jenis Pembayaran</label>
-                            <select class="form-control" id="jenis_pembayaran" name="jenis_pembayaran" disabled>
-                                <option value="tunai">Tunai</option>
-                                <option value="transfer">Transfer</option>
+                            <label for="kategori_id" class="form-label">Pilihan Kategori</label>
+                            <select class="form-control" id="kategori_id" name="kategori_id">
+                                <option value="all">Semua Kategori</option>
+                                @foreach($kategoris as $kategori)
+                                    <option value="{{ $kategori->id }}">{{ $kategori->nama_kategori }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-12">
@@ -121,7 +123,7 @@
 
                 <!-- Summary Cards -->
                 <div class="row mb-4" id="summaryCards">
-                    <div class="col-md-4 col-sm-6 mb-3">
+                    <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card summary-card">
                             <div class="card-body text-center">
                                 <i class="fas fa-receipt fa-2x mb-2"></i>
@@ -130,21 +132,30 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 col-sm-6 mb-3">
+                    <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card summary-card">
                             <div class="card-body text-center">
                                 <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
-                                <h6 class="card-title">Total Nilai Pembelian</h6>
-                                <p class="card-value" id="total_nilai">-</p>
+                                <h6 class="card-title">Total Omzet</h6>
+                                <p class="card-value" id="total_omzet">-</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 col-sm-6 mb-3">
+                    <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card summary-card">
                             <div class="card-body text-center">
                                 <i class="fas fa-boxes fa-2x mb-2"></i>
-                                <h6 class="card-title">Jumlah Barang Masuk</h6>
-                                <p class="card-value" id="total_barang_masuk">-</p>
+                                <h6 class="card-title">Total Barang Terjual</h6>
+                                <p class="card-value" id="total_barang_terjual">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card summary-card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-percent fa-2x mb-2"></i>
+                                <h6 class="card-title">Total Diskon</h6>
+                                <p class="card-value" id="total_diskon">-</p>
                             </div>
                         </div>
                     </div>
@@ -155,7 +166,7 @@
                     <div class="col-md-8 mb-4">
                         <div class="card">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Grafik Pembelian per Hari</h6>
+                                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Grafik Penjualan per Hari</h6>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
@@ -167,7 +178,7 @@
                     <div class="col-md-4 mb-4">
                         <div class="card">
                             <div class="card-header bg-success text-white">
-                                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Pembelian per Supplier</h6>
+                                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Penjualan per Kategori</h6>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
@@ -181,7 +192,7 @@
                 <!-- Data Table -->
                 <div class="card">
                     <div class="card-header bg-light">
-                        <h6 class="mb-0"><i class="fas fa-table me-2"></i>Tabel Detail Pembelian</h6>
+                        <h6 class="mb-0"><i class="fas fa-table me-2"></i>Tabel Detail Penjualan</h6>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -190,11 +201,12 @@
                                     <tr>
                                         <th>No</th>
                                         <th>Tanggal</th>
-                                        <th>Nomor Transaksi</th>
-                                        <th>Supplier</th>
-                                        <th>Jenis Pembayaran</th>
-                                        <th>Jumlah Item</th>
-                                        <th>Total Nilai</th>
+                                        <th>Nama Kasir</th>
+                                        <th>Kategori</th>
+                                        <th>Jumlah Transaksi</th>
+                                        <th>Total Barang</th>
+                                        <th>Total Omzet</th>
+                                        <th>Diskon</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -224,24 +236,26 @@
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: '{{ route("laporan.pembelian.data") }}',
+                    url: '{{ route("laporan.penjualan-harian.data") }}',
                     data: function(d) {
                         d.tanggal_dari = $('#tanggal_dari').val();
                         d.tanggal_sampai = $('#tanggal_sampai').val();
-                        d.supplier_id = $('#supplier_id').val();
+                        d.kasir_id = $('#kasir_id').val();
+                        d.kategori_id = $('#kategori_id').val();
                     }
                 },
                 columns: [
                     { data: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'tanggal_pembelian_formatted' },
-                    { data: 'kode_pembelian' },
-                    { data: 'supplier_nama' },
-                    { data: 'jenis_pembayaran' },
-                    { data: 'jumlah_item', render: function(data) { return parseFloat(data).toFixed(2); } },
-                    { data: 'total_formatted' }
+                    { data: 'tanggal_penjualan_formatted' },
+                    { data: 'nama_kasir' },
+                    { data: 'kategori' },
+                    { data: 'jumlah_transaksi' },
+                    { data: 'total_barang_formatted' },
+                    { data: 'total_omzet_formatted' },
+                    { data: 'diskon_formatted' }
                 ],
                 language: {
-                    emptyTable: "Tidak ada data pembelian pada periode ini."
+                    emptyTable: "Tidak ada data penjualan pada periode ini."
                 },
                 responsive: true
             });
@@ -249,16 +263,18 @@
             // Load summary data
             function loadRingkasan() {
                 $.ajax({
-                    url: '{{ route("laporan.pembelian.ringkasan") }}',
+                    url: '{{ route("laporan.penjualan-harian.ringkasan") }}',
                     data: {
                         tanggal_dari: $('#tanggal_dari').val(),
                         tanggal_sampai: $('#tanggal_sampai').val(),
-                        supplier_id: $('#supplier_id').val()
+                        kasir_id: $('#kasir_id').val(),
+                        kategori_id: $('#kategori_id').val()
                     },
                     success: function(data) {
                         $('#total_transaksi').text(data.total_transaksi);
-                        $('#total_nilai').text(data.total_nilai);
-                        $('#total_barang_masuk').text(data.total_barang_masuk);
+                        $('#total_omzet').text(data.total_omzet);
+                        $('#total_barang_terjual').text(data.total_barang_terjual);
+                        $('#total_diskon').text(data.total_diskon);
                     }
                 });
             }
@@ -266,7 +282,7 @@
             // Load chart data
             function loadChartData() {
                 $.ajax({
-                    url: '{{ route("laporan.pembelian.chart") }}',
+                    url: '{{ route("laporan.penjualan-harian.chart") }}',
                     data: {
                         tanggal_dari: $('#tanggal_dari').val(),
                         tanggal_sampai: $('#tanggal_sampai').val()
@@ -280,10 +296,17 @@
                             data: {
                                 labels: data.line_chart.labels,
                                 datasets: [{
-                                    label: 'Nilai Pembelian',
-                                    data: data.line_chart.nilai,
+                                    label: 'Omzet',
+                                    data: data.line_chart.omzet,
                                     borderColor: '#007bff',
                                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }, {
+                                    label: 'Diskon',
+                                    data: data.line_chart.diskon,
+                                    borderColor: '#28a745',
+                                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
                                     tension: 0.4,
                                     fill: true
                                 }]
@@ -321,7 +344,7 @@
                             data: {
                                 labels: data.bar_chart.labels,
                                 datasets: [{
-                                    label: 'Nilai Pembelian',
+                                    label: 'Omzet',
                                     data: data.bar_chart.data,
                                     backgroundColor: '#007bff',
                                     borderColor: '#0056b3',
@@ -345,7 +368,7 @@
                                     tooltip: {
                                         callbacks: {
                                             label: function(context) {
-                                                return 'Nilai: Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                                return 'Omzet: Rp ' + context.parsed.y.toLocaleString('id-ID');
                                             }
                                         }
                                     }
@@ -367,7 +390,8 @@
             $('#btnReset').on('click', function() {
                 $('#tanggal_dari').val('{{ date('Y-m-d', strtotime('-30 days')) }}');
                 $('#tanggal_sampai').val('{{ date('Y-m-d') }}');
-                $('#supplier_id').val('all');
+                $('#kasir_id').val('all');
+                $('#kategori_id').val('all');
                 table.ajax.reload();
                 loadRingkasan();
                 loadChartData();
@@ -378,10 +402,11 @@
                 const params = {
                     tanggal_dari: $('#tanggal_dari').val(),
                     tanggal_sampai: $('#tanggal_sampai').val(),
-                    supplier_id: $('#supplier_id').val()
+                    kasir_id: $('#kasir_id').val(),
+                    kategori_id: $('#kategori_id').val()
                 };
                 const queryString = $.param(params);
-                window.open('{{ route("laporan.pembelian.export_pdf") }}?' + queryString, '_blank');
+                window.open('{{ route("laporan.penjualan-harian.export_pdf") }}?' + queryString, '_blank');
             });
 
             // Initial load

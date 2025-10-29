@@ -8,6 +8,7 @@ use App\Models\StokOpname;
 use App\Models\StokOpnameDetail;
 use App\Models\Barang;
 use Carbon\Carbon;
+use Yajra\DataTables\Facades\DataTables;
 
 class StokOpnameController extends Controller
 {
@@ -19,8 +20,8 @@ class StokOpnameController extends Controller
 
     public function create()
     {
-        $barangs = Barang::where('status', 'aktif')->get();
-        return view('stok-opname.create', compact('barangs'));
+        $kategoris = DB::table('kategori')->where('status', 'aktif')->get();
+        return view('stok-opname.create', compact('kategoris'));
     }
 
     public function store(Request $request)
@@ -108,5 +109,40 @@ class StokOpnameController extends Controller
         $stokOpname->delete();
 
         return redirect()->route('stok-opname.index')->with('success', 'Stok opname berhasil dihapus.');
+    }
+
+    public function getBarangByKategori(Request $request)
+    {
+        $kategoriId = $request->kategori_id;
+
+        $barangs = Barang::with(['kategori', 'satuan'])
+            ->where('status', 'aktif')
+            ->when($kategoriId, fn($q) => $q->where('kategori_id', $kategoriId))
+            ->select([
+                'id',
+                'kode_barang',
+                'nama_barang',
+                'stok',
+                'kategori_id',
+                'satuan_id'
+            ])
+            ->get();
+
+        return DataTables::of($barangs)
+            ->addIndexColumn()
+            ->addColumn('nama_kategori', fn($row) => $row->kategori->nama_kategori ?? '-')
+            ->addColumn('nama_satuan', fn($row) => $row->satuan->nama_satuan ?? '-')
+            ->addColumn('stok_sistem', fn($row) => round($row->stok))
+            ->addColumn('stok_fisik_input', function($row) {
+                return '<input type="number" class="form-control stok-fisik" name="barang[' . $row->id . '][stok_fisik]" step="1" min="0" required>';
+            })
+            ->addColumn('selisih_input', function($row) {
+                return '<input type="number" class="form-control selisih" readonly step="1">';
+            })
+            ->addColumn('keterangan_input', function($row) {
+                return '<input type="text" class="form-control" name="barang[' . $row->id . '][keterangan]">';
+            })
+            ->rawColumns(['stok_fisik_input', 'selisih_input', 'keterangan_input'])
+            ->make(true);
     }
 }

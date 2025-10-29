@@ -231,10 +231,13 @@ class PenjualanController extends Controller
     {
         $query = Penjualan::with('pelanggan');
 
-        // Filter berdasarkan parameter jika diperlukan
-        // if ($request->has('pelanggan_id') && $request->pelanggan_id) {
-        //     $query->where('pelanggan_id', $request->pelanggan_id);
-        // }
+        // Filter berdasarkan tanggal
+        if ($request->filled('tanggal_awal')) {
+            $query->where('tanggal_penjualan', '>=', $request->tanggal_awal);
+        }
+        if ($request->filled('tanggal_akhir')) {
+            $query->where('tanggal_penjualan', '<=', $request->tanggal_akhir);
+        }
 
         $data = [];
         foreach ($query->get() as $penjualan) {

@@ -196,4 +196,25 @@ class HargaBarangController extends Controller
             ], 404);
         }
     }
+
+    public function getTipeHarga(Request $request)
+    {
+        $barangId = $request->get('barang_id');
+        $satuanId = $request->get('satuan_id');
+
+        $tipeHargas = HargaBarang::where('barang_id', $barangId)
+                                ->where('satuan_id', $satuanId)
+                                ->where('status', 'aktif')
+                                ->distinct()
+                                ->pluck('tipe_harga')
+                                ->map(function($tipe) {
+                                    return ['tipe_harga' => $tipe];
+                                })
+                                ->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $tipeHargas
+        ]);
+    }
 }

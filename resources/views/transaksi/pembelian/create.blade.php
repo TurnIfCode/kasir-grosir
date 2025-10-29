@@ -72,7 +72,7 @@
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label fw-medium">Harga Beli <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control harga-input" name="details[0][harga_beli]" min="0" step="any">
+                                        <input type="number" class="form-control harga-input" name="details[0][harga_beli]" min="0" step="1">
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label fw-medium">Subtotal</label>
@@ -204,6 +204,14 @@ $(document).ready(function() {
         calculateSubtotal($(this).closest('.detail-row'));
         calculateTotal();
         updateRemoveButtons(); // Update save button state
+    });
+
+    // Prevent decimal input in harga-input fields
+    $(document).on('keypress', '.harga-input', function(e) {
+        // Allow only numbers, backspace, delete, tab, escape, enter, and arrow keys
+        if (e.which != 8 && e.which != 0 && e.which != 9 && e.which != 27 && e.which != 13 && e.which != 37 && e.which != 38 && e.which != 39 && e.which != 40 && (e.which < 48 || e.which > 57)) {
+            return false;
+        }
     });
 
     // Autocomplete barang
@@ -421,10 +429,10 @@ function addNewRow() {
                     <label class="form-label fw-medium">Qty <span class="text-danger">*</span></label>
                     <input type="number" class="form-control qty-input" name="details[${rowIndex}][qty]" min="0.01" step="0.01" required>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-medium">Harga Beli <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control harga-input" name="details[${rowIndex}][harga_beli]" min="0" step="any" required>
-                </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-medium">Harga Beli <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control harga-input" name="details[${rowIndex}][harga_beli]" min="0" step="1" required>
+                                    </div>
                 <div class="col-md-2">
                     <label class="form-label fw-medium">Subtotal</label>
                     <input type="number" class="form-control subtotal-input fw-semibold" step="any" readonly>
@@ -602,7 +610,7 @@ function submitForm() {
                     showConfirmButton: false,
                     timer: 2000
                 }).then(function() {
-                    window.location.href = '{{ route("pembelian.index") }}';
+                    window.location.href = '{{ route("pembelian.show", ":id") }}'.replace(':id', response.data.id);
                 });
             } else {
                 Swal.fire('Gagal!', response.message, 'error');

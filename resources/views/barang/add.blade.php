@@ -5,14 +5,6 @@
     <form id="addBarangForm" action="#" method="POST">
       @csrf
       <div class="mb-3">
-        <label for="kode_barang" class="form-label">Kode Barang*</label>
-        <input type="text" class="form-control" id="kode_barang" name="kode_barang" required>
-      </div>
-      <div class="mb-3">
-        <label for="nama_barang" class="form-label">Nama Barang*</label>
-        <input type="text" class="form-control" id="nama_barang" name="nama_barang" required>
-      </div>
-      <div class="mb-3">
         <label for="kategori_id" class="form-label">Kategori*</label>
         <select class="form-control" id="kategori_id" name="kategori_id" required>
           <option value="">Pilih Kategori</option>
@@ -24,8 +16,8 @@
         </select>
       </div>
       <div class="mb-3">
-        <label for="satuan_id" class="form-label">Satuan*</label>
-        <select class="form-control" id="satuan_id" name="satuan_id" required>
+        <label for="satuan_id" class="form-label">Satuan</label>
+        <select class="form-control" id="satuan_id" name="satuan_id">
           <option value="">Pilih Satuan</option>
           @if(isset($satuans))
             @foreach($satuans as $satuan)
@@ -33,6 +25,14 @@
             @endforeach
           @endif
         </select>
+      </div>
+      <div class="mb-3">
+        <label for="kode_barang" class="form-label">Kode Barang*</label>
+        <input type="text" class="form-control" id="kode_barang" name="kode_barang" required>
+      </div>
+      <div class="mb-3">
+        <label for="nama_barang" class="form-label">Nama Barang*</label>
+        <input type="text" class="form-control" id="nama_barang" name="nama_barang" required>
       </div>
       <div class="mb-3">
         <label for="stok" class="form-label">Stok*</label>
@@ -47,15 +47,15 @@
         <input type="number" step="0.01" class="form-control" id="harga_jual" name="harga_jual" min="0" value="0" required>
       </div>
       <div class="mb-3">
+        <label for="deskripsi" class="form-label">Deskripsi</label>
+        <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3"></textarea>
+      </div>
+      <div class="mb-3">
         <label for="multi_satuan" class="form-label">Multi Satuan</label>
         <select class="form-control" id="multi_satuan" name="multi_satuan">
           <option value="0">Tidak</option>
           <option value="1">Ya</option>
         </select>
-      </div>
-      <div class="mb-3">
-        <label for="deskripsi" class="form-label">Deskripsi</label>
-        <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3"></textarea>
       </div>
       <div class="mb-3">
         <label for="status" class="form-label">Status</label>
@@ -80,6 +80,36 @@
 @section('scripts')
 <script>
 $(document).ready(function() {
+
+  // Autocomplete kategori
+  $('#kategori_autocomplete').autocomplete({
+    source: function(request, response) {
+      $.ajax({
+        url: '{{ route("kategori.data") }}',
+        dataType: 'json',
+        data: { q: request.term },
+        success: function(data) {
+          if (data.status === 'success') {
+            response($.map(data.data, function(item) {
+              return {
+                label: item.nama_kategori,
+                value: item.nama_kategori,
+                id: item.id
+              };
+            }));
+          }
+        }
+      });
+    },
+    minLength: 2,
+    select: function(event, ui) {
+      $('#kategori_id').val(ui.item.id);
+      $('#kategori_autocomplete').val(ui.item.value);
+      return false;
+    }
+  });
+
+
 
   // Add barcode functionality
   $('.add-barcode').on('click', function() {
@@ -107,6 +137,7 @@ $(document).ready(function() {
         kategori_id: {
           required: true
         },
+
         stok: {
           required: true,
           number: true,
@@ -138,6 +169,7 @@ $(document).ready(function() {
         kategori_id: {
           required: "Kategori wajib dipilih"
         },
+
         stok: {
           required: "Stok wajib diisi",
           number: "Stok harus berupa angka",
@@ -173,7 +205,7 @@ $(document).ready(function() {
               text: response.message
             }).then(function() {
               setTimeout(() => {
-                window.location.href = "{{ route('barang.index') }}";
+                window.location.href = "{{ route('barang.add') }}";
               }, 500);
             });
           },

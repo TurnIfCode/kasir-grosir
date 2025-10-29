@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Pembelian PDF</title>
+    <title>Laporan Pembelian per Supplier PDF</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,7 +47,8 @@
 </head>
 <body>
     <div class="header">
-        <h1>Laporan Pembelian</h1>
+        <h1>Laporan Pembelian per Supplier</h1>
+        <p>Supplier: {{ $supplier->nama_supplier ?? 'Semua Supplier' }}</p>
         <p>Periode: {{ $tanggalDari }} - {{ $tanggalSampai }}</p>
         @if(isset($ringkasan))
         <div style="margin-top: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
@@ -62,34 +63,35 @@
     <table>
         <thead>
             <tr>
-                <th>No</th>
-                <th>Kode Pembelian</th>
                 <th>Tanggal</th>
-                <th>Supplier</th>
+                <th>Nomor Transaksi</th>
+                <th>Nama Barang</th>
+                <th>Jumlah</th>
+                <th>Satuan</th>
+                <th>Harga</th>
                 <th>Total</th>
-                <th>Status</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($data as $index => $item)
+            @forelse($data as $item)
                 <tr>
-                    <td>{{ $index + 1 }}</td>
+                    <td>{{ \Carbon\Carbon::parse($item->tanggal_pembelian)->format('d/m/Y') }}</td>
                     <td>{{ $item->kode_pembelian }}</td>
-                    <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
-                    <td>{{ $item->supplier->nama_supplier ?? '-' }}</td>
-                    <td>Rp {{ number_format($item->total, 0, ',', '.') }}</td>
-                    <td>{{ ucfirst($item->status) }}</td>
+                    <td>{{ $item->barang->nama_barang ?? '-' }}</td>
+                    <td>{{ number_format($item->qty, 2, ',', '.') }}</td>
+                    <td>{{ $item->satuan->nama_satuan ?? '-' }}</td>
+                    <td>Rp {{ number_format($item->harga_beli, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" style="text-align: center;">Tidak ada data pembelian pada periode ini.</td>
+                    <td colspan="7" style="text-align: center;">Tidak ada data pembelian pada periode ini.</td>
                 </tr>
             @endforelse
             @if($data->count() > 0)
                 <tr class="total-row">
-                    <td colspan="4" style="text-align: right;"><strong>Total Akumulasi:</strong></td>
+                    <td colspan="6" style="text-align: right;"><strong>Total Akumulasi:</strong></td>
                     <td><strong>Rp {{ number_format($totalAkumulasi, 0, ',', '.') }}</strong></td>
-                    <td></td>
                 </tr>
             @endif
         </tbody>

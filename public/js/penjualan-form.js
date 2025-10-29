@@ -18,56 +18,44 @@ function generateKodePenjualan() {
 
 function addNewRow() {
     const rowHtml = `
-        <div class="row detail-row mb-3" data-index="${rowIndex}">
-            <div class="col-md-3">
-                <div class="mb-3">
-                    <label class="form-label">Barang <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control barang-autocomplete" placeholder="Cari barang..." data-index="${rowIndex}" required>
-                    <input type="hidden" name="details[${rowIndex}][barang_id]" class="barang-id-input" data-index="${rowIndex}">
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="mb-3">
-                    <label class="form-label">Satuan <span class="text-danger">*</span></label>
-                    <select class="form-select satuan-select" name="details[${rowIndex}][satuan_id]" data-index="${rowIndex}" disabled required>
-                        <option value="">Pilih Satuan</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="mb-3">
-                    <label class="form-label">Tipe Harga</label>
-                    <select class="form-select tipe-harga-select" name="details[${rowIndex}][tipe_harga]" data-index="${rowIndex}" onchange="onTipeHargaChange(${rowIndex})">
-                        <option value="ecer">Ecer</option>
-                        <option value="grosir">Grosir</option>
-                        <option value="reseller">Reseller</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="mb-3">
-                    <label class="form-label">Qty <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control qty-input" name="details[${rowIndex}][qty]" data-index="${rowIndex}" min="0.01" step="0.01" onchange="calculateSubtotal(${rowIndex})" onkeyup="calculateSubtotal(${rowIndex})" required>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="mb-3">
-                    <label class="form-label">Harga Jual</label>
+        <tr class="detail-row" data-index="${rowIndex}">
+            <td>
+                <input type="text" class="form-control barang-autocomplete" placeholder="Cari barang..." data-index="${rowIndex}" required>
+                <input type="hidden" name="details[${rowIndex}][barang_id]" class="barang-id-input" data-index="${rowIndex}">
+            </td>
+            <td>
+                <select class="form-select satuan-select" name="details[${rowIndex}][satuan_id]" data-index="${rowIndex}" disabled required>
+                    <option value="">Pilih Satuan</option>
+                </select>
+            </td>
+            <td>
+                <select class="form-select tipe-harga-select" name="details[${rowIndex}][tipe_harga]" data-index="${rowIndex}" onchange="onTipeHargaChange(${rowIndex})">
+                    <option value="ecer">Ecer</option>
+                    <option value="grosir">Grosir</option>
+                    <option value="reseller">Reseller</option>
+                </select>
+            </td>
+            <td>
+                <input type="number" class="form-control qty-input" name="details[${rowIndex}][qty]" data-index="${rowIndex}" min="0.01" step="0.01" onchange="calculateSubtotal(${rowIndex})" onkeyup="calculateSubtotal(${rowIndex})" required>
+            </td>
+            <td>
+                <div class="input-group">
+                    <span class="input-group-text">Rp</span>
                     <input type="number" class="form-control harga-jual-input" name="details[${rowIndex}][harga_jual]" data-index="${rowIndex}" min="0" step="0.01" onchange="calculateSubtotal(${rowIndex})" readonly>
                 </div>
-            </div>
-            <div class="col-md-1">
-                <div class="mb-3">
-                    <label class="form-label">Subtotal</label>
+            </td>
+            <td>
+                <div class="input-group">
+                    <span class="input-group-text">Rp</span>
                     <input type="number" class="form-control subtotal-input" readonly>
                 </div>
-            </div>
-            <div class="col-md-1 d-flex align-items-end">
+            </td>
+            <td>
                 <button type="button" class="btn btn-danger btn-sm remove-row" onclick="removeRow(${rowIndex})">
                     <i class="fas fa-trash"></i>
                 </button>
-            </div>
-        </div>
+            </td>
+        </tr>
     `;
 
     $('#detailContainer').append(rowHtml);
@@ -139,9 +127,30 @@ function loadSatuanOptions(index, barangId) {
     });
 }
 
+function loadTipeHargaOptions(index, barangId, satuanId) {
+    $.ajax({
+        url: '/harga-barang/get-tipe-harga',
+        data: { barang_id: barangId, satuan_id: satuanId },
+        success: function(data) {
+            if (data.status === 'success') {
+                const select = $(`.tipe-harga-select[data-index="${index}"]`);
+                select.empty().append('<option value="">Pilih Tipe Harga</option>');
+
+                data.data.forEach(tipe => {
+                    select.append(`<option value="${tipe.tipe_harga}">${tipe.tipe_harga}</option>`);
+                });
+
+                select.prop('disabled', false);
+                select.change(function() {
+                    onTipeHargaChange(index);
+                });
+            }
+        }
+    });
+}
+
 function onSatuanChange(index, barangId, satuanId) {
-    const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
-    loadHarga(index, barangId, satuanId, tipeHarga);
+    loadTipeHargaOptions(index, barangId, satuanId);
 }
 
 function onTipeHargaChange(index) {
@@ -204,8 +213,11 @@ function calculateTotal() {
     const subtotal = total - diskon;
     const grandTotal = subtotal + ppn;
 
-    $('#total').val('Rp ' + total.toLocaleString('id-ID'));
-    $('#grandTotal').val('Rp ' + grandTotal.toLocaleString('id-ID'));
+    $('#subtotal').val(total.toLocaleString('id-ID'));
+    $('#total').val(total.toLocaleString('id-ID'));
+    $('#totalValue').val(total);
+    $('#grandSubtotal').val(subtotal.toLocaleString('id-ID'));
+    $('#grandTotal').val(grandTotal.toLocaleString('id-ID'));
     $('#grandTotalValue').val(grandTotal);
 
     calculateKembalian();

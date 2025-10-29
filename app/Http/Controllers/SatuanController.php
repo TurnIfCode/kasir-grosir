@@ -18,7 +18,7 @@ class SatuanController extends Controller
             $draw = $request->get('draw');
             $start = $request->get('start');
             $length = $request->get('length');
-            $search = $request->get('search')['value'];
+            $search = $request->get('search') ? $request->get('search')['value'] : '';
 
             $query = Satuan::where('status', 'AKTIF');
 
@@ -193,6 +193,22 @@ class SatuanController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Satuan berhasil dihapus'
+        ]);
+    }
+
+    // API untuk autocomplete satuan
+    public function search(Request $request)
+    {
+        $q = $request->get('q');
+        $satuans = Satuan::where('nama_satuan', 'like', '%' . $q . '%')
+                        ->orWhere('kode_satuan', 'like', '%' . $q . '%')
+                        ->where('status', 'AKTIF')
+                        ->limit(10)
+                        ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $satuans
         ]);
     }
 }

@@ -25,7 +25,10 @@ class BarangController extends Controller
             $length = $request->get('length');
             $search = $request->get('search') ? $request->get('search')['value'] : '';
 
-            $query = Barang::with('kategori', 'satuan', 'barcodes');
+            $query = Barang::with('kategori', 'satuan', 'barcodes')
+                ->leftJoin('kategori', 'barang.kategori_id', '=', 'kategori.id')
+                ->orderBy('kategori.nama_kategori', 'asc')
+                ->select('barang.*');
 
             if (!empty($search)) {
                 $query->where('kode_barang', 'like', '%' . $search . '%')
@@ -48,17 +51,16 @@ class BarangController extends Controller
 
             $data = [];
             foreach ($barangs as $barang) {
-                $barcodes = $barang->barcodes->pluck('barcode')->join(', ');
                 $data[] = [
-                    'kode_barang' => $barang->kode_barang,
-                    'nama_barang' => $barang->nama_barang,
                     'kategori' => $barang->kategori ? $barang->kategori->nama_kategori : '-',
                     'satuan' => $barang->satuan ? $barang->satuan->nama_satuan : '-',
+                    'kode_barang' => $barang->kode_barang,
+                    'nama_barang' => $barang->nama_barang,
                     'stok' => $barang->stok,
                     'harga_beli' => 'Rp ' . number_format($barang->harga_beli, 0, ',', '.'),
                     'harga_jual' => 'Rp ' . number_format($barang->harga_jual, 0, ',', '.'),
-                    'barcodes' => $barcodes ?: '-',
-                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $barang->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $barang->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $barang->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'deskripsi' => $barang->deskripsi ?: '-',
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $barang->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $barang->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" id="btnStokMinimum" data-id="' . $barang->id . '" class="btn btn-sm btn-secondary"><i class="fas fa-exclamation-triangle"></i></a> <a href="#" data-id="' . $barang->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -265,7 +267,7 @@ class BarangController extends Controller
             'satuan_id' => $barang->satuan_id,
             'nama_satuan' => $barang->satuan->nama_satuan ?? 'Satuan Dasar',
             'nilai_konversi' => 1,
-            'harga_beli' => $barang->harga_beli ?? 0
+            'harga_beli' => round($barang->harga_beli,2) ?? 0
         ];
 
         // Get konversi satuan
@@ -278,7 +280,7 @@ class BarangController extends Controller
                     'satuan_id' => $konversi->satuan_konversi_id,
                     'nama_satuan' => $konversi->satuanKonversi->nama_satuan,
                     'nilai_konversi' => $konversi->nilai_konversi,
-                    'harga_beli' => $konversi->harga_beli ?? 0
+                    'harga_beli' => round($konversi->harga_beli,2) ?? 0
                 ];
             })
             ->toArray();

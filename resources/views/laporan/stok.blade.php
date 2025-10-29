@@ -3,65 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Stok Barang</title>
+    <title>Menu Laporan Stok - GrosirIndo</title>
 
-    <!-- Bootstrap & DataTables -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-    <!-- jQuery UI for autocomplete -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .menu-card {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .menu-icon {
+            font-size: 3rem;
+            color: #007bff;
+            margin-bottom: 1rem;
+        }
+
+        .menu-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-description {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .page-title {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .menu-card {
+                margin-bottom: 1rem;
+            }
+
+            .menu-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     @include('layout.header')
 
     <div class="container mt-4">
-        <h1 class="mb-4">Laporan Stok Barang</h1>
+        <h1 class="page-title text-center">
+            <i class="fas fa-boxes me-3"></i>
+            Laporan Stok
+        </h1>
 
-        <!-- Filter Form -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form id="filterForm" class="row g-3">
-                    <div class="col-md-6">
-                        <label for="barang_search" class="form-label">Pencarian Barang</label>
-                        <input type="text" class="form-control" id="barang_search" name="barang_search" placeholder="Cari barang...">
-                        <input type="hidden" id="barang_id" name="barang_id">
+        <div class="row g-4">
+            <!-- Stok Akhir -->
+            <div class="col-lg-4 col-md-6">
+                <div class="menu-card p-4" onclick="window.location.href='{{ route('laporan.stok_akhir') }}'">
+                    <div class="text-center">
+                        <div class="menu-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <h5 class="menu-title">📦 Stok Akhir</h5>
+                        <p class="menu-description">
+                            Menampilkan jumlah stok terkini setiap barang dan nilai total stok berdasarkan harga beli terakhir.
+                        </p>
                     </div>
-                    <div class="col-12">
-                        <button type="button" class="btn btn-primary" id="btnFilter">Filter</button>
-                        <button type="button" class="btn btn-secondary" id="btnReset">Reset</button>
-                        <button type="button" class="btn btn-success" id="btnExportPDF">Export PDF</button>
+                </div>
+            </div>
+
+            <!-- Stok Masuk & Keluar -->
+            <div class="col-lg-4 col-md-6">
+                <div class="menu-card p-4" onclick="window.location.href='{{ route('laporan.stok-masuk-keluar') }}'">
+                    <div class="text-center">
+                        <div class="menu-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h5 class="menu-title">🔄 Stok Masuk & Keluar</h5>
+                        <p class="menu-description">
+                            Melacak aliran barang masuk dari pembelian dan keluar dari penjualan dalam periode tertentu.
+                        </p>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
 
-        <!-- Data Table -->
-        <div class="card">
-            <div class="card-body">
-                <table id="laporanTable" class="table table-striped table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Kode Barang</th>
-                            <th>Nama Barang</th>
-                            <th>Kategori</th>
-                            <th>Satuan</th>
-                            <th>Stok Akhir</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            <!-- Barang Hampir Habis -->
+            <div class="col-lg-4 col-md-6">
+                <div class="menu-card p-4" onclick="window.location.href='{{ route('laporan.barang-hampir-habis') }}'">
+                    <div class="text-center">
+                        <div class="menu-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h5 class="menu-title">⚠️ Barang Hampir Habis</h5>
+                        <p class="menu-description">
+                            Menampilkan daftar barang yang berada di bawah batas minimum stok untuk peringatan restock.
+                        </p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Total Ringkasan -->
-        <div class="card mt-4">
-            <div class="card-body">
-                <h5>Ringkasan Total</h5>
-                <div class="row">
-                    <div class="col-md-12">
-                        <strong>Total Stok Akhir:</strong> <span id="totalStokAkhir">0</span>
+            <!-- Barang Tidak Laku -->
+            <div class="col-lg-4 col-md-6">
+                <div class="menu-card p-4" onclick="window.location.href='{{ route('laporan.barang-tidak-laku') }}'">
+                    <div class="text-center">
+                        <div class="menu-icon">
+                            <i class="fas fa-sleep"></i>
+                        </div>
+                        <h5 class="menu-title">💤 Barang Tidak Laku</h5>
+                        <p class="menu-description">
+                            Mengetahui barang yang tidak terjual dalam periode tertentu untuk optimasi inventory.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Koreksi Stok -->
+            <div class="col-lg-4 col-md-6">
+                <div class="menu-card p-4" onclick="window.location.href='{{ route('laporan.koreksi-stok') }}'">
+                    <div class="text-center">
+                        <div class="menu-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h5 class="menu-title">🧾 Koreksi Stok</h5>
+                        <p class="menu-description">
+                            Membandingkan hasil stok opname dengan data sistem untuk koreksi dan penyesuaian stok.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -70,88 +160,7 @@
 
     @include('layout.footer')
 
-    <!-- JS -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-
-    <script>
-        $(document).ready(function() {
-            // Autocomplete barang
-            $('#barang_search').autocomplete({
-                source: function(request, response) {
-                    $.ajax({
-                        url: '{{ route("laporan.stok-barang.search") }}',
-                        dataType: 'json',
-                        data: { term: request.term },
-                        success: function(data) {
-                            response($.map(data, function(item) {
-                                return {
-                                    label: item.kode_barang + ' - ' + item.nama_barang,
-                                    value: item.nama_barang,
-                                    id: item.id
-                                };
-                            }));
-                        }
-                    });
-                },
-                select: function(event, ui) {
-                    $('#barang_id').val(ui.item.id);
-                },
-                minLength: 2
-            });
-
-            // Inisialisasi DataTable
-            var table = $('#laporanTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: '{{ route("laporan.stok-barang.data") }}',
-                    data: function(d) {
-                        d.barang_id = $('#barang_id').val();
-                    },
-                    dataSrc: function(json) {
-                        // Hitung total stok
-                        var total = 0;
-                        json.data.forEach(function(row) {
-                            total += parseFloat(row.stok_akhir.replace(/\./g, '').replace(',', '.')) || 0;
-                        });
-                        $('#totalStokAkhir').text(total.toLocaleString('id-ID'));
-                        return json.data;
-                    }
-                },
-                columns: [
-                    { data: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'kode_barang' },
-                    { data: 'nama_barang' },
-                    { data: 'nama_kategori' },
-                    { data: 'nama_satuan' },
-                    { data: 'stok_akhir' }
-                ],
-                language: {
-                    emptyTable: "Tidak ada data stok barang."
-                }
-            });
-
-            // Filter dan Reset
-            $('#btnFilter').on('click', function() {
-                table.ajax.reload();
-            });
-
-            $('#btnReset').on('click', function() {
-                $('#barang_search').val('');
-                $('#barang_id').val('');
-                table.ajax.reload();
-            });
-
-            // Export PDF
-            $('#btnExportPDF').on('click', function() {
-                var params = { barang_id: $('#barang_id').val() };
-                window.open('{{ route("laporan.stok-barang.export_pdf") }}?' + $.param(params), '_blank');
-            });
-        });
-    </script>
 </body>
 </html>

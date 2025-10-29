@@ -45,6 +45,7 @@ class PembelianController extends Controller
             'catatan' => 'nullable|string',
             'diskon' => 'nullable|numeric|min:0',
             'ppn' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:draft,selesai',
             'details' => 'required|array|min:1',
             'details.*.barang_id' => 'required|exists:barang,id',
             'details.*.satuan_id' => 'required|exists:satuan,id',
@@ -75,6 +76,7 @@ class PembelianController extends Controller
             $diskon = $request->diskon ?? 0;
             $ppn = $request->ppn ?? 0;
             $total = $subtotal - $diskon + $ppn;
+            $status = $request->status ?? 'draft';
 
             // Simpan header pembelian
             $pembelian = Pembelian::create([
@@ -85,13 +87,13 @@ class PembelianController extends Controller
                 'diskon' => $diskon,
                 'ppn' => $ppn,
                 'total' => $total,
-                'status' => 'draft',
+                'status' => $status,
                 'catatan' => $request->catatan,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id()
             ]);
 
-            // Simpan details dan update stok
+            // Simpan details
             foreach ($request->details as $detail) {
                 $subtotalDetail = $detail['qty'] * $detail['harga_beli'];
 
@@ -106,9 +108,13 @@ class PembelianController extends Controller
                     'created_by' => auth()->id(),
                     'updated_by' => auth()->id()
                 ]);
+            }
 
-                // Update stok barang
-                $this->updateStokBarang($detail['barang_id'], $detail['satuan_id'], $detail['qty']);
+            // Jika status selesai, update stok dan harga barang
+            if ($pembelian->status === 'selesai') {
+                foreach ($request->details as $detail) {
+                    $this->updateStokDanHargaBarang($detail['barang_id'], $detail['satuan_id'], $detail['qty'], $detail['harga_beli']);
+                }
             }
 
             DB::commit();
@@ -188,44 +194,42 @@ class PembelianController extends Controller
         return 'PB-' . $tanggal . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
 
-    private function updateStokBarang($barangId, $satuanId, $qty)
+    private function updateStokDanHargaBarang($barangId, $satuanId, $qty, $hargaBeli)
     {
-        // Cari konversi satuan untuk mendapatkan nilai konversi ke satuan dasar
-        $konversi = KonversiSatuan::where('barang_id', $barangId)
+        $konversi_pembelian = KonversiSatuan::where('barang_id', $barangId)
             ->where('satuan_konversi_id', $satuanId)
-            ->where('status', 'aktif')
             ->first();
 
-        if ($konversi) {
-            // Jika ada konversi, hitung stok berdasarkan nilai konversi
-            $stokDasar = $qty * $konversi->nilai_konversi;
-        } else {
-            // Jika tidak ada konversi, asumsikan satuan sudah dasar
-            $stokDasar = $qty;
-        }
+        $barang = Barang::find($barangId);
+        $nilai_konversi = $konversi_pembelian ? $konversi_pembelian->nilai_konversi : 1;
+        $harga_beli_dasar = $hargaBeli / $nilai_konversi;
 
-        // Update stok barang
-        $barang = Barang::findOrFail($barangId);
-        $barang->increment('stok', $stokDasar);
-        $barang->updated_by = auth()->id();
-        $barang->save();
+        // Update harga dasar dan stok
+        $barang->update([
+            'stok' => $barang->stok + ($qty * $nilai_konversi),
+            'harga_beli' => $harga_beli_dasar,
+            'updated_by' => auth()->id()
+        ]);
+
+        // Update semua konversi satuan yang berkaitan
+        $semua_konversi = KonversiSatuan::where('barang_id', $barangId)->get();
+        foreach ($semua_konversi as $k) {
+            $harga_konversi = $harga_beli_dasar * $k->nilai_konversi;
+            $k->update([
+                'harga_beli' => $harga_konversi,
+                'updated_by' => auth()->id()
+            ]);
+        }
     }
 
     private function kembalikanStokBarang($barangId, $satuanId, $qty)
     {
-        // Cari konversi satuan untuk mendapatkan nilai konversi ke satuan dasar
-        $konversi = KonversiSatuan::where('barang_id', $barangId)
+        $konversi_pembelian = KonversiSatuan::where('barang_id', $barangId)
             ->where('satuan_konversi_id', $satuanId)
-            ->where('status', 'aktif')
             ->first();
 
-        if ($konversi) {
-            // Jika ada konversi, hitung stok berdasarkan nilai konversi
-            $stokDasar = $qty * $konversi->nilai_konversi;
-        } else {
-            // Jika tidak ada konversi, asumsikan satuan sudah dasar
-            $stokDasar = $qty;
-        }
+        $nilai_konversi = $konversi_pembelian ? $konversi_pembelian->nilai_konversi : 1;
+        $stokDasar = $qty * $nilai_konversi;
 
         // Kurangi stok barang
         $barang = Barang::findOrFail($barangId);
@@ -344,6 +348,7 @@ class PembelianController extends Controller
             'catatan' => 'nullable|string',
             'diskon' => 'nullable|numeric|min:0',
             'ppn' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:draft,selesai',
             'details' => 'required|array|min:1',
             'details.*.barang_id' => 'required|exists:barang,id',
             'details.*.satuan_id' => 'required|exists:satuan,id',
@@ -362,9 +367,11 @@ class PembelianController extends Controller
 
         DB::beginTransaction();
         try {
-            // Kembalikan stok lama
-            foreach ($pembelian->details as $detail) {
-                $this->kembalikanStokBarang($detail->barang_id, $detail->satuan_id, $detail->qty);
+            // Jika status lama adalah draft dan akan diubah ke selesai, kembalikan stok lama terlebih dahulu
+            if ($pembelian->status === 'draft' && $request->status === 'selesai') {
+                // Stok belum terupdate, langsung update dengan data baru
+            } elseif ($pembelian->status === 'draft' && $request->status === 'draft') {
+                // Tetap draft, tidak perlu kembalikan stok
             }
 
             // Hitung subtotal baru
@@ -376,6 +383,7 @@ class PembelianController extends Controller
             $diskon = $request->diskon ?? 0;
             $ppn = $request->ppn ?? 0;
             $total = $subtotal - $diskon + $ppn;
+            $status = $request->status ?? $pembelian->status;
 
             // Update header pembelian
             $pembelian->update([
@@ -385,6 +393,7 @@ class PembelianController extends Controller
                 'diskon' => $diskon,
                 'ppn' => $ppn,
                 'total' => $total,
+                'status' => $status,
                 'catatan' => $request->catatan,
                 'updated_by' => auth()->id()
             ]);
@@ -392,7 +401,7 @@ class PembelianController extends Controller
             // Hapus detail lama
             $pembelian->details()->delete();
 
-            // Simpan details baru dan update stok
+            // Simpan details baru
             foreach ($request->details as $detail) {
                 $subtotalDetail = $detail['qty'] * $detail['harga_beli'];
 
@@ -407,9 +416,13 @@ class PembelianController extends Controller
                     'created_by' => auth()->id(),
                     'updated_by' => auth()->id()
                 ]);
+            }
 
-                // Update stok barang baru
-                $this->updateStokBarang($detail['barang_id'], $detail['satuan_id'], $detail['qty']);
+            // Jika status baru adalah selesai, update stok dan harga barang
+            if ($status === 'selesai') {
+                foreach ($request->details as $detail) {
+                    $this->updateStokDanHargaBarang($detail['barang_id'], $detail['satuan_id'], $detail['qty'], $detail['harga_beli']);
+                }
             }
 
             DB::commit();
@@ -451,13 +464,12 @@ class PembelianController extends Controller
         DB::beginTransaction();
         try {
             if ($newStatus === 'selesai') {
-                // Untuk status selesai, pastikan stok sudah terupdate (sudah dilakukan di store)
-                // Tidak perlu update stok lagi karena sudah dilakukan saat create
-            } elseif ($newStatus === 'batal') {
-                // Untuk status batal, kembalikan stok barang
+                // Untuk status selesai, update stok dan harga barang
                 foreach ($pembelian->details as $detail) {
-                    $this->kembalikanStokBarang($detail->barang_id, $detail->satuan_id, $detail->qty);
+                    $this->updateStokDanHargaBarang($detail->barang_id, $detail->satuan_id, $detail->qty, $detail->harga_beli);
                 }
+            } elseif ($newStatus === 'batal') {
+                // Untuk status batal, tidak perlu melakukan apa-apa karena stok belum terupdate
             }
 
             // Update status pembelian
@@ -479,6 +491,48 @@ class PembelianController extends Controller
                 'status' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Hitung harga konversi satuan berdasarkan harga beli satuan pembelian tertinggi
+     *
+     * @param int $barang_id
+     * @param float $harga_beli
+     * @param int $satuan_pembelian
+     * @return void
+     */
+    public function hitungKonversiHarga($barang_id, $harga_beli, $satuan_pembelian)
+    {
+        // Ambil semua konversi satuan aktif untuk barang ini
+        $konversiSatuans = KonversiSatuan::where('barang_id', $barang_id)
+            ->where('status', 'aktif')
+            ->get()
+            ->keyBy('satuan_dasar_id'); // Key by satuan_dasar_id untuk pencarian cepat
+
+        $currentSatuan = $satuan_pembelian;
+        $currentHarga = $harga_beli;
+
+        // Loop untuk menghitung harga konversi ke bawah
+        while (isset($konversiSatuans[$currentSatuan])) {
+            $konversi = $konversiSatuans[$currentSatuan];
+
+            // Hitung harga beli untuk satuan konversi (biarkan sebagai decimal)
+            $hargaBeliKonversi = $currentHarga / $konversi->nilai_konversi;
+
+            // Hitung harga jual dengan margin 5%
+            $hargaJualKonversi = round($hargaBeliKonversi * 1.05);
+
+            // Update record konversi
+            $konversi->update([
+                'harga_beli' => $hargaBeliKonversi,
+                'harga_jual' => $hargaJualKonversi,
+                'updated_at' => now()
+            ]);
+
+            // Pindah ke satuan berikutnya
+            $currentSatuan = $konversi->satuan_konversi_id;
+            $currentHarga = $hargaBeliKonversi;
         }
     }
 }

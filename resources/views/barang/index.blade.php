@@ -9,14 +9,14 @@
     <table id="barangTable" class="table table-striped">
       <thead>
         <tr>
-          <th>Kode Barang</th>
-          <th>Nama Barang</th>
           <th>Kategori</th>
           <th>Satuan</th>
+          <th>Kode Barang</th>
+          <th>Nama Barang</th>
           <th>Stok</th>
           <th>Harga Beli</th>
           <th>Harga Jual</th>
-          <th>Barcode</th>
+          <th>Deskripsi</th>
           <th>Aksi</th>
         </tr>
       </thead>
@@ -59,22 +59,10 @@
           @csrf
           <input type="hidden" id="barangId" name="id">
           <div class="mb-3">
-            <label for="edit_kode_barang" class="form-label">Kode Barang</label>
-            <input type="text" class="form-control" id="edit_kode_barang" name="kode_barang">
-          </div>
-          <div class="mb-3">
-            <label for="edit_nama_barang" class="form-label">Nama Barang*</label>
-            <input type="text" class="form-control" id="edit_nama_barang" name="nama_barang" required>
-          </div>
-          <div class="mb-3">
             <label for="edit_kategori_id" class="form-label">Kategori</label>
             <select class="form-control" id="edit_kategori_id" name="kategori_id">
               <option value="">Pilih Kategori</option>
-              @if(isset($kategori))
-                @foreach($kategori as $cat)
-                  <option value="{{ $cat->id }}">{{ $cat->nama_kategori }}</option>
-                @endforeach
-              @endif
+              <!-- Kategori options will be loaded dynamically -->
             </select>
           </div>
           <div class="mb-3">
@@ -85,16 +73,28 @@
             </select>
           </div>
           <div class="mb-3">
+            <label for="edit_kode_barang" class="form-label">Kode Barang</label>
+            <input type="text" class="form-control" id="edit_kode_barang" name="kode_barang">
+          </div>
+          <div class="mb-3">
+            <label for="edit_nama_barang" class="form-label">Nama Barang*</label>
+            <input type="text" class="form-control" id="edit_nama_barang" name="nama_barang" required>
+          </div>
+          <div class="mb-3">
             <label for="edit_stok" class="form-label">Stok</label>
-            <input type="number" class="form-control" id="edit_stok" name="stok" value="0" min="0">
+            <input type="number" class="form-control" id="edit_stok" name="stok" value="0" min="0" readonly>
           </div>
           <div class="mb-3">
             <label for="edit_harga_beli" class="form-label">Harga Beli</label>
-            <input type="number" step="0.01" class="form-control" id="edit_harga_beli" name="harga_beli" min="0">
+            <input type="number" step="0.01" class="form-control" id="edit_harga_beli" name="harga_beli" min="0" readonly>
           </div>
           <div class="mb-3">
             <label for="edit_harga_jual" class="form-label">Harga Jual</label>
-            <input type="number" step="0.01" class="form-control" id="edit_harga_jual" name="harga_jual" min="0">
+            <input type="number" step="0.01" class="form-control" id="edit_harga_jual" name="harga_jual" min="0" readonly>
+          </div>
+          <div class="mb-3">
+            <label for="edit_deskripsi" class="form-label">Deskripsi</label>
+            <textarea class="form-control" id="edit_deskripsi" name="deskripsi" rows="3"></textarea>
           </div>
           <div class="mb-3">
             <label for="edit_multi_satuan" class="form-label">Multi Satuan</label>
@@ -102,10 +102,6 @@
               <option value="0">Tidak</option>
               <option value="1">Ya</option>
             </select>
-          </div>
-          <div class="mb-3">
-            <label for="edit_deskripsi" class="form-label">Deskripsi</label>
-            <textarea class="form-control" id="edit_deskripsi" name="deskripsi" rows="3"></textarea>
           </div>
           <div class="mb-3">
             <label for="edit_status" class="form-label">Status</label>
@@ -210,17 +206,17 @@ $(document).ready(function() {
       type: 'GET'
     },
     columns: [
-      { data: 'kode_barang', name: 'kode_barang' },
-      { data: 'nama_barang', name: 'nama_barang' },
       { data: 'kategori', name: 'kategori' },
       { data: 'satuan', name: 'satuan' },
+      { data: 'kode_barang', name: 'kode_barang' },
+      { data: 'nama_barang', name: 'nama_barang' },
       { data: 'stok', name: 'stok' },
       { data: 'harga_beli', name: 'harga_beli' },
       { data: 'harga_jual', name: 'harga_jual' },
-      { data: 'barcodes', name: 'barcodes' },
+      { data: 'deskripsi', name: 'deskripsi' },
       { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
     ],
-    order: [[2, 'asc']],
+    order: [[0, 'asc']],
     responsive: true,
     pageLength: 10,
     lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
@@ -240,10 +236,41 @@ $(document).ready(function() {
     }
   });
 
+  // Autocomplete kategori untuk edit
+  $('#edit_kategori_autocomplete').autocomplete({
+    source: function(request, response) {
+      $.ajax({
+        url: '{{ route("kategori.data") }}',
+        dataType: 'json',
+        data: { q: request.term },
+        success: function(data) {
+          if (data.status === 'success') {
+            response($.map(data.data, function(item) {
+              return {
+                label: item.nama_kategori,
+                value: item.nama_kategori,
+                id: item.id
+              };
+            }));
+          }
+        }
+      });
+    },
+    minLength: 2,
+    select: function(event, ui) {
+      $('#edit_kategori_id').val(ui.item.id);
+      $('#edit_kategori_autocomplete').val(ui.item.value);
+      return false;
+    }
+  });
+
+
+
   // Inisialisasi validator
   var validator = $('#editBarangForm').validate({
     rules: {
       nama_barang: { required: true, minlength: 3 },
+      kategori_id: "required",
       stok: { number: true, min: 0 },
       harga_beli: { number: true, min: 0 },
       harga_jual: { number: true, min: 0 },
@@ -254,6 +281,7 @@ $(document).ready(function() {
         required: "Nama Barang wajib diisi",
         minlength: "Nama Barang minimal 3 karakter"
       },
+      kategori_id: "Kategori wajib dipilih",
       stok: {
         number: "Stok harus berupa angka",
         min: "Stok tidak boleh negatif"
@@ -467,8 +495,292 @@ $(document).ready(function() {
     }
   });
 
+  // Stok Minimum handler
+  $(document).on('click', '#btnStokMinimum', function() {
+    var barangId = $(this).data('id');
+
+    // Get barang details
+    $.ajax({
+      url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var barang = response.data;
+          $('#stokMinimumBarangId').val(barang.id);
+          $('#stokMinimumBarang').val(barang.nama_barang + ' (' + barang.kode_barang + ')');
+          window.defaultSatuanId = barang.satuan_id;
+
+          // Load satuan options
+          loadSatuanForStokMinimum(barangId);
+
+          // Load satuan terkecil options
+          loadSatuanTerkecilForStokMinimum(barangId);
+
+          // Load existing stok minimum
+          loadStokMinimumList(barangId);
+
+          $('#stokMinimumModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
+  });
+
+  function loadSatuanForStokMinimum(barangId) {
+    $.ajax({
+      url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status === 'success') {
+          var options = '<option value="">Pilih Satuan</option>';
+          response.data.forEach(function(sat) {
+            // Skip satuan dasar (nilai_konversi = 1)
+            if (sat.nilai_konversi !== 1) {
+              options += '<option value="' + sat.satuan_id + '">' + sat.nama_satuan + '</option>';
+            }
+          });
+          $('#satuan_id').html(options);
+        }
+      },
+      error: function(xhr) {
+        console.log('Error loading satuan for barang');
+      }
+    });
+  }
+
+  function loadSatuanTerkecilForStokMinimum(barangId) {
+    $.ajax({
+      url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status === 'success') {
+          var options = '<option value="">Pilih Satuan Terkecil</option>';
+          response.data.forEach(function(sat) {
+            // Only show satuan dasar (nilai_konversi = 1)
+            if (sat.nilai_konversi === 1) {
+              options += '<option value="' + sat.satuan_id + '">' + sat.nama_satuan + '</option>';
+            }
+          });
+          $('#satuan_terkecil_id').html(options);
+          // Set default satuan if available
+          if (window.defaultSatuanId) {
+            $('#satuan_terkecil_id').val(window.defaultSatuanId);
+          }
+        }
+      },
+      error: function(xhr) {
+        console.log('Error loading satuan terkecil for barang');
+      }
+    });
+  }
+
+  function loadStokMinimumList(barangId) {
+    $.ajax({
+      url: '{{ route("barang.stok-minimum.get", ":barangId") }}'.replace(':barangId', barangId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status === 'success') {
+          var html = '';
+          response.data.forEach(function(item) {
+            html += '<tr>';
+            html += '<td>' + Math.round(item.jumlah_minimum) + '</td>';
+            html += '<td>' + item.satuan + '</td>';
+            html += '<td>' + Math.round(item.jumlah_satuan_terkecil) + '</td>';
+            html += '<td>' + item.satuan_terkecil + '</td>';
+            html += '<td><a href="#" class="btn btn-sm btn-danger delete-stok-minimum" data-id="' + item.id + '"><i class="fas fa-trash"></i></a></td>';
+            html += '</tr>';
+          });
+          $('#stokMinimumListBody').html(html);
+        }
+      },
+      error: function() {
+        console.log('Error loading stok minimum list');
+      }
+    });
+  }
+
+  // Calculate jumlah satuan terkecil
+  function calculateJumlahSatuanTerkecil() {
+    var jumlahMinimum = parseFloat($('#jumlah_minimum').val()) || 0;
+    var satuanId = $('#satuan_id').val();
+    var barangId = $('#stokMinimumBarangId').val();
+
+    if (jumlahMinimum > 0 && satuanId && barangId) {
+      // Get konversi satuan
+      $.ajax({
+        url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
+        type: 'GET',
+        success: function(response) {
+          if (response.status === 'success') {
+            var satuanData = response.data.find(function(s) {
+              return s.satuan_id == satuanId;
+            });
+            if (satuanData) {
+              var nilaiKonversi = satuanData.nilai_konversi;
+              var jumlahTerkecil = jumlahMinimum * nilaiKonversi;
+              $('#jumlah_satuan_terkecil').val(Math.round(jumlahTerkecil));
+            } else {
+              $('#jumlah_satuan_terkecil').val('');
+            }
+          }
+        },
+        error: function() {
+          console.log('Error calculating jumlah satuan terkecil');
+          $('#jumlah_satuan_terkecil').val('');
+        }
+      });
+    } else {
+      $('#jumlah_satuan_terkecil').val('');
+    }
+  }
+
+  // Event listeners for calculation
+  $('#jumlah_minimum, #satuan_id').on('change keyup', function() {
+    calculateJumlahSatuanTerkecil();
+  });
+
+  // Submit stok minimum form
+  $('#stokMinimumForm').on('submit', function(e) {
+    e.preventDefault();
+
+    var $btn = $(this).find('button[type="submit"]');
+    $btn.prop('disabled', true).text('Menyimpan...');
+
+    $.ajax({
+      url: '{{ route("barang.stok-minimum.store") }}',
+      type: 'POST',
+      data: $(this).serialize(),
+      success: function(response) {
+        if (response.status) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: response.message
+          });
+          $('#stokMinimumForm')[0].reset();
+          var barangId = $('#stokMinimumBarangId').val();
+          loadStokMinimumList(barangId);
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function(xhr) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
+      },
+      complete: function() {
+        $btn.prop('disabled', false).text('Simpan');
+      }
+    });
+  });
+
+  // Delete stok minimum
+  $(document).on('click', '.delete-stok-minimum', function() {
+    var stokMinimumId = $(this).data('id');
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Data yang dihapus tidak dapat dikembalikan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: '{{ route("barang.stok-minimum.delete", ":id") }}'.replace(':id', stokMinimumId),
+          type: 'DELETE',
+          data: { _token: '{{ csrf_token() }}' },
+          success: function(response) {
+            if (response.status) {
+              Swal.fire('Terhapus!', response.message, 'success');
+              var barangId = $('#stokMinimumBarangId').val();
+              loadStokMinimumList(barangId);
+            } else {
+              Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+            }
+          },
+          error: function() {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+          }
+        });
+      }
+    });
+  });
+
 });
 </script>
 @endsection
+
+<!-- Modal Stok Minimum -->
+<div class="modal fade" id="stokMinimumModal" tabindex="-1" aria-labelledby="stokMinimumModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="stokMinimumModalLabel">Atur Stok Minimum</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="stokMinimumForm">
+          @csrf
+          <input type="hidden" id="stokMinimumBarangId" name="barang_id">
+          <div class="mb-3">
+            <label for="stokMinimumBarang" class="form-label">Barang</label>
+            <input type="text" class="form-control" id="stokMinimumBarang" readonly>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <label for="jumlah_minimum" class="form-label">Jumlah Minimum</label>
+              <input type="number" class="form-control" id="jumlah_minimum" name="jumlah_minimum" required>
+            </div>
+            <div class="col-md-6">
+              <label for="satuan_id" class="form-label">Satuan</label>
+              <select class="form-control" id="satuan_id" name="satuan_id" required>
+                <option value="">Pilih Satuan</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <label for="jumlah_satuan_terkecil" class="form-label">Jumlah Satuan Terkecil</label>
+              <input type="number" class="form-control" id="jumlah_satuan_terkecil" name="jumlah_satuan_terkecil" readonly required>
+            </div>
+            <div class="col-md-6">
+              <label for="satuan_terkecil_id" class="form-label">Satuan Terkecil</label>
+              <select class="form-control" id="satuan_terkecil_id" name="satuan_terkecil_id" required>
+                <option value="">Pilih Satuan Terkecil</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </form>
+
+        <hr>
+        <h6>Daftar Stok Minimum</h6>
+        <table class="table table-bordered" id="stokMinimumListTable">
+          <thead>
+            <tr>
+              <th>Jumlah Minimum</th>
+              <th>Satuan</th>
+              <th>Jumlah Satuan Terkecil</th>
+              <th>Satuan Terkecil</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="stokMinimumListBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 @include('layout.footer')

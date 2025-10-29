@@ -296,6 +296,16 @@
               <li><a class="nav-link" href="{{ route('harga-barang.index') }}">Data</a></li>
             </ul>
           </li>
+          <!-- Jenis Barang -->
+          <li class="nav-item">
+            <a href="#menuJenisBarang" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuJenisBarang" role="button" aria-expanded="false">
+              Jenis Barang
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuJenisBarang" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('jenis_barang.add') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('jenis_barang.data') }}">Data</a></li>
+            </ul>
+          </li>
 
         </ul>
       </li>
@@ -373,12 +383,30 @@
           <i class="fas fa-chart-bar"></i> Laporan
         </a>
         <ul class="collapse nav flex-column ms-3" id="menuLaporan" data-bs-parent="#sidebarMenu">
-          <li><a class="nav-link" href="{{ route('laporan.pembelian') }}"><i class="fas fa-shopping-cart"></i> Laporan Pembelian</a></li>
-          <li><a class="nav-link" href="{{ route('laporan.penjualan') }}"><i class="fas fa-cash-register"></i> Laporan Penjualan</a></li>
+          <!-- Dropdown: Penjualan -->
+          <li class="nav-item">
+            <a href="#menuLaporanPenjualan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuLaporanPenjualan" role="button" aria-expanded="false">
+              <i class="fas fa-cash-register"></i> Penjualan
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuLaporanPenjualan" data-bs-parent="#menuLaporan">
+              <li><a class="nav-link" href="{{ route('laporan.penjualan') }}">Laporan Penjualan</a></li>
+              <li><a class="nav-link" href="{{ route('laporan.penjualan-harian') }}">Laporan Penjualan Harian / Periodik</a></li>
+              <li><a class="nav-link" href="{{ route('laporan.penjualan-barang') }}">Laporan Penjualan per Barang</a></li>            </ul>
+          </li>
+          <!-- Dropdown: Pembelian -->
+          <li class="nav-item">
+            <a href="#menuLaporanPembelian" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuLaporanPembelian" role="button" aria-expanded="false">
+              <i class="fas fa-shopping-cart"></i> Pembelian
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuLaporanPembelian" data-bs-parent="#menuLaporan">
+              <li><a class="nav-link" href="{{ route('laporan.pembelian') }}">Laporan Pembelian Harian / Periodik</a></li>
+              <li><a class="nav-link" href="{{ route('laporan.pembelian-per-supplier') }}">Laporan Pembelian per Supplier</a></li>
+            </ul>
+          </li>
           <li><a class="nav-link" href="{{ route('laporan.laba-rugi') }}"><i class="fas fa-chart-line"></i> Laba Rugi</a></li>
-          <li><a class="nav-link" href="{{ route('laporan.stok-barang') }}"><i class="fas fa-boxes"></i> Stok Barang</a></li>
+          <li><a class="nav-link" href="{{ route('laporan.stok') }}"><i class="fas fa-boxes"></i> Stok Barang</a></li>
           <li><a class="nav-link" href="{{ route('laporan.rekap_harian') }}"><i class="fas fa-calendar-day"></i> Rekap Harian</a></li>
-                    <li><a class="nav-link" href="{{ route('laporan.rekap_bulanan') }}"><i class="fas fa-calendar-alt"></i> Rekap Bulanan</a></li>
+          <li><a class="nav-link" href="{{ route('laporan.rekap_bulanan') }}"><i class="fas fa-calendar-alt"></i> Rekap Bulanan</a></li>
           <li><a class="nav-link" href="{{ route('laporan.stok-opname') }}"><i class="fas fa-clipboard-check"></i> Stok Opname</a></li>
         </ul>
       </li>
@@ -458,6 +486,12 @@
         $('a[href="#menuMasterData"]').addClass('active');
         $('#menuHargaBarang').addClass('show');
         $('a[href="#menuHargaBarang"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/jenis-barang')) {
+        $('#menuMasterData').addClass('show');
+        $('a[href="#menuMasterData"]').addClass('active');
+        $('#menuJenisBarang').addClass('show');
+        $('a[href="#menuJenisBarang"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
       } else if (pathname.startsWith('/supplier')) {
         $('#menuSupplier').addClass('show');

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\JenisBarangController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\SatuanController;
 use App\Http\Controllers\KonversiSatuanController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\LaporanStokController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -55,6 +57,18 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}/delete', [KategoriController::class, 'delete'])->name('kategori.delete');
     });
 
+    Route::prefix('jenis-barang')->group(function () {
+        Route::get('/add', [JenisBarangController::class, 'add'])->name('jenis_barang.add');
+        Route::get('/data', [JenisBarangController::class, 'data'])->name('jenis_barang.data');
+        Route::post('/store', [JenisBarangController::class, 'store'])->name('jenis_barang.store');
+        Route::get('/{id}/find', [JenisBarangController::class, 'find'])->name('jenis_barang.find');
+        Route::put('/{id}/update', [JenisBarangController::class, 'update'])->name('jenis_barang.update');
+        Route::delete('/{id}/delete', [JenisBarangController::class, 'delete'])->name('jenis_barang.delete');
+        Route::get('/search/kategori', [JenisBarangController::class, 'searchKategori'])->name('jenis_barang.search.kategori');
+        Route::get('/search/barang', [JenisBarangController::class, 'searchBarang'])->name('jenis_barang.search.barang');
+        Route::get('/search/supplier', [JenisBarangController::class, 'searchSupplier'])->name('jenis_barang.search.supplier');
+    });
+
     Route::prefix('barang')->group(function () {
         Route::get('/', [BarangController::class, 'index'])->name('barang.index');
         Route::get('/add', [BarangController::class, 'add'])->name('barang.add');
@@ -67,6 +81,13 @@ Route::middleware('auth')->group(function () {
         // API endpoints untuk pembelian
         Route::get('/search', [BarangController::class, 'search'])->name('barang.search');
         Route::get('/{id}/satuan', [BarangController::class, 'getSatuan'])->name('barang.satuan');
+
+        // Stok Minimum
+        Route::get('/stok-minimum', [\App\Http\Controllers\StokMinimumController::class, 'index'])->name('barang.stok-minimum.index');
+        Route::get('/stok-minimum/data', [\App\Http\Controllers\StokMinimumController::class, 'data'])->name('barang.stok-minimum.data');
+        Route::post('/stok-minimum/store', [\App\Http\Controllers\StokMinimumController::class, 'store'])->name('barang.stok-minimum.store');
+        Route::delete('/stok-minimum/{id}/delete', [\App\Http\Controllers\StokMinimumController::class, 'delete'])->name('barang.stok-minimum.delete');
+        Route::get('/{barangId}/stok-minimum', [\App\Http\Controllers\StokMinimumController::class, 'getByBarang'])->name('barang.stok-minimum.get');
     });
 
     Route::prefix('satuan')->group(function () {
@@ -76,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/find', [SatuanController::class, 'find'])->name('satuan.find');
         Route::put('/{id}/update', [SatuanController::class, 'update'])->name('satuan.update');
         Route::delete('/{id}/delete', [SatuanController::class, 'delete'])->name('satuan.delete');
+        Route::get('/search', [SatuanController::class, 'search'])->name('satuan.search');
     });
 
     Route::prefix('konversi-satuan')->group(function () {
@@ -97,6 +119,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [HargaBarangController::class, 'destroy'])->name('harga-barang.destroy');
         Route::get('/data', [HargaBarangController::class, 'data'])->name('harga-barang.data');
         Route::get('/get-harga', [HargaBarangController::class, 'getHarga'])->name('harga-barang.get-harga');
+        Route::get('/get-tipe-harga', [HargaBarangController::class, 'getTipeHarga'])->name('harga-barang.get-tipe-harga');
     });
 
     Route::prefix('supplier')->group(function () {
@@ -120,6 +143,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}/update', [PelangganController::class, 'update'])->name('pelanggan.update');
         Route::delete('/{id}/delete', [PelangganController::class, 'delete'])->name('pelanggan.delete');
         Route::get('/generate-kode', [PelangganController::class, 'generateKode'])->name('pelanggan.generate-kode');
+        Route::get('/search', [PelangganController::class, 'search'])->name('pelanggan.search');
     });
 
     Route::prefix('pembelian')->group(function () {
@@ -164,7 +188,13 @@ Route::middleware('auth')->group(function () {
     Route::prefix('laporan')->group(function () {
         Route::get('/pembelian', [\App\Http\Controllers\LaporanPembelianController::class, 'index'])->name('laporan.pembelian');
         Route::get('/pembelian/data', [\App\Http\Controllers\LaporanPembelianController::class, 'data'])->name('laporan.pembelian.data');
+        Route::get('/pembelian/ringkasan', [\App\Http\Controllers\LaporanPembelianController::class, 'getRingkasan'])->name('laporan.pembelian.ringkasan');
+        Route::get('/pembelian/chart', [\App\Http\Controllers\LaporanPembelianController::class, 'getChartData'])->name('laporan.pembelian.chart');
         Route::get('/pembelian/export-pdf', [\App\Http\Controllers\LaporanPembelianController::class, 'exportPDF'])->name('laporan.pembelian.export_pdf');
+        Route::get('/pembelian-per-supplier', [\App\Http\Controllers\LaporanPembelianController::class, 'indexPerSupplier'])->name('laporan.pembelian-per-supplier');
+        Route::get('/pembelian-per-supplier/data', [\App\Http\Controllers\LaporanPembelianController::class, 'dataPerSupplier'])->name('laporan.pembelian-per-supplier.data');
+        Route::get('/pembelian-per-supplier/autocomplete-supplier', [\App\Http\Controllers\LaporanPembelianController::class, 'autocompleteSupplier'])->name('laporan.pembelian-per-supplier.autocomplete-supplier');
+        Route::get('/pembelian-per-supplier/export-pdf', [\App\Http\Controllers\LaporanPembelianController::class, 'exportPDFPerSupplier'])->name('laporan.pembelian-per-supplier.export_pdf');
 
         Route::get('/penjualan', [\App\Http\Controllers\LaporanPenjualanController::class, 'index'])->name('laporan.penjualan');
         Route::get('/penjualan/data', [\App\Http\Controllers\LaporanPenjualanController::class, 'data'])->name('laporan.penjualan.data');
@@ -174,14 +204,44 @@ Route::middleware('auth')->group(function () {
         Route::get('/laba-rugi/data', [\App\Http\Controllers\LaporanLabaRugiController::class, 'data'])->name('laporan.laba-rugi.data');
         Route::get('/laba-rugi/export-pdf', [\App\Http\Controllers\LaporanLabaRugiController::class, 'exportPDF'])->name('laporan.laba-rugi.export_pdf');
 
-        Route::get('/stok-barang', [\App\Http\Controllers\LaporanStokController::class, 'index'])->name('laporan.stok-barang');
-        Route::get('/stok-barang/data', [\App\Http\Controllers\LaporanStokController::class, 'getData'])->name('laporan.stok-barang.data');
-        Route::get('/stok-barang/export-pdf', [\App\Http\Controllers\LaporanStokController::class, 'exportPdf'])->name('laporan.stok-barang.export_pdf');
-        Route::get('/stok-barang/search', [\App\Http\Controllers\LaporanStokController::class, 'searchBarang'])->name('laporan.stok-barang.search');
+        Route::get('/stok', [\App\Http\Controllers\LaporanStokController::class, 'index'])->name('laporan.stok');
+        Route::get('/stok/stok-akhir', [\App\Http\Controllers\LaporanStokController::class, 'stokAkhir'])->name('laporan.stok_akhir');
+        Route::get('/stok/stok-akhir/data', [\App\Http\Controllers\LaporanStokController::class, 'getDataStokAkhir'])->name('laporan.stok_akhir.data');
+        Route::get('/stok/stok-akhir/ringkasan', [\App\Http\Controllers\LaporanStokController::class, 'getRingkasanStokAkhir'])->name('laporan.stok_akhir.ringkasan');
+        Route::get('/stok/stok-akhir/export-pdf', [\App\Http\Controllers\LaporanStokController::class, 'exportStokAkhirPdf'])->name('laporan.stok_akhir.export_pdf');
+        Route::get('/stok/stok-akhir/export-excel', [\App\Http\Controllers\LaporanStokController::class, 'exportStokAkhirExcel'])->name('laporan.stok_akhir.export_excel');
+
+        Route::get('/stok/stok-masuk-keluar', [\App\Http\Controllers\LaporanStokController::class, 'stokMasukKeluar'])->name('laporan.stok-masuk-keluar');
+        Route::get('/stok/stok-masuk-keluar/data', [\App\Http\Controllers\LaporanStokController::class, 'getDataStokMasukKeluar'])->name('laporan.stok-masuk-keluar.data');
+        Route::get('/stok/stok-masuk-keluar/export-pdf', [\App\Http\Controllers\LaporanStokController::class, 'exportStokMasukKeluarPdf'])->name('laporan.stok-masuk-keluar.export_pdf');
+
+        Route::get('/stok/barang-hampir-habis', [\App\Http\Controllers\LaporanStokController::class, 'barangHampirHabis'])->name('laporan.barang-hampir-habis');
+        Route::get('/stok/barang-hampir-habis/data', [\App\Http\Controllers\LaporanStokController::class, 'getDataBarangHampirHabis'])->name('laporan.barang-hampir-habis.data');
+        Route::get('/stok/barang-hampir-habis/export-pdf', [\App\Http\Controllers\LaporanStokController::class, 'exportBarangHampirHabisPdf'])->name('laporan.barang-hampir-habis.export_pdf');
+        Route::get('/stok/barang-hampir-habis/export-excel', [\App\Http\Controllers\LaporanStokController::class, 'exportBarangHampirHabisExcel'])->name('laporan.barang-hampir-habis.export_excel');
+
+        Route::get('/stok/barang-tidak-laku', [\App\Http\Controllers\LaporanStokController::class, 'barangTidakLaku'])->name('laporan.barang-tidak-laku');
+        Route::get('/stok/barang-tidak-laku/data', [\App\Http\Controllers\LaporanStokController::class, 'getDataBarangTidakLaku'])->name('laporan.barang-tidak-laku.data');
+        Route::get('/stok/barang-tidak-laku/ringkasan', [\App\Http\Controllers\LaporanStokController::class, 'getRingkasanBarangTidakLaku'])->name('laporan.barang-tidak-laku.ringkasan');
+        Route::get('/stok/barang-tidak-laku/export-pdf', [\App\Http\Controllers\LaporanStokController::class, 'exportBarangTidakLakuPdf'])->name('laporan.barang-tidak-laku.export_pdf');
+        Route::get('/stok/barang-tidak-laku/export-excel', [\App\Http\Controllers\LaporanStokController::class, 'exportBarangTidakLakuExcel'])->name('laporan.barang-tidak-laku.export_excel');
+
+        Route::get('/stok/koreksi-stok', [\App\Http\Controllers\LaporanStokController::class, 'koreksiStok'])->name('laporan.koreksi-stok');
+        Route::get('/stok/koreksi-stok/data', [\App\Http\Controllers\LaporanStokController::class, 'getDataKoreksiStok'])->name('laporan.koreksi-stok.data');
+        Route::get('/stok/koreksi-stok/ringkasan', [\App\Http\Controllers\LaporanStokController::class, 'getRingkasanKoreksiStok'])->name('laporan.koreksi-stok.ringkasan');
+        Route::get('/stok/koreksi-stok/export-pdf', [\App\Http\Controllers\LaporanStokController::class, 'exportKoreksiStokPdf'])->name('laporan.koreksi-stok.export_pdf');
+
+        Route::get('/stok/search-barang', [\App\Http\Controllers\LaporanStokController::class, 'searchBarang'])->name('laporan.stok.search-barang');
 
         Route::get('/rekap-harian', [\App\Http\Controllers\LaporanRekapHarianController::class, 'index'])->name('laporan.rekap_harian');
         Route::get('/rekap-harian/data', [\App\Http\Controllers\LaporanRekapHarianController::class, 'getData'])->name('laporan.rekap_harian.data');
         Route::get('/rekap-harian/export-pdf', [\App\Http\Controllers\LaporanRekapHarianController::class, 'exportPdf'])->name('laporan.rekap_harian.export_pdf');
+
+        Route::get('/penjualan-harian', [\App\Http\Controllers\LaporanPenjualanHarianController::class, 'index'])->name('laporan.penjualan-harian');
+        Route::get('/penjualan-harian/data', [\App\Http\Controllers\LaporanPenjualanHarianController::class, 'data'])->name('laporan.penjualan-harian.data');
+        Route::get('/penjualan-harian/ringkasan', [\App\Http\Controllers\LaporanPenjualanHarianController::class, 'getRingkasan'])->name('laporan.penjualan-harian.ringkasan');
+        Route::get('/penjualan-harian/chart', [\App\Http\Controllers\LaporanPenjualanHarianController::class, 'getChartData'])->name('laporan.penjualan-harian.chart');
+        Route::get('/penjualan-harian/export-pdf', [\App\Http\Controllers\LaporanPenjualanHarianController::class, 'exportPDF'])->name('laporan.penjualan-harian.export_pdf');
 
         Route::get('/rekap_bulanan', [\App\Http\Controllers\LaporanRekapBulananController::class, 'index'])->name('laporan.rekap_bulanan');
         Route::get('/rekap_bulanan/data', [\App\Http\Controllers\LaporanRekapBulananController::class, 'getData'])->name('laporan.rekap_bulanan.data');
@@ -194,6 +254,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Stok Opname Routes
+    Route::get('stok-opname/get-barang-by-kategori', [\App\Http\Controllers\StokOpnameController::class, 'getBarangByKategori'])->name('stok-opname.get-barang-by-kategori');
     Route::resource('stok-opname', \App\Http\Controllers\StokOpnameController::class);
     Route::post('stok-opname/{id}/update-status', [\App\Http\Controllers\StokOpnameController::class, 'updateStatus'])->name('stok-opname.updateStatus');
 
@@ -229,3 +290,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('profil-toko', \App\Http\Controllers\ProfilTokoController::class)->only(['index', 'update']);
 
 });
+Route::get('/penjualan-barang', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'index'])->name('laporan.penjualan-barang');
+Route::get('/penjualan-barang/data', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'data'])->name('laporan.penjualan-barang.data');
+Route::get('/penjualan-barang/ringkasan', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'getRingkasan'])->name('laporan.penjualan-barang.ringkasan');
+Route::get('/penjualan-barang/chart', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'getChartData'])->name('laporan.penjualan-barang.chart');
+Route::get('/penjualan-barang/export-pdf', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'exportPDF'])->name('laporan.penjualan-barang.export_pdf');
+Route::get('/penjualan-barang/export-excel', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'exportExcel'])->name('laporan.penjualan-barang.export_excel');

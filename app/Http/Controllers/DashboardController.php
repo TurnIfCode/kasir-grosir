@@ -12,19 +12,18 @@ class DashboardController extends Controller
     {
         // Tanggal hari ini
         $today = Carbon::today();
+        $thisMonth = Carbon::now()->month;
+        $thisYear = Carbon::now()->year;
+        $lastWeek = Carbon::now()->subDays(7);
 
         // -------------------------
-        // 1) RINGKASAN ANGKA UTAMA
+        // 1) RINGKASAN ANGKA UTAMA (6 CARD)
         // -------------------------
         $totalPenjualanHariIni = DB::table('penjualan')
             ->whereDate('tanggal_penjualan', $today)
             ->sum('grand_total');
 
-        $jumlahTransaksiHariIni = DB::table('penjualan')
-            ->whereDate('tanggal_penjualan', $today)
-            ->count();
-
-        $totalPembelianHariIni = DB::table('pembelian')
+        $labaKotorHariIni = $totalPenjualanHariIni - DB::table('pembelian')
             ->whereDate('tanggal_pembelian', $today)
             ->sum('total');
 
@@ -33,21 +32,23 @@ class DashboardController extends Controller
             ->whereDate('p.tanggal_penjualan', $today)
             ->sum('pd.qty');
 
-        $totalBarangAktif = DB::table('barang')
+        $totalPembelian = DB::table('pembelian')
+            ->whereDate('tanggal_pembelian', $today)
+            ->sum('total');
+
+        $kasirAktif = DB::table('users')
+            ->where('role', 'KASIR')
             ->where('status', 'aktif')
             ->count();
 
-        // Barang hampir habis (pakai ambang batas stok ≤ 5)
-        $stokThreshold = 5;
-        $barangHampirHabis = DB::table('barang')
-            ->where('status', 'aktif')
-            ->where('stok', '<=', $stokThreshold)
-            ->count();
+        $saldoKas = DB::table('kas_saldo')
+            ->orderBy('created_at', 'desc')
+            ->value('saldo_akhir') ?? 0;
 
         // ----------------------------------------
-        // 2) DATA GRAFIK PENJUALAN (7 HARI TERAKHIR)
+        // 2) DATA GRAFIK PENJUALAN 7 HARI TERAKHIR (LINE CHART)
         // ----------------------------------------
-        $grafikPenjualan = DB::table('penjualan')
+        $grafikPenjualan7Hari = DB::table('penjualan')
             ->select(
                 DB::raw('DATE(tanggal_penjualan) as tanggal'),
                 DB::raw('SUM(grand_total) as total')
@@ -57,21 +58,66 @@ class DashboardController extends Controller
             ->orderBy('tanggal_penjualan', 'asc')
             ->get();
 
+        // ----------------------------------------
+        // 3) GRAFIK PERBANDINGAN PENJUALAN VS PEMBELIAN BULAN INI (BAR CHART)
+        // ----------------------------------------
+        $penjualanBulanIni = DB::table('penjualan')
+            ->whereMonth('tanggal_penjualan', $thisMonth)
+            ->whereYear('tanggal_penjualan', $thisYear)
+            ->sum('grand_total');
+
+        $pembelianBulanIni = DB::table('pembelian')
+            ->whereMonth('tanggal_pembelian', $thisMonth)
+            ->whereYear('tanggal_pembelian', $thisYear)
+            ->sum('total');
+
+        // ----------------------------------------
+        // 4) PIE CHART KATEGORI PENJUALAN
+        // ----------------------------------------
+        $kategoriPenjualan = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('barang as b', 'b.id', '=', 'pd.barang_id')
+            ->join('kategori as k', 'k.id', '=', 'b.kategori_id')
+            ->select('k.nama_kategori', DB::raw('SUM(pd.qty * pd.harga_jual) as total'))
+            ->whereDate('p.tanggal_penjualan', $today)
+            ->groupBy('k.nama_kategori')
+            ->orderByDesc('total')
+            ->get();
+
         // ------------------------------
-        // 3) TOP 5 BARANG PALING LARIS
+        // 5) TOP 5 BARANG PALING LAKU HARI INI
         // ------------------------------
-        $topBarang = DB::table('penjualan_detail as pd')
+        $topBarangLaku = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
             ->join('barang as b', 'b.id', '=', 'pd.barang_id')
             ->select('b.nama_barang', DB::raw('SUM(pd.qty) as total_terjual'))
+            ->whereDate('p.tanggal_penjualan', $today)
             ->groupBy('b.nama_barang')
             ->orderByDesc('total_terjual')
             ->limit(5)
             ->get();
 
         // ------------------------------
-        // 4) BARANG HAMPIR HABIS (TOP 5)
+        // 6) 5 BARANG TIDAK LAKU MINGGU INI
         // ------------------------------
-        $stokMenipis = DB::table('barang')
+        $barangTidakLaku = DB::table('barang as b')
+            ->leftJoin('penjualan_detail as pd', function($join) use ($lastWeek) {
+                $join->on('b.id', '=', 'pd.barang_id')
+                     ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                     ->where('p.tanggal_penjualan', '>=', $lastWeek);
+            })
+            ->select('b.nama_barang', DB::raw('COALESCE(SUM(pd.qty), 0) as total_terjual'))
+            ->where('b.status', 'aktif')
+            ->groupBy('b.nama_barang')
+            ->orderBy('total_terjual', 'asc')
+            ->limit(5)
+            ->get();
+
+        // ------------------------------
+        // 7) BARANG HAMPIR HABIS
+        // ------------------------------
+        $stokThreshold = 5;
+        $barangHampirHabis = DB::table('barang')
             ->select('kode_barang', 'nama_barang', 'stok')
             ->where('status', 'aktif')
             ->where('stok', '<=', $stokThreshold)
@@ -79,30 +125,59 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // --------------------------------
-        // 5) TRANSAKSI PENJUALAN TERBARU
-        // --------------------------------
-        $transaksiTerbaru = DB::table('penjualan')
-            ->join('users', 'penjualan.created_by', '=', 'users.id')
-            ->select('penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.grand_total', 'users.name as created_by_name')
-            ->orderByDesc('penjualan.tanggal_penjualan')
-            ->limit(10)
+        // ------------------------------
+        // 8) PENGELUARAN HARI INI
+        // ------------------------------
+        $pengeluaranHariIni = DB::table('kas')
+            ->where('tipe', 'keluar')
+            ->whereDate('tanggal', $today)
+            ->select('keterangan', 'nominal')
+            ->orderBy('tanggal', 'desc')
             ->get();
+
+        // ------------------------------
+        // 9) NOTIFIKASI
+        // ------------------------------
+        $notifikasi = [];
+
+        // Stok habis
+        $stokHabis = DB::table('barang')
+            ->where('status', 'aktif')
+            ->where('stok', '<=', 0)
+            ->count();
+        if ($stokHabis > 0) {
+            $notifikasi[] = ['type' => 'warning', 'message' => "Ada {$stokHabis} barang stok habis"];
+        }
+
+        // Pengeluaran besar (> 1jt)
+        $pengeluaranBesar = DB::table('kas')
+            ->where('tipe', 'keluar')
+            ->whereDate('tanggal', $today)
+            ->where('nominal', '>', 1000000)
+            ->count();
+        if ($pengeluaranBesar > 0) {
+            $notifikasi[] = ['type' => 'info', 'message' => "Ada {$pengeluaranBesar} pengeluaran besar hari ini"];
+        }
 
         // ------------------------
         // Kirim data ke view
         // ------------------------
         return view('dashboard', compact(
             'totalPenjualanHariIni',
-            'jumlahTransaksiHariIni',
-            'totalPembelianHariIni',
+            'labaKotorHariIni',
             'totalBarangTerjual',
-            'totalBarangAktif',
+            'totalPembelian',
+            'kasirAktif',
+            'saldoKas',
+            'grafikPenjualan7Hari',
+            'penjualanBulanIni',
+            'pembelianBulanIni',
+            'kategoriPenjualan',
+            'topBarangLaku',
+            'barangTidakLaku',
             'barangHampirHabis',
-            'grafikPenjualan',
-            'topBarang',
-            'stokMenipis',
-            'transaksiTerbaru'
+            'pengeluaranHariIni',
+            'notifikasi'
         ));
     }
 }

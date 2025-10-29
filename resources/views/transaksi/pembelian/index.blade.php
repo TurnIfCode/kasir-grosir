@@ -57,6 +57,11 @@
 
 <script>
 $(document).ready(function() {
+    // Set filterTanggalDari and filterTanggalSampai to today's date
+    var today = new Date().toISOString().split('T')[0];
+    $('#filterTanggalDari').val(today);
+    $('#filterTanggalSampai').val(today);
+
     var table = $('#pembelianTable').DataTable({
         processing: true,
         serverSide: true,

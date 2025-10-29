@@ -169,4 +169,23 @@ class PelangganController extends Controller
         $nextNumber = $lastPelanggan ? intval(substr($lastPelanggan->kode_pelanggan, 3)) + 1 : 1;
         return 'PLG' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
+
+    // API untuk autocomplete pelanggan
+    public function search(Request $request)
+    {
+        $query = $request->get('q', '');
+        $pelanggans = Pelanggan::where(function($q) use ($query) {
+            $q->where('nama_pelanggan', 'LIKE', "%{$query}%")
+              ->orWhere('kode_pelanggan', 'LIKE', "%{$query}%")
+              ->orWhere('telepon', 'LIKE', "%{$query}%");
+        })
+        ->where('status', 'aktif')
+        ->limit(10)
+        ->get(['id', 'kode_pelanggan', 'nama_pelanggan', 'telepon']);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $pelanggans
+        ]);
+    }
 }
