@@ -15,7 +15,7 @@ class KategoriController extends Controller
             $length = $request->get('length');
             $search = $request->get('search') ? $request->get('search')['value'] : '';
 
-            $query = Kategori::where('status', 'AKTIF');
+            $query = Kategori::where('status', 'AKTIF')->orderBy('nama_kategori', 'asc');
 
             if (!empty($search)) {
                 $query->where('kode_kategori', 'like', '%' . $search . '%')

@@ -27,7 +27,6 @@
     </form>
   </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   $("#btnSave").click(function() {
@@ -87,6 +86,5 @@ $(document).ready(function() {
 });
 </script>
 
-@endsection
 
 @include('layout.footer')

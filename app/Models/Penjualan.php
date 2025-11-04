@@ -19,6 +19,7 @@ class Penjualan extends Model
         'total',
         'diskon',
         'ppn',
+        'pembulatan',
         'grand_total',
         'jenis_pembayaran',
         'dibayar',

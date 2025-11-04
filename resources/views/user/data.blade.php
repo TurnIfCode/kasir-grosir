@@ -92,7 +92,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // DataTable
@@ -290,6 +289,5 @@ $(document).ready(function() {
 
 });
 </script>
-@endsection
 
 @include('layout.footer')

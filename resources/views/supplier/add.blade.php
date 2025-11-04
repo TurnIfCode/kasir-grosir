@@ -61,7 +61,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // Generate kode supplier otomatis saat halaman load
@@ -150,6 +149,5 @@ $(document).ready(function() {
 });
 </script>
 
-@endsection
 
 @include('layout.footer')

@@ -65,11 +65,18 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Total</label>
+                            <label class="form-label fw-semibold">Pembulatan</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="text" class="form-control fw-bold fs-4 text-primary" id="total" value="0" readonly>
-                                <input type="hidden" id="totalValue" name="total">
+                                <input type="text" class="form-control fw-bold fs-5" id="pembulatan" value="0" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Grand Total</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" class="form-control fw-bold fs-4 text-primary" id="summaryGrandTotal" value="0" readonly>
+                                <input type="hidden" id="grandTotalValue" name="grand_total">
                             </div>
                         </div>
                     </div>
@@ -106,6 +113,8 @@
                 </div>
             </div>
         </div>
+
+
 
         <!-- Total & Pembayaran -->
         <div class="row mb-4">
@@ -170,10 +179,17 @@
                             </div>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label fw-semibold">Pembulatan</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" class="form-control fw-bold fs-5" id="grandPembulatan" value="0" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label fw-semibold">Grand Total</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="text" class="form-control fw-bold fs-3 text-primary" id="grandTotal" value="0" readonly>
+                                <input type="text" class="form-control fw-bold fs-3 text-primary" id="paymentGrandTotal" value="0" readonly>
                                 <input type="hidden" id="grandTotalValue" name="grand_total">
                             </div>
                         </div>
@@ -201,6 +217,9 @@
     </form>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 <script src="{{ asset('js/penjualan-form.js') }}"></script>
 
 <script>

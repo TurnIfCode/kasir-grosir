@@ -20,7 +20,7 @@ class SatuanController extends Controller
             $length = $request->get('length');
             $search = $request->get('search') ? $request->get('search')['value'] : '';
 
-            $query = Satuan::where('status', 'AKTIF');
+            $query = Satuan::where('status', 'AKTIF')->orderBy('nama_satuan', 'asc');
 
             if (!empty($search)) {
                 $query->where('kode_satuan', 'like', '%' . $search . '%')

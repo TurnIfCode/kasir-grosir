@@ -77,9 +77,9 @@ class BarangController extends Controller
 
     public function add()
     {
-        $kategori = Kategori::where('status', 'AKTIF')->get();
+        $kategori = Kategori::where('status', 'AKTIF')->orderBy('nama_kategori', 'asc')->get();
         $categories = $kategori;
-        $satuan = Satuan::where('status', 'AKTIF')->get();
+        $satuan = Satuan::where('status', 'AKTIF')->orderBy('nama_satuan', 'asc')->get();
         $satuans = $satuan;
         return view('barang.add', compact('kategori', 'categories', 'satuan', 'satuans'));
     }
@@ -90,7 +90,7 @@ class BarangController extends Controller
             'kode_barang' => 'required|string|max:50|unique:barang,kode_barang',
             'nama_barang' => 'required|string|max:150',
             'kategori_id' => 'required|integer',
-            'satuan_id' => 'nullable|integer',
+            'satuan_id' => 'required|integer',
             'stok' => 'required|integer|min:0',
             'harga_beli' => 'required|numeric|min:0',
             'harga_jual' => 'required|numeric|min:0',
@@ -145,6 +145,9 @@ class BarangController extends Controller
         $data = $barang->toArray();
         $data['created_by'] = $barang->creator ? $barang->creator->name : '-';
         $data['updated_by'] = $barang->updater ? $barang->updater->name : '-';
+        $data['stok'] = round($barang->stok, 2);
+        $data['harga_beli'] = round($barang->harga_beli, 2);
+        $data['harga_jual'] = round($barang->harga_jual, 2);
 
         return response()->json([
             'status' => true,
@@ -166,7 +169,7 @@ class BarangController extends Controller
             'kode_barang' => 'nullable|string|max:50|unique:barang,kode_barang,' . $id,
             'nama_barang' => 'required|string|max:150',
             'kategori_id' => 'nullable|integer',
-            'satuan_id' => 'nullable|integer',
+            'satuan_id' => 'required|integer',
             'stok' => 'nullable|integer|min:0',
             'harga_beli' => 'nullable|numeric|min:0',
             'harga_jual' => 'nullable|numeric|min:0',
@@ -231,29 +234,36 @@ class BarangController extends Controller
     // API untuk autocomplete barang
     public function search(Request $request)
     {
-        $query = $request->get('q', '');
-        $barangs = Barang::with('barcodes')
-            ->where(function($q) use ($query) {
-                $q->where('nama_barang', 'LIKE', "%{$query}%")
-                  ->orWhere('kode_barang', 'LIKE', "%{$query}%")
-                  ->orWhereHas('barcodes', function($qb) use ($query) {
-                      $qb->where('barcode', 'LIKE', "%{$query}%");
+        $term = $request->get('q', $request->get('term', ''));
+        $barangs = Barang::with('barcodes', 'satuan')
+            ->where(function($q) use ($term) {
+                $q->where('nama_barang', 'LIKE', "%{$term}%")
+                  ->orWhere('kode_barang', 'LIKE', "%{$term}%")
+                  ->orWhereHas('barcodes', function($qb) use ($term) {
+                      $qb->where('barcode', 'LIKE', "%{$term}%");
                   });
             })
             ->where('status', 'aktif')
-            ->limit(10)
-            ->get(['id', 'kode_barang', 'nama_barang']);
+            ->limit(20)
+            ->get(['id', 'nama_barang', 'kode_barang', 'satuan_id']);
 
-        // Add barcode to each item
-        $barangs->transform(function($barang) {
-            $barang->barcode = $barang->barcodes->first()?->barcode;
-            unset($barang->barcodes);
-            return $barang;
+        // Format data untuk autocomplete
+        $results = $barangs->map(function($barang) {
+            $barcode = $barang->barcodes->first() ? $barang->barcodes->first()->barcode : null;
+            return [
+                'id' => $barang->id,
+                'text' => $barang->nama_barang . ' (' . $barang->kode_barang . ')',
+                'nama_barang' => $barang->nama_barang,
+                'kode_barang' => $barang->kode_barang,
+                'barcode' => $barcode,
+                'satuan_id' => $barang->satuan_id,
+                'nama_satuan' => $barang->satuan ? $barang->satuan->nama_satuan : null
+            ];
         });
 
         return response()->json([
             'status' => 'success',
-            'data' => $barangs
+            'data' => $results
         ]);
     }
 
@@ -291,5 +301,68 @@ class BarangController extends Controller
             'status' => 'success',
             'data' => $satuans
         ]);
+    }
+
+    // API untuk mendapatkan info barang (kategori dan paket)
+    public function getInfo($id)
+    {
+        $barang = Barang::with(['kategori', 'paketDetails.paket'])->find($id);
+
+        if (!$barang) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Barang tidak ditemukan'
+            ], 404);
+        }
+
+        $isPaket = $barang->paketDetails->isNotEmpty();
+        $paketInfo = null;
+        if ($isPaket) {
+            $paketDetail = $barang->paketDetails->first();
+            $paket = $paketDetail->paket;
+            if ($paket) {
+                $paketInfo = [
+                    'nama_paket' => $paket->nama_paket,
+                    'harga_per_3' => $paket->harga_per_3,
+                    'harga_per_unit' => $paket->harga_per_unit
+                ];
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id' => $barang->id,
+                'nama_barang' => $barang->nama_barang,
+                'kategori' => $barang->kategori ? $barang->kategori->nama_kategori : null,
+                'harga' => round($barang->harga_jual, 0),
+                'is_paket' => $isPaket,
+                'nama_paket' => $paketInfo ? $paketInfo['nama_paket'] : null,
+                'harga_per_3' => $paketInfo ? $paketInfo['harga_per_3'] : null,
+                'paket' => $paketInfo ? [$paketInfo] : []
+            ]
+        ]);
+    }
+
+    // API untuk mendapatkan harga berdasarkan barang, satuan, dan tipe harga
+    public function getHarga(Request $request, $barangId, $satuanId)
+    {
+        $tipe = $request->get('tipe', 'ecer');
+
+        try {
+            $hargaService = app(\App\Services\HargaService::class);
+            $hargaData = $hargaService->lookupHarga($barangId, $satuanId, $tipe);
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'harga' => $hargaData['harga']
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

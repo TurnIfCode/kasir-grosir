@@ -42,7 +42,6 @@
     </form>
   </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // Autocomplete kategori
@@ -140,9 +139,15 @@ $(document).ready(function() {
           required: true,
           minlength: 3
         },
-        kategori_id: "required",
-        barang_id: "required",
-        supplier_id: "required"
+        kategori_id: {
+          required: true
+        },
+        barang_id: {
+          required: true
+        },
+        supplier_id: {
+          required: true
+        }
       },
       messages: {
         kode_jenis: {
@@ -153,9 +158,15 @@ $(document).ready(function() {
           required: "Nama jenis wajib diisi",
           minlength: "Nama jenis minimal 3 karakter"
         },
-        kategori_id: "Kategori wajib dipilih",
-        barang_id: "Barang wajib dipilih",
-        supplier_id: "Supplier wajib dipilih"
+        kategori_id: {
+          required: "Kategori wajib dipilih"
+        },
+        barang_id: {
+          required: "Barang wajib dipilih"
+        },
+        supplier_id: {
+          required: "Supplier wajib dipilih"
+        }
       },
       submitHandler: function(form) {
         // Set default deskripsi jika kosong
@@ -193,6 +204,5 @@ $(document).ready(function() {
 });
 </script>
 
-@endsection
 
 @include('layout.footer')

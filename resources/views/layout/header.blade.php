@@ -25,6 +25,9 @@
   <!-- jQuery UI CSS -->
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -39,6 +42,9 @@
 
   <!-- DataTables JS -->
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+  <!-- Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
   <style>
     body {
@@ -296,6 +302,16 @@
               <li><a class="nav-link" href="{{ route('harga-barang.index') }}">Data</a></li>
             </ul>
           </li>
+          <!-- Paket -->
+          <li class="nav-item">
+            <a href="#menuPaket" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPaket" role="button" aria-expanded="false">
+              Paket
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuPaket" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('paket.create') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('paket.index') }}">Data</a></li>
+            </ul>
+          </li>
           <!-- Jenis Barang -->
           <li class="nav-item">
             <a href="#menuJenisBarang" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuJenisBarang" role="button" aria-expanded="false">
@@ -487,6 +503,12 @@
         $('#menuHargaBarang').addClass('show');
         $('a[href="#menuHargaBarang"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/paket')) {
+        $('#menuMasterData').addClass('show');
+        $('a[href="#menuMasterData"]').addClass('active');
+        $('#menuPaket').addClass('show');
+        $('a[href="#menuPaket"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
       } else if (pathname.startsWith('/jenis-barang')) {
         $('#menuMasterData').addClass('show');
         $('a[href="#menuMasterData"]').addClass('active');
@@ -552,3 +574,4 @@
       });
     });
   </script>
+</style>

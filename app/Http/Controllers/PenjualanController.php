@@ -93,7 +93,13 @@ class PenjualanController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Penjualan berhasil disimpan',
-                'data' => $penjualan
+                'data' => [
+                    'id' => $penjualan->id,
+                    'kode_penjualan' => $penjualan->kode_penjualan,
+                    'subtotal' => $penjualan->total,
+                    'pembulatan' => $penjualan->pembulatan,
+                    'grand_total' => $penjualan->grand_total
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -184,6 +190,37 @@ class PenjualanController extends Controller
     }
 
     /**
+     * AJAX endpoint to get available tipe_harga for a barang + satuan
+     */
+    public function getTipeHargaByBarangSatuan($barangId, $satuanId)
+    {
+        try {
+            $tipeHargas = \App\Models\HargaBarang::where('barang_id', $barangId)
+                ->where('satuan_id', $satuanId)
+                ->where('status', 'aktif')
+                ->pluck('tipe_harga')
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // If no specific harga_barang records, default to ecer
+            if (empty($tipeHargas)) {
+                $tipeHargas = ['ecer'];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $tipeHargas
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * AJAX endpoint to get harga for barang + satuan + tipe
      */
     public function getHargaByBarangSatuan($barangId, $satuanId, Request $request)
@@ -191,6 +228,7 @@ class PenjualanController extends Controller
         $tipe = $request->get('tipe', 'ecer');
         try {
             $harga = $this->hargaService->lookupHarga($barangId, $satuanId, $tipe);
+            $harga['harga'] = round($harga['harga'], 2);
             return response()->json([
                 'status' => 'success',
                 'data' => $harga
@@ -222,7 +260,110 @@ class PenjualanController extends Controller
         }
     }
 
+    /**
+     * AJAX endpoint to get harga_barang info for a barang
+     */
+    public function getHargaBarangInfo($barangId)
+    {
+        try {
+            $hargaBarang = \App\Models\HargaBarang::where('barang_id', $barangId)
+                ->where('status', 'aktif')
+                ->with(['satuan'])
+                ->get()
+                ->map(function($harga) {
+                    return [
+                        'satuan_id' => $harga->satuan_id,
+                        'nama_satuan' => $harga->satuan->nama_satuan ?? 'Satuan',
+                        'tipe_harga' => $harga->tipe_harga,
+                        'harga' => $harga->harga
+                    ];
+                });
 
+            return response()->json([
+                'status' => 'success',
+                'data' => $hargaBarang
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+    /**
+     * AJAX endpoint to get paket data for a barang
+     */
+    public function getPaketBarang($barangId)
+    {
+        try {
+            $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
+                $q->where('barang_id', $barangId);
+            })->with(['details.barang', 'details'])->get();
+
+            $data = $pakets->map(function($paket) {
+                return [
+                    'id' => $paket->id,
+                    'kode_paket' => $paket->kode_paket,
+                    'nama_paket' => $paket->nama_paket,
+                    'harga_per_3' => $paket->harga_per_3,
+                    'harga_per_unit' => $paket->harga_per_unit,
+                    'barang_ids' => $paket->details->pluck('barang_id')->toArray(),
+                    'barang_nama' => $paket->details->pluck('barang.nama_barang')->toArray(),
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * AJAX endpoint to calculate subtotal and pembulatan for current transaction details
+     */
+    public function calculateSubtotal(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'details' => 'nullable|array',
+            'details.*.barang_id' => 'required|exists:barang,id',
+            'details.*.satuan_id' => 'required|exists:satuan,id',
+            'details.*.tipe_harga' => 'required|in:ecer,grosir,reseller',
+            'details.*.qty' => 'required|numeric|min:0.01',
+            'details.*.harga_jual' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $details = $request->details ?? [];
+            $calculation = $this->penjualanService->calculateSubtotalAndPembulatan($details);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $calculation
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /**
      * Data endpoint for index

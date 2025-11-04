@@ -26,7 +26,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // DataTable
@@ -157,7 +156,6 @@ $(document).ready(function() {
   });
 });
 </script>
-@endsection
 
 <!-- Modal Edit Supplier -->
 <div class="modal fade" id="editSupplierModal" tabindex="-1" aria-labelledby="editSupplierModalLabel" aria-hidden="true">
@@ -213,7 +211,7 @@ $(document).ready(function() {
             <input type="text" class="form-control" id="edit_provinsi" name="provinsi">
           </div>
 
-          <div class="form-group mb-3">
+          <div class="form-group">
             <label for="edit_status">Status *</label>
             <select class="form-control" id="edit_status" name="status">
               <option value="aktif">Aktif</option>

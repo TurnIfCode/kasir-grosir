@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KategoriController;
+
 use App\Http\Controllers\JenisBarangController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\SatuanController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\KasController;
 use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LaporanStokController;
+use App\Http\Controllers\Master\PaketController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -57,6 +59,21 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}/delete', [KategoriController::class, 'delete'])->name('kategori.delete');
     });
 
+    Route::prefix('paket')->group(function () {
+        Route::get('/', [PaketController::class, 'index'])->name('paket.index');
+        Route::get('/add', [PaketController::class, 'add'])->name('paket.create');
+        Route::get('/data', [PaketController::class, 'data'])->name('paket.data');
+        Route::post('/store', [PaketController::class, 'store'])->name('paket.store');
+        Route::get('/{id}/find', [PaketController::class, 'find'])->name('paket.find');
+        Route::get('/{id}/edit', [PaketController::class, 'edit'])->name('paket.edit');
+        Route::put('/{id}/update', [PaketController::class, 'update'])->name('paket.update');
+        Route::delete('/{id}/delete', [PaketController::class, 'delete'])->name('paket.delete');
+    });
+    
+    Route::get('/barang/search', [App\Http\Controllers\BarangController::class, 'search'])->name('barang.search');
+
+
+
     Route::prefix('jenis-barang')->group(function () {
         Route::get('/add', [JenisBarangController::class, 'add'])->name('jenis_barang.add');
         Route::get('/data', [JenisBarangController::class, 'data'])->name('jenis_barang.data');
@@ -78,9 +95,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}/update', [BarangController::class, 'update'])->name('barang.update');
         Route::delete('/{id}/delete', [BarangController::class, 'delete'])->name('barang.delete');
 
-        // API endpoints untuk pembelian
+        // API endpoints untuk pembelian dan paket
         Route::get('/search', [BarangController::class, 'search'])->name('barang.search');
         Route::get('/{id}/satuan', [BarangController::class, 'getSatuan'])->name('barang.satuan');
+        Route::get('/{barangId}/harga/{satuanId}', [BarangController::class, 'getHarga'])->name('barang.harga');
 
         // Stok Minimum
         Route::get('/stok-minimum', [\App\Http\Controllers\StokMinimumController::class, 'index'])->name('barang.stok-minimum.index');
@@ -174,8 +192,12 @@ Route::middleware('auth')->group(function () {
         // AJAX endpoints
         Route::get('/autocomplete-barang', [PenjualanController::class, 'autocompleteBarang'])->name('penjualan.autocomplete-barang');
         Route::get('/barang/{barangId}/satuan', [PenjualanController::class, 'getSatuanByBarang'])->name('penjualan.barang.satuan');
+        Route::get('/barang/{barangId}/satuan/{satuanId}/tipe-harga', [PenjualanController::class, 'getTipeHargaByBarangSatuan'])->name('penjualan.barang.tipe-harga');
         Route::get('/barang/{barangId}/harga/{satuanId}', [PenjualanController::class, 'getHargaByBarangSatuan'])->name('penjualan.barang.harga');
         Route::get('/barang/{barangId}/harga/{satuanId}/default', [PenjualanController::class, 'getHargaByBarangSatuanDefault'])->name('penjualan.barang.harga.default');
+        Route::get('/barang/{barangId}/harga-barang-info', [PenjualanController::class, 'getHargaBarangInfo'])->name('penjualan.barang.harga-barang-info');
+        Route::get('/get-paket-barang/{barangId}', [PenjualanController::class, 'getPaketBarang'])->name('penjualan.get-paket-barang');
+        Route::post('/calculate-subtotal', [PenjualanController::class, 'calculateSubtotal'])->name('penjualan.calculate-subtotal');
 
         Route::get('/{id}', [PenjualanController::class, 'show'])->name('penjualan.show');
         Route::get('/{id}/edit', [PenjualanController::class, 'edit'])->name('penjualan.edit');
@@ -296,3 +318,6 @@ Route::get('/penjualan-barang/ringkasan', [\App\Http\Controllers\LaporanPenjuala
 Route::get('/penjualan-barang/chart', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'getChartData'])->name('laporan.penjualan-barang.chart');
 Route::get('/penjualan-barang/export-pdf', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'exportPDF'])->name('laporan.penjualan-barang.export_pdf');
 Route::get('/penjualan-barang/export-excel', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'exportExcel'])->name('laporan.penjualan-barang.export_excel');
+
+// Barang info API
+Route::get('/barang/{id}/info', [BarangController::class, 'getInfo'])->name('barang.info');

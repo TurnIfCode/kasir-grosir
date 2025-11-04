@@ -11,7 +11,7 @@
         <div class="col-md-6">
           <div class="form-group">
             <label for="barang_id">Barang</label>
-            <select name="barang_id" id="barang_id" class="form-control" required>
+            <select name="barang_id" id="barang_id" class="form-control" readonly required>
               <option value="">-- Pilih Barang --</option>
               @if(isset($barang))
                 @foreach($barang as $b)
@@ -43,15 +43,13 @@
             <select name="tipe_harga" id="tipe_harga" class="form-control" required>
               <option value="ecer" {{ $hargaBarang->tipe_harga == 'ecer' ? 'selected' : '' }}>Ecer</option>
               <option value="grosir" {{ $hargaBarang->tipe_harga == 'grosir' ? 'selected' : '' }}>Grosir</option>
-              <option value="member" {{ $hargaBarang->tipe_harga == 'member' ? 'selected' : '' }}>Member</option>
-              <option value="promo" {{ $hargaBarang->tipe_harga == 'promo' ? 'selected' : '' }}>Promo</option>
             </select>
           </div>
         </div>
         <div class="col-md-6">
           <div class="form-group">
             <label for="harga">Harga</label>
-            <input type="number" step="0.01" name="harga" id="harga" class="form-control" value="{{ $hargaBarang->harga }}" required>
+            <input type="number" step="0.01" name="harga" id="harga" class="form-control" value="{{ round($hargaBarang->harga,2) }}" required>
           </div>
         </div>
       </div>

@@ -67,7 +67,7 @@
             <label for="edit_deskripsi" class="form-label">Deskripsi</label>
             <input type="text" class="form-control" id="edit_deskripsi" name="deskripsi" placeholder="-">
           </div>
-          <div class="mb-3">
+          <div class="col-md-6">
             <label for="edit_status" class="form-label">Status Aktif</label>
             <select class="form-control" id="edit_status" name="status" required>
               <option value="AKTIF">AKTIF</option>
@@ -84,7 +84,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // DataTable
@@ -275,6 +274,5 @@ $(document).ready(function() {
 
 });
 </script>
-@endsection
 
 @include('layout.footer')

@@ -59,15 +59,15 @@
           @csrf
           <input type="hidden" id="barangId" name="id">
           <div class="mb-3">
-            <label for="edit_kategori_id" class="form-label">Kategori</label>
-            <select class="form-control" id="edit_kategori_id" name="kategori_id">
+            <label for="edit_kategori_id" class="form-label">Kategori*</label>
+            <select class="form-control" id="edit_kategori_id" name="kategori_id" required>
               <option value="">Pilih Kategori</option>
               <!-- Kategori options will be loaded dynamically -->
             </select>
           </div>
           <div class="mb-3">
-            <label for="edit_satuan_id" class="form-label">Satuan</label>
-            <select class="form-control" id="edit_satuan_id" name="satuan_id">
+            <label for="edit_satuan_id" class="form-label">Satuan*</label>
+            <select class="form-control" id="edit_satuan_id" name="satuan_id" required>
               <option value="">Pilih Satuan</option>
               <!-- Satuan options will be loaded dynamically -->
             </select>
@@ -103,7 +103,7 @@
               <option value="1">Ya</option>
             </select>
           </div>
-          <div class="mb-3">
+          <div class="form-group mb-3">
             <label for="edit_status" class="form-label">Status</label>
             <select class="form-control" id="edit_status" name="status">
               <option value="aktif">Aktif</option>
@@ -125,7 +125,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 function number_format(number, decimals, dec_point, thousands_sep) {
   number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
@@ -270,7 +269,12 @@ $(document).ready(function() {
   var validator = $('#editBarangForm').validate({
     rules: {
       nama_barang: { required: true, minlength: 3 },
-      kategori_id: "required",
+      kategori_id: {
+        required: true
+      },
+      satuan_id: {
+        required: true
+      },
       stok: { number: true, min: 0 },
       harga_beli: { number: true, min: 0 },
       harga_jual: { number: true, min: 0 },
@@ -281,7 +285,12 @@ $(document).ready(function() {
         required: "Nama Barang wajib diisi",
         minlength: "Nama Barang minimal 3 karakter"
       },
-      kategori_id: "Kategori wajib dipilih",
+      kategori_id: {
+        required: "Kategori wajib dipilih"
+      },
+      satuan_id: {
+        required: "Satuan wajib dipilih"
+      },
       stok: {
         number: "Stok harus berupa angka",
         min: "Stok tidak boleh negatif"
@@ -714,8 +723,6 @@ $(document).ready(function() {
 
 });
 </script>
-@endsection
-
 <!-- Modal Stok Minimum -->
 <div class="modal fade" id="stokMinimumModal" tabindex="-1" aria-labelledby="stokMinimumModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('total', 15, 2)->default(0);
             $table->decimal('diskon', 15, 2)->default(0);
             $table->decimal('ppn', 15, 2)->default(0);
+            $table->decimal('pembulatan', 15, 2)->default(0);
             $table->decimal('grand_total', 15, 2)->default(0);
             $table->enum('jenis_pembayaran', ['tunai', 'non_tunai', 'campuran'])->default('tunai');
             $table->decimal('dibayar', 15, 2)->default(0);

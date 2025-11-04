@@ -27,7 +27,7 @@
                             <h5 class="card-title fw-semibold mb-3">Informasi Pembelian</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label for="supplier_id" class="form-label fw-medium">Supplier <span class="text-danger">*</span></label>
+                                    <label for="supplier_autocomplete" class="form-label fw-medium">Supplier <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="supplier_autocomplete" name="supplier_nama" placeholder="Ketik nama supplier" required>
                                     <input type="hidden" id="supplier_id" name="supplier_id" required>
                                 </div>

@@ -84,7 +84,6 @@
     </form>
   </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
 
@@ -135,11 +134,12 @@ $(document).ready(function() {
         data: { q: request.term },
         success: function(data) {
           if (data.status === 'success') {
-            response($.map(data.data, function(item) {
+          response($.map(data.data, function(item) {
               return {
                 label: item.kode_barang + ' - ' + item.nama_barang,
                 value: item.nama_barang,
-                id: item.id
+                id: item.id,
+                satuan_id: item.satuan_id
               };
             }));
           }
@@ -150,6 +150,8 @@ $(document).ready(function() {
     select: function(event, ui) {
       $('#barang_id').val(ui.item.id);
       $('#barang_nama').val(ui.item.value);
+      // Set satuan dasar otomatis dari barang yang dipilih
+      $('#satuan_dasar_id').val(ui.item.satuan_id);
       loadKonversiTable(ui.item.id);
       return false;
     }
@@ -300,7 +302,5 @@ $(document).ready(function() {
   });
 });
 </script>
-
-@endsection
 
 @include('layout.footer')

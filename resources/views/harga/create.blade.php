@@ -30,8 +30,6 @@
                 <select name="harga_data[0][tipe_harga]" id="tipe_harga_0" class="form-control" required>
                   <option value="ecer">Ecer</option>
                   <option value="grosir">Grosir</option>
-                  <option value="member">Member</option>
-                  <option value="promo">Promo</option>
                 </select>
               </div>
             </div>
@@ -67,7 +65,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   let rowCount = 1;
@@ -191,6 +188,5 @@ function loadSatuanOptions(index, barangId) {
   });
 }
 </script>
-@endsection
 
 @include('layout.footer')

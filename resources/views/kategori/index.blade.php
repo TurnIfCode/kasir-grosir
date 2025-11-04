@@ -56,19 +56,19 @@
           @csrf
           <input type="hidden" id="kategoriId" name="id">
           <div class="mb-3">
-            <label for="kode_kategori" class="form-label">Kode Kategori*</label>
+            <label for="editKodeKategori" class="form-label">Kode Kategori*</label>
             <input type="text" class="form-control" id="editKodeKategori" name="kode_kategori" required>
           </div>
           <div class="mb-3">
-            <label for="nama_kategori" class="form-label">Nama Kategori*</label>
+            <label for="editNamaKategori" class="form-label">Nama Kategori*</label>
             <input type="text" class="form-control" id="editNamaKategori" name="nama_kategori" required>
           </div>
           <div class="mb-3">
-            <label for="deskripsi" class="form-label">Deskripsi</label>
+            <label for="editDeskripsi" class="form-label">Deskripsi</label>
             <input type="text" class="form-control" id="editDeskripsi" name="deskripsi" placeholder="-">
           </div>
           <div class="mb-3">
-            <label for="status" class="form-label">Status Aktif</label>
+            <label for="editStatus" class="form-label">Status Aktif</label>
             <select class="form-control" id="editStatus" name="status" required>
               <option value="aktif">AKTIF</option>
               <option value="nonaktif">TIDAK AKTIF</option>
@@ -84,7 +84,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // DataTable
@@ -277,6 +276,5 @@ $(document).ready(function() {
   });
 });
 </script>
-@endsection
 
 @include('layout.footer')

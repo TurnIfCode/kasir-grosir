@@ -1,5 +1,6 @@
 let rowIndex = 0;
 let paymentIndex = 0;
+let barangInfoCache = {}; // Cache for barang information
 
 $(document).ready(function() {
     // Initialize form
@@ -24,15 +25,13 @@ function addNewRow() {
                 <input type="hidden" name="details[${rowIndex}][barang_id]" class="barang-id-input" data-index="${rowIndex}">
             </td>
             <td>
-                <select class="form-select satuan-select" name="details[${rowIndex}][satuan_id]" data-index="${rowIndex}" disabled required>
+                <select class="form-control satuan-select" name="details[${rowIndex}][satuan_id]" data-index="${rowIndex}" required onchange="onSatuanChange(${rowIndex})">
                     <option value="">Pilih Satuan</option>
                 </select>
             </td>
             <td>
-                <select class="form-select tipe-harga-select" name="details[${rowIndex}][tipe_harga]" data-index="${rowIndex}" onchange="onTipeHargaChange(${rowIndex})">
-                    <option value="ecer">Ecer</option>
-                    <option value="grosir">Grosir</option>
-                    <option value="reseller">Reseller</option>
+                <select class="form-control tipe-harga-select" name="details[${rowIndex}][tipe_harga]" data-index="${rowIndex}" required onchange="loadHarga(${rowIndex})">
+                    <!-- Options will be loaded dynamically -->
                 </select>
             </td>
             <td>
@@ -41,14 +40,11 @@ function addNewRow() {
             <td>
                 <div class="input-group">
                     <span class="input-group-text">Rp</span>
-                    <input type="number" class="form-control harga-jual-input" name="details[${rowIndex}][harga_jual]" data-index="${rowIndex}" min="0" step="0.01" onchange="calculateSubtotal(${rowIndex})" readonly>
+                    <input type="number" class="form-control harga-jual-input" name="details[${rowIndex}][harga_jual]" data-index="${rowIndex}" min="0" step="0.01" readonly>
                 </div>
             </td>
             <td>
-                <div class="input-group">
-                    <span class="input-group-text">Rp</span>
-                    <input type="number" class="form-control subtotal-input" readonly>
-                </div>
+                <span class="subtotal-text" data-index="${rowIndex}">-</span>
             </td>
             <td>
                 <button type="button" class="btn btn-danger btn-sm remove-row" onclick="removeRow(${rowIndex})">
@@ -100,127 +96,319 @@ function initializeAutocomplete(index) {
         select: function(event, ui) {
             $(this).val(ui.item.value);
             $(`.barang-id-input[data-index="${index}"]`).val(ui.item.id);
-            loadSatuanOptions(index, ui.item.id);
+            loadBarangInfo(index, ui.item.id);
             return false;
         }
     });
 }
 
-function loadSatuanOptions(index, barangId) {
+function loadBarangInfo(index, barangId) {
+    if (barangInfoCache[barangId]) {
+        // Use cached data
+        updateBarangInfo(index, barangInfoCache[barangId]);
+        return;
+    }
+
     $.ajax({
-        url: '/barang/' + barangId + '/satuan',
+        url: '/barang/' + barangId + '/info',
         success: function(data) {
             if (data.status === 'success') {
-                const select = $(`.satuan-select[data-index="${index}"]`);
-                select.empty().append('<option value="">Pilih Satuan</option>');
-
-                data.data.forEach(satuan => {
-                    select.append(`<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`);
-                });
-
-                select.prop('disabled', false);
-                select.change(function() {
-                    onSatuanChange(index, barangId, $(this).val());
-                });
+                barangInfoCache[barangId] = data.data;
+                updateBarangInfo(index, data.data);
             }
         }
     });
 }
 
-function loadTipeHargaOptions(index, barangId, satuanId) {
-    $.ajax({
-        url: '/harga-barang/get-tipe-harga',
-        data: { barang_id: barangId, satuan_id: satuanId },
-        success: function(data) {
-            if (data.status === 'success') {
-                const select = $(`.tipe-harga-select[data-index="${index}"]`);
-                select.empty().append('<option value="">Pilih Tipe Harga</option>');
-
-                data.data.forEach(tipe => {
-                    select.append(`<option value="${tipe.tipe_harga}">${tipe.tipe_harga}</option>`);
-                });
-
-                select.prop('disabled', false);
-                select.change(function() {
-                    onTipeHargaChange(index);
-                });
-            }
-        }
-    });
-}
-
-function onSatuanChange(index, barangId, satuanId) {
-    loadTipeHargaOptions(index, barangId, satuanId);
-}
-
-function onTipeHargaChange(index) {
+function loadHarga(index) {
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
     const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
-    if (barangId && satuanId) {
-        const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
-        loadHarga(index, barangId, satuanId, tipeHarga);
-    }
-}
+    const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
 
-function loadHarga(index, barangId, satuanId, tipeHarga) {
+    if (!barangId || !satuanId || !tipeHarga) {
+        return;
+    }
+
     $.ajax({
-        url: '/harga-barang/get-harga',
-        data: { barang_id: barangId, satuan_id: satuanId, tipe_harga: tipeHarga },
+        url: `/penjualan/barang/${barangId}/harga/${satuanId}`,
+        data: { tipe: tipeHarga },
         success: function(data) {
             if (data.status === 'success') {
-                $(`.harga-jual-input[data-index="${index}"]`).val(Math.round(data.data.harga));
+                $(`.harga-jual-input[data-index="${index}"]`).val(data.data.harga);
                 calculateSubtotal(index);
+            }
+        }
+    });
+}
+
+function updateBarangInfo(index, barangInfo) {
+    // Load satuan options
+    loadSatuanOptions(index, barangInfo.id);
+
+    // Set initial qty to 1
+    $(`.qty-input[data-index="${index}"]`).val(1);
+}
+
+function loadSatuanOptions(index, barangId) {
+    $.ajax({
+        url: `/penjualan/barang/${barangId}/harga-barang-info`,
+        success: function(hargaData) {
+            const satuanSelect = $(`.satuan-select[data-index="${index}"]`);
+            satuanSelect.empty();
+            satuanSelect.append('<option value="">Pilih Satuan</option>');
+
+            if (hargaData.status === 'success' && hargaData.data.length > 0) {
+                // Get unique satuan from harga_barang
+                const uniqueSatuan = [];
+                const seen = new Set();
+                hargaData.data.forEach(function(harga) {
+                    if (!seen.has(harga.satuan_id)) {
+                        seen.add(harga.satuan_id);
+                        uniqueSatuan.push({
+                            satuan_id: harga.satuan_id,
+                            nama_satuan: harga.nama_satuan
+                        });
+                    }
+                });
+
+                uniqueSatuan.forEach(function(satuan) {
+                    satuanSelect.append(`<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`);
+                });
+
+                // Auto-select the first satuan and load tipe harga
+                if (uniqueSatuan.length > 0) {
+                    const selectedSatuanId = uniqueSatuan[0].satuan_id;
+                    satuanSelect.val(selectedSatuanId);
+                    loadTipeHarga(index, barangId, selectedSatuanId, hargaData.data);
+                }
             } else {
-                // Fallback to default ecer price if specific tipe not found
-                loadDefaultHarga(index, barangId, satuanId);
+                // No harga_barang data, show no options
+                satuanSelect.append('<option value="" disabled>Tidak ada satuan tersedia</option>');
             }
         },
         error: function() {
-            // Fallback to default ecer price if error
-            loadDefaultHarga(index, barangId, satuanId);
+            const satuanSelect = $(`.satuan-select[data-index="${index}"]`);
+            satuanSelect.empty();
+            satuanSelect.append('<option value="">Pilih Satuan</option>');
+            satuanSelect.append('<option value="" disabled>Error loading satuan</option>');
         }
     });
 }
 
-function loadDefaultHarga(index, barangId, satuanId) {
-    $.ajax({
-        url: `/penjualan/barang/${barangId}/harga/${satuanId}/default`,
-        success: function(data) {
-            if (data.status === 'success') {
-                $(`.harga-jual-input[data-index="${index}"]`).val(Math.round(data.data.harga));
-                calculateSubtotal(index);
+function onSatuanChange(index) {
+    const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+    const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
+
+    if (!barangId || !satuanId) {
+        return;
+    }
+
+    // Load tipe harga options based on selected satuan
+    loadTipeHarga(index, barangId, satuanId);
+}
+
+function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
+    const tipeHargaSelect = $(`.tipe-harga-select[data-index="${index}"]`);
+    tipeHargaSelect.empty();
+
+    if (hargaData) {
+        // Use provided hargaData to find tipe_harga for the satuan
+        const matchingHargas = hargaData.filter(h => h.satuan_id == satuanId);
+        if (matchingHargas.length > 0) {
+            // Get unique tipe_harga
+            const uniqueTipes = [...new Set(matchingHargas.map(h => h.tipe_harga))];
+
+            uniqueTipes.forEach(function(tipe) {
+                tipeHargaSelect.append(`<option value="${tipe}">${tipe.charAt(0).toUpperCase() + tipe.slice(1)}</option>`);
+            });
+
+            // Auto-select the first tipe_harga and load harga
+            if (uniqueTipes.length > 0) {
+                tipeHargaSelect.val(uniqueTipes[0]);
+                loadHarga(index);
             }
+        } else {
+            // No matching harga for this satuan
+            tipeHargaSelect.append('<option value="" disabled>Tidak ada tipe harga tersedia</option>');
         }
-    });
+    } else {
+        // Fallback: fetch tipe_harga via AJAX if hargaData not provided
+        $.ajax({
+            url: `/penjualan/barang/${barangId}/satuan/${satuanId}/tipe-harga`,
+            success: function(data) {
+                if (data.status === 'success') {
+                    data.data.forEach(function(tipe) {
+                        tipeHargaSelect.append(`<option value="${tipe}">${tipe.charAt(0).toUpperCase() + tipe.slice(1)}</option>`);
+                    });
+
+                    // Auto-select the first one and load harga
+                    if (data.data.length > 0) {
+                        tipeHargaSelect.val(data.data[0]);
+                        loadHarga(index);
+                    }
+                }
+            },
+            error: function() {
+                tipeHargaSelect.append('<option value="" disabled>Error loading tipe harga</option>');
+            }
+        });
+    }
 }
 
 function calculateSubtotal(index) {
+    // Update subtotal and keterangan display
+    updateRowDisplay(index);
+
+    // Get all current details
+    const details = getAllDetails();
+
+    // If no valid details, set totals to 0
+    if (details.length === 0) {
+        updateTotals({ subtotal: 0, pembulatan: 0, grand_total: 0 });
+        return;
+    }
+
+    // Call backend to calculate
+    $.ajax({
+        url: '/penjualan/calculate-subtotal',
+        method: 'POST',
+        data: {
+            details: details,
+            _token: $('input[name="_token"]').val()
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                updateTotals(response.data);
+            }
+        },
+        error: function(xhr) {
+            console.error('Error calculating subtotal:', xhr.responseText);
+        }
+    });
+}
+
+function updateRowDisplay(index) {
+    const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+    if (!barangId || !barangInfoCache[barangId]) {
+        return;
+    }
+
+    const barangInfo = barangInfoCache[barangId];
     const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
-    const harga = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-    const subtotal = Math.round(qty * harga);
-    $(`.detail-row[data-index="${index}"] .subtotal-input`).val(subtotal);
-    calculateTotal();
+    const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+    const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+
+    let subtotalText = '';
+    let keteranganText = '';
+
+    // Logic for ROKOK category
+    if (barangInfo.kategori === 'Rokok' && tipeHarga === 'grosir') {
+        const baseSubtotal = qty * hargaJual;
+        let surcharge = 0;
+
+        if (qty >= 1 && qty <= 4) {
+            surcharge = 500;
+            keteranganText = 'Rokok Grosir';
+        } else if (qty >= 5) {
+            surcharge = 1000;
+            keteranganText = 'Rokok Grosir';
+        }
+
+        const total = baseSubtotal + surcharge;
+        subtotalText = `${baseSubtotal.toLocaleString('id-ID')} + ${surcharge.toLocaleString('id-ID')} = ${total.toLocaleString('id-ID')}`;
+
+    // Logic for paket items
+    } else {
+        const subtotal = qty * hargaJual;
+        subtotalText = subtotal.toLocaleString('id-ID');
+        keteranganText = barangInfo.kategori || '-';
+    }
+
+    // Update displays
+    $(`.subtotal-text[data-index="${index}"]`).text(subtotalText);
+    $(`.keterangan-text[data-index="${index}"]`).text(keteranganText);
+}
+
+function getAllDetails() {
+    const details = [];
+    $('.detail-row').each(function() {
+        const index = $(this).data('index');
+        const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+        const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
+        const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+        const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
+        const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+
+        if (barangId && satuanId && tipeHarga && qty > 0) {
+            details.push({
+                barang_id: barangId,
+                satuan_id: satuanId,
+                tipe_harga: tipeHarga,
+                qty: qty,
+                harga_jual: hargaJual
+            });
+        }
+    });
+    return details;
+}
+
+/**
+ * Fungsi pembulatan harga sesuai aturan:
+ * remainder = subtotal % 500
+ * if remainder == 0: pembulatan = 0
+ * else if remainder <= 100: pembulatan = -remainder  // turun ke kelipatan 500 sebelumnya
+ * else: pembulatan = (500 - remainder)  // naik ke kelipatan 500 berikutnya
+ */
+function calculateRounding(subtotal) {
+    const remainder = subtotal % 500;
+    let pembulatan = 0;
+    let grand_total = subtotal;
+
+    if (remainder === 0) {
+        pembulatan = 0;
+        grand_total = subtotal;
+    } else if (remainder <= 100) {
+        pembulatan = -remainder;
+        grand_total = subtotal - remainder;
+    } else {
+        pembulatan = (500 - remainder);
+        grand_total = subtotal + (500 - remainder);
+    }
+
+    return { pembulatan, grand_total };
+}
+
+// Contoh pemanggilan untuk testing
+// console.log(calculateRounding(18100));  // { pembulatan: -100, grand_total: 18000 }
+// console.log(calculateRounding(18103));  // { pembulatan: 397, grand_total: 18500 }
+// console.log(calculateRounding(293101)); // { pembulatan: 399, grand_total: 293500 }
+
+function updateTotals(data) {
+    // Round values to integers before formatting
+    const subtotal = Math.round(data.subtotal);
+    const pembulatan = Math.round(data.pembulatan);
+    const grandTotal = Math.round(data.grand_total);
+
+    $('#subtotal').val(subtotal.toLocaleString('id-ID'));
+    $('#pembulatan').val(pembulatan.toLocaleString('id-ID'));
+    $('#summaryGrandTotal').val(grandTotal.toLocaleString('id-ID'));
+    $('#grandTotalValue').val(grandTotal);
+
+    $('#grandSubtotal').val(subtotal.toLocaleString('id-ID'));
+    $('#grandPembulatan').val(pembulatan.toLocaleString('id-ID'));
+    $('#paymentGrandTotal').val(grandTotal.toLocaleString('id-ID'));
+
+    calculateKembalian();
 }
 
 function calculateTotal() {
-    let total = 0;
-    $('.subtotal-input').each(function() {
-        total += parseFloat($(this).val()) || 0;
-    });
-
-    const diskon = parseFloat($('#diskon').val()) || 0;
-    const ppn = parseFloat($('#ppn').val()) || 0;
-    const subtotal = total - diskon;
-    const grandTotal = subtotal + ppn;
-
-    $('#subtotal').val(total.toLocaleString('id-ID'));
-    $('#total').val(total.toLocaleString('id-ID'));
-    $('#totalValue').val(total);
-    $('#grandSubtotal').val(subtotal.toLocaleString('id-ID'));
-    $('#grandTotal').val(grandTotal.toLocaleString('id-ID'));
-    $('#grandTotalValue').val(grandTotal);
-
-    calculateKembalian();
+    // This function is now called after backend calculation
+    // Keep for compatibility but delegate to calculateSubtotal
+    if ($('.detail-row').length > 0) {
+        calculateSubtotal(0);
+    } else {
+        updateTotals({ subtotal: 0, pembulatan: 0, grand_total: 0 });
+    }
 }
 
 function togglePaymentFields() {
@@ -241,7 +429,7 @@ function calculateKembalian() {
         const grandTotal = parseFloat($('#grandTotalValue').val()) || 0;
         const dibayar = parseFloat($('#dibayar').val()) || 0;
         const kembalian = dibayar - grandTotal;
-        $('#kembalian').val(Math.max(0, kembalian));
+        $('#kembalian').val(Math.max(0, kembalian).toLocaleString('id-ID'));
     }
 }
 
@@ -329,10 +517,13 @@ function submitForm() {
     });
 }
 
+
+
 function resetForm() {
     $('#penjualanForm')[0].reset();
     $('#detailContainer').html('');
     $('#paymentContainer').html('');
+    barangInfoCache = {}; // Clear cache
     rowIndex = 0;
     paymentIndex = 0;
     addNewRow();

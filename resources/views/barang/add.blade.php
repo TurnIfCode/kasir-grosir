@@ -16,8 +16,8 @@
         </select>
       </div>
       <div class="mb-3">
-        <label for="satuan_id" class="form-label">Satuan</label>
-        <select class="form-control" id="satuan_id" name="satuan_id">
+        <label for="satuan_id" class="form-label">Satuan*</label>
+        <select class="form-control" id="satuan_id" name="satuan_id" required>
           <option value="">Pilih Satuan</option>
           @if(isset($satuans))
             @foreach($satuans as $satuan)
@@ -77,7 +77,6 @@
     </form>
   </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
 
@@ -137,6 +136,9 @@ $(document).ready(function() {
         kategori_id: {
           required: true
         },
+        satuan_id: {
+          required: true
+        },
 
         stok: {
           required: true,
@@ -168,6 +170,9 @@ $(document).ready(function() {
         },
         kategori_id: {
           required: "Kategori wajib dipilih"
+        },
+        satuan_id: {
+          required: "Satuan wajib dipilih"
         },
 
         stok: {
@@ -229,7 +234,5 @@ $(document).ready(function() {
   });
 });
 </script>
-
-@endsection
 
 @include('layout.footer')

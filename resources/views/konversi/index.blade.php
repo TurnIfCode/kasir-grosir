@@ -59,7 +59,7 @@
           <input type="hidden" id="konversiId" name="id">
 
           <div class="form-group">
-            <label for="edit_barang_id">Pilih Barang</label>
+            <label for="edit_barang_nama">Pilih Barang</label>
             <input type="text" class="form-control barang-autocomplete" id="edit_barang_nama" placeholder="Ketik nama, kode barang atau scan barcode" required>
             <input type="hidden" name="barang_id" id="edit_barang_id" required>
           </div>
@@ -123,7 +123,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 function number_format(number, decimals, dec_point, thousands_sep) {
   number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
@@ -399,6 +398,5 @@ $(document).ready(function() {
 
 });
 </script>
-@endsection
 
 @include('layout.footer')

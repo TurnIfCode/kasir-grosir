@@ -23,7 +23,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // DataTable
@@ -145,7 +144,6 @@ $(document).ready(function() {
   });
 });
 </script>
-@endsection
 
 <!-- Modal Edit Pelanggan -->
 <div class="modal fade" id="editPelangganModal" tabindex="-1" aria-labelledby="editPelangganModalLabel" aria-hidden="true">

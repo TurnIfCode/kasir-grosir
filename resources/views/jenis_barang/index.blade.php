@@ -59,11 +59,11 @@
           @csrf
           <input type="hidden" id="jenisBarangId" name="id">
           <div class="mb-3">
-            <label for="kode_jenis" class="form-label">Kode Jenis*</label>
+            <label for="editKodeJenis" class="form-label">Kode Jenis*</label>
             <input type="text" class="form-control" id="editKodeJenis" name="kode_jenis" required>
           </div>
           <div class="mb-3">
-            <label for="nama_jenis" class="form-label">Nama Jenis*</label>
+            <label for="editNamaJenis" class="form-label">Nama Jenis*</label>
             <input type="text" class="form-control" id="editNamaJenis" name="nama_jenis" required>
           </div>
           <div class="mb-3">
@@ -82,11 +82,11 @@
             <input type="hidden" id="editSupplierId" name="supplier_id" required>
           </div>
           <div class="mb-3">
-            <label for="deskripsi" class="form-label">Deskripsi</label>
+            <label for="editDeskripsi" class="form-label">Deskripsi</label>
             <textarea class="form-control" id="editDeskripsi" name="deskripsi" rows="3" placeholder="-"></textarea>
           </div>
           <div class="mb-3">
-            <label for="status" class="form-label">Status Aktif</label>
+            <label for="editStatus" class="form-label">Status Aktif</label>
             <select class="form-control" id="editStatus" name="status" required>
               <option value="aktif">AKTIF</option>
               <option value="nonaktif">TIDAK AKTIF</option>
@@ -102,7 +102,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // DataTable
@@ -397,6 +396,5 @@ $(document).ready(function() {
   });
 });
 </script>
-@endsection
 
 @include('layout.footer')

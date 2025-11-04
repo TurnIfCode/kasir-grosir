@@ -76,7 +76,7 @@ class KonversiSatuanController extends Controller
 
     public function add()
     {
-        $satuan = Satuan::where('status', 'aktif')->get();
+        $satuan = Satuan::where('status', 'aktif')->orderBy('nama_satuan', 'asc')->get();
         return view('konversi.add', compact('satuan'));
     }
 
