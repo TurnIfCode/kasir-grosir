@@ -14,7 +14,6 @@
           <th>Satuan Konversi</th>
           <th>Nilai Konversi</th>
           <th>Harga Beli</th>
-          <th>Harga Jual</th>
           <th>Status</th>
           <th>Aksi</th>
         </tr>
@@ -194,7 +193,6 @@ $(document).ready(function() {
       { data: 'satuan_konversi', name: 'satuan_konversi' },
       { data: 'nilai_konversi', name: 'nilai_konversi' },
       { data: 'harga_beli', name: 'harga_beli' },
-      { data: 'harga_jual', name: 'harga_jual' },
       { data: 'status', name: 'status' },
       { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
     ],

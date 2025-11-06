@@ -47,10 +47,10 @@
                class="form-control" placeholder="contoh: 324000" required>
       </div>
 
-      <div class="form-group">
-        <label for="harga_jual">Harga Jual Satuan Konversi *</label>
+      <div class="form-group" style="display: none;">
+        <label for="harga_jual">Harga Jual Satuan Konversi</label>
         <input type="number" step="0.01" name="harga_jual" id="harga_jual"
-               class="form-control" placeholder="contoh: 384000" required>
+               class="form-control" placeholder="contoh: 384000" value="0">
       </div>
 
       <div class="form-group">
@@ -72,7 +72,6 @@
             <th>Satuan Konversi</th>
             <th>Nilai Konversi</th>
             <th>Harga Beli</th>
-            <th>Harga Jual</th>
             <th>Status</th>
             <th>Aksi</th>
           </tr>
@@ -111,7 +110,6 @@ $(document).ready(function() {
             html += '<td>' + k.satuan_konversi + '</td>';
             html += '<td>' + k.nilai_konversi + '</td>';
             html += '<td>' + k.harga_beli + '</td>';
-            html += '<td>' + k.harga_jual + '</td>';
             html += '<td>' + k.status + '</td>';
             html += '<td><a href="#" data-id="' + k.id + '" class="btn btn-sm btn-danger btn-delete"><i class="fas fa-trash"></i></a></td>';
             html += '</tr>';
@@ -238,11 +236,7 @@ $(document).ready(function() {
           number: true,
           min: 0
         },
-        harga_jual: {
-          required: true,
-          number: true,
-          min: 0
-        }
+
       },
       messages: {
         barang_nama: {
@@ -264,11 +258,7 @@ $(document).ready(function() {
           number: "Harga Beli harus berupa angka",
           min: "Harga Beli tidak boleh negatif"
         },
-        harga_jual: {
-          required: "Harga Jual Satuan Konversi harus diisi",
-          number: "Harga Jual harus berupa angka",
-          min: "Harga Jual tidak boleh negatif"
-        }
+
       },
       submitHandler: function(form) {
         $.ajax({

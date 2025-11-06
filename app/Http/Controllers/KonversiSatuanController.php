@@ -57,7 +57,6 @@ class KonversiSatuanController extends Controller
                     'satuan_konversi' => $k->satuanKonversi ? $k->satuanKonversi->nama_satuan : '-',
                     'nilai_konversi' => round($k->nilai_konversi),
                     'harga_beli' => 'Rp ' . number_format($k->harga_beli, 0, ',', '.'),
-                    'harga_jual' => 'Rp ' . number_format($k->harga_jual, 0, ',', '.'),
                     'status' => $k->status,
                     'aksi' => '<a href="#" id="btnDetail" data-id="' . $k->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>'
                 ];
@@ -89,6 +88,8 @@ class KonversiSatuanController extends Controller
         $hargaBeli = $request->input('harga_beli', 0);
         $hargaJual = $request->input('harga_jual', 0);
         $status = $request->input('status', 'aktif');
+
+        $newHargaBeli = 0;
 
         if (empty($barangId)) {
             return response()->json([
@@ -169,6 +170,15 @@ class KonversiSatuanController extends Controller
         $konversi->created_at = now();
         $konversi->updated_at = now();
         $konversi->save();
+
+        $newHargaBeli = $konversi->harga_beli / $konversi->nilai_konversi;
+        $newHargaBeli = round($newHargaBeli,2);
+
+        // Update harga_beli in barang if satuan_dasar_id matches satuan_id
+        if ($konversi->satuan_dasar_id == $barang->satuan_id) {
+            $barang->harga_beli = $newHargaBeli;
+            $barang->save();
+        }
 
         return response()->json([
             'status' => true,
