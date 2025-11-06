@@ -116,7 +116,6 @@ class StokOpnameController extends Controller
         $kategoriId = $request->kategori_id;
 
         $barangs = Barang::with(['kategori', 'satuan'])
-            ->where('status', 'aktif')
             ->when($kategoriId, fn($q) => $q->where('kategori_id', $kategoriId))
             ->select([
                 'id',

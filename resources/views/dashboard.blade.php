@@ -348,7 +348,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
   // Grafik Penjualan 7 Hari Terakhir (Line Chart)
   const salesCtx = document.getElementById('salesChart').getContext('2d');
@@ -473,6 +472,5 @@
     }
   });
 </script>
-@endsection
 
 @include('layout.footer')

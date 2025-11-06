@@ -64,7 +64,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   // Initialize DataTable
@@ -117,6 +116,5 @@ $(document).ready(function() {
   bindStokFisikEvents();
 });
 </script>
-@endsection
 
 @include('layout.footer')
