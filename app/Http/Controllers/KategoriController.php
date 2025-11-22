@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kategori;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class KategoriController extends Controller
@@ -119,6 +120,12 @@ class KategoriController extends Controller
         $kategoriModel->updated_at = now();
         $kategoriModel->save();
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan kategori baru: ' . $kategoriModel->nama_kategori . ' (Kode Kategori: ' . $kategoriModel->kode_kategori . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Kategori berhasil ditambahkan'
@@ -212,6 +219,12 @@ class KategoriController extends Controller
         $kategori->updated_at = now();
         $kategori->save();
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui kategori: ' . $kategori->nama_kategori . ' (Kode Kategori: ' . $kategori->kode_kategori . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Kategori berhasil diperbarui'
@@ -228,7 +241,16 @@ class KategoriController extends Controller
             ]);
         }
 
+        $namaKategori = $kategori->nama_kategori;
+        $kodeKategori = $kategori->kode_kategori;
+
         $kategori->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus kategori: ' . $namaKategori . ' (Kode Kategori: ' . $kodeKategori . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

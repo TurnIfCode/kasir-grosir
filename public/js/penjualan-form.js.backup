@@ -1,0 +1,13 @@
+function updateMobileCardDisplay(index) {
+    const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
+    const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+
+    // Always calculate subtotal as qty * harga_jual for mobile display
+    const subtotal = qty * hargaJual;
+    const subtotalText = subtotal.toLocaleString('id-ID');
+
+    // Update mobile card subtotal display
+    $(`.subtotal-text[data-index="${index}"]`).text(subtotalText);
+}
+
+function initializeAutocomplete(index) {

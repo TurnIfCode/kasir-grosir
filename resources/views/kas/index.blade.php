@@ -19,13 +19,15 @@
           <th>Aksi</th>
         </tr>
       </thead>
+      <tbody>
+      </tbody>
     </table>
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
+
   // DataTable
   var table = $('#kasTable').DataTable({
     processing: true,
@@ -99,6 +101,5 @@ $(document).ready(function() {
   });
 });
 </script>
-@endsection
 
 @include('layout.footer')

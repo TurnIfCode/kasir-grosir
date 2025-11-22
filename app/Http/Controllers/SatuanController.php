@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Satuan;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class SatuanController extends Controller
@@ -111,6 +112,12 @@ class SatuanController extends Controller
         $satuan->updated_at = now();
         $satuan->save();
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan satuan baru: ' . $satuan->nama_satuan . ' (Kode Satuan: ' . $satuan->kode_satuan . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Satuan berhasil ditambahkan'
@@ -172,6 +179,12 @@ class SatuanController extends Controller
         $satuan->updated_at = now();
         $satuan->save();
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui satuan: ' . $satuan->nama_satuan . ' (Kode Satuan: ' . $satuan->kode_satuan . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Satuan berhasil diperbarui'
@@ -188,7 +201,16 @@ class SatuanController extends Controller
             ]);
         }
 
+        $namaSatuan = $satuan->nama_satuan;
+        $kodeSatuan = $satuan->kode_satuan;
+
         $satuan->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus satuan: ' . $namaSatuan . ' (Kode Satuan: ' . $kodeSatuan . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

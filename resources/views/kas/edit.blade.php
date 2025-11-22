@@ -3,7 +3,7 @@
 <div class="container-fluid">
   <h3 class="mb-4">Edit Transaksi Kas</h3>
   <div class="card p-4">
-    <form id="editKasForm" action="#" method="POST">
+    <form id="editKasForm" action="{{ route('kas.update', $kas->id) }}" method="POST">
       @csrf
       @method('PUT')
       <input type="hidden" id="kasId" name="id" value="{{ $kas->id }}">
@@ -42,7 +42,7 @@
         <div class="col-md-6">
           <div class="mb-3">
             <label for="nominal" class="form-label">Nominal*</label>
-            <input type="number" step="0.01" class="form-control" id="nominal" name="nominal" value="{{ $kas->nominal }}" required>
+            <input type="number" step="0.01" class="form-control" id="nominal" name="nominal" value="{{ round($kas->nominal,2) }}" required>
           </div>
         </div>
         <div class="col-md-6">
@@ -58,55 +58,51 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
-  $("#btnUpdate").click(function() {
-    $('#editKasForm').validate({
-      rules: {
-        tanggal: { required: true },
-        tipe: { required: true },
-        sumber_kas: { required: true },
-        nominal: { required: true, number: true, min: 0.01 }
-      },
-      messages: {
-        tanggal: { required: "Tanggal wajib diisi" },
-        tipe: { required: "Tipe wajib dipilih" },
-        sumber_kas: { required: "Sumber Kas wajib diisi" },
-        nominal: {
-          required: "Nominal wajib diisi",
-          number: "Nominal harus berupa angka",
-          min: "Nominal harus lebih dari 0"
-        }
-      },
-      submitHandler: function(form) {
-        var kasId = $('#kasId').val();
-        $.ajax({
-          url: "{{ route('kas.update', $kas->id) }}",
-          type: "POST",
-          data: $(form).serialize(),
-          success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              window.location.href = "{{ route('kas.index') }}";
-            });
-          },
-          error: function(xhr) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Gagal',
-              text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan'
-            });
-          }
-        });
+  $('#editKasForm').validate({
+    rules: {
+      tanggal: { required: true },
+      tipe: { required: true },
+      sumber_kas: { required: true },
+      nominal: { required: true, number: true, min: 0.01 }
+    },
+    messages: {
+      tanggal: { required: "Tanggal wajib diisi" },
+      tipe: { required: "Tipe wajib dipilih" },
+      sumber_kas: { required: "Sumber Kas wajib diisi" },
+      nominal: {
+        required: "Nominal wajib diisi",
+        number: "Nominal harus berupa angka",
+        min: "Nominal harus lebih dari 0"
       }
-    });
+    },
+    submitHandler: function(form) {
+      $.ajax({
+        url: "{{ route('kas.update', $kas->id) }}",
+        type: "POST",
+        data: $(form).serialize(),
+        success: function(response) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: response.message
+          }).then(function() {
+            window.location.href = "{{ route('kas.index') }}";
+          });
+        },
+        error: function(xhr) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan'
+          });
+        }
+      });
+      return false; // prevent default form submission
+    }
   });
 });
 </script>
-@endsection
 
 @include('layout.footer')

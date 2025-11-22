@@ -145,6 +145,12 @@ class JenisBarangController extends Controller
         $jenisBarangModel->updated_at = now();
         $jenisBarangModel->save();
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan jenis barang baru: ' . $jenisBarangModel->nama_jenis . ' (Kode Jenis: ' . $jenisBarangModel->kode_jenis . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Jenis barang berhasil ditambahkan'
@@ -247,6 +253,12 @@ class JenisBarangController extends Controller
         $jenisBarang->updated_at = now();
         $jenisBarang->save();
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui jenis barang: ' . $jenisBarang->nama_jenis . ' (Kode Jenis: ' . $jenisBarang->kode_jenis . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Jenis barang berhasil diperbarui'
@@ -263,7 +275,16 @@ class JenisBarangController extends Controller
             ]);
         }
 
+        $namaJenis = $jenisBarang->nama_jenis;
+        $kodeJenis = $jenisBarang->kode_jenis;
+
         $jenisBarang->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus jenis barang: ' . $namaJenis . ' (Kode Jenis: ' . $kodeJenis . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

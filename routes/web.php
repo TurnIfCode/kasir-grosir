@@ -200,6 +200,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/calculate-subtotal', [PenjualanController::class, 'calculateSubtotal'])->name('penjualan.calculate-subtotal');
 
         Route::get('/{id}', [PenjualanController::class, 'show'])->name('penjualan.show');
+        Route::get('/{id}/print', [PenjualanController::class, 'print'])->name('penjualan.print');
         Route::get('/{id}/edit', [PenjualanController::class, 'edit'])->name('penjualan.edit');
         Route::put('/{id}', [PenjualanController::class, 'update'])->name('penjualan.update');
         Route::delete('/{id}', [PenjualanController::class, 'destroy'])->name('penjualan.destroy');

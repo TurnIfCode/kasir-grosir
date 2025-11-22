@@ -44,6 +44,11 @@ class Pembelian extends Model
         return $this->hasMany(PembelianDetail::class);
     }
 
+    public function pembayaran()
+    {
+        return $this->hasMany(PembelianPembayaran::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

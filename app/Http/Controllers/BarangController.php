@@ -6,6 +6,7 @@ use App\Models\Barang;
 use App\Models\BarangBarcode;
 use App\Models\Kategori;
 use App\Models\Satuan;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class BarangController extends Controller
@@ -112,6 +113,7 @@ class BarangController extends Controller
             'deskripsi' => $request->deskripsi,
             'status' => $request->status ?? 'aktif',
             'created_by' => auth()->id(),
+            'created_at' => now(),
         ]);
 
         if ($request->has('barcodes')) {
@@ -125,6 +127,12 @@ class BarangController extends Controller
                 }
             }
         }
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan barang baru: ' . $barang->nama_barang . ' (Kode Barang: ' . $barang->kode_barang . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,
@@ -191,7 +199,14 @@ class BarangController extends Controller
             'deskripsi' => $request->deskripsi,
             'status' => $request->status ?? 'aktif',
             'updated_by' => auth()->id(),
+            'updated_at' => now(),
         ]);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui barang: ' . $barang->nama_barang . ' (Kode Barang: ' . $barang->kode_barang . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         // Update barcode (hapus yang lama lalu tambah baru)
         $barang->barcodes()->delete();
@@ -223,7 +238,16 @@ class BarangController extends Controller
             ]);
         }
 
+        $namaBarang = $barang->nama_barang;
+        $kodeBarang = $barang->kode_barang;
+
         $barang->delete(); // Barcodes akan terhapus otomatis karena CASCADE
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus barang: ' . $namaBarang . ' (Kode Barang: ' . $kodeBarang . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

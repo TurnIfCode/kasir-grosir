@@ -27,7 +27,6 @@
   </div>
 </div>
 
-@section('scripts')
 <script>
 $(document).ready(function() {
   $("#btnUpdate").click(function() {
@@ -71,6 +70,5 @@ $(document).ready(function() {
   });
 });
 </script>
-@endsection
 
 @include('layout.footer')

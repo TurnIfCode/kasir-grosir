@@ -103,6 +103,40 @@
                             </div>
                         </div>
 
+                        <!-- Pembayaran -->
+                        <div class="mb-4">
+                            <h5 class="card-title fw-semibold mb-3">Pembayaran</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="metode_pembayaran" class="form-label fw-medium">Metode Pembayaran <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="metode_pembayaran" name="metode_pembayaran">
+                                        <option value="">Pilih Metode</option>
+                                        <option value="tunai">Tunai</option>
+                                        <option value="transfer">Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="nominal_pembayaran" class="form-label fw-medium">Nominal <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="nominal_pembayaran" name="nominal_pembayaran" min="0" step="0.01">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="keterangan_pembayaran" class="form-label fw-medium">Keterangan</label>
+                                    <input type="text" class="form-control" id="keterangan_pembayaran" name="keterangan_pembayaran" placeholder="Opsional">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-outline-success btn-sm" id="addPembayaranBtn">
+                                    <i class="fas fa-plus me-1"></i>Tambah Pembayaran
+                                </button>
+                            </div>
+                            <div id="pembayaranList" class="mt-3" style="display: none;">
+                                <h6 class="fw-semibold mb-3 text-primary">
+                                    <i class="fas fa-credit-card me-2"></i>Pembayaran yang Ditambahkan
+                                </h6>
+                                <div id="pembayaranItems"></div>
+                            </div>
+                        </div>
+
                         <!-- Action Buttons -->
                         <div class="d-flex gap-2 justify-content-end">
                             <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
@@ -345,6 +379,16 @@ $(document).ready(function() {
         calculateTotal();
     });
 
+    // Add pembayaran to list
+    $('#addPembayaranBtn').click(function() {
+        addPembayaranToList();
+    });
+
+    // Remove pembayaran from list
+    $(document).on('click', '.remove-pembayaran-btn', function() {
+        removePembayaranFromList($(this).closest('.pembayaran-item'));
+    });
+
     // Form validation and submit
     $('#pembelianForm').validate({
         rules: {
@@ -571,6 +615,64 @@ function updateRemoveButtons() {
     $('#submitBtn').prop('disabled', false);
 }
 
+function addPembayaranToList() {
+    var metode = $('#metode_pembayaran').val();
+    var nominal = parseFloat($('#nominal_pembayaran').val());
+    var keterangan = $('#keterangan_pembayaran').val();
+
+    // Validate
+    if (!metode || !nominal || nominal <= 0) {
+        Swal.fire('Error!', 'Harap lengkapi metode dan nominal pembayaran.', 'error');
+        return;
+    }
+
+    // Create list item
+    var metodeText = metode === 'tunai' ? 'Tunai' : 'Transfer';
+    var listItem = `
+        <div class="pembayaran-item card mb-2 border-left-info"
+             data-metode="${metode}"
+             data-nominal="${nominal}"
+             data-keterangan="${keterangan || ''}">
+            <div class="card-body p-3">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <strong class="text-info">${metodeText}</strong>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="fw-medium">Rp ${nominal.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="col-md-5">
+                        <small class="text-muted">${keterangan || '-'}</small>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-pembayaran-btn">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add to list
+    $('#pembayaranItems').append(listItem);
+    $('#pembayaranList').show();
+
+    // Clear form
+    $('#metode_pembayaran').val('');
+    $('#nominal_pembayaran').val('');
+    $('#keterangan_pembayaran').val('');
+}
+
+function removePembayaranFromList(itemElement) {
+    itemElement.remove();
+
+    // Hide container if no items left
+    if ($('#pembayaranItems').children().length === 0) {
+        $('#pembayaranList').hide();
+    }
+}
+
 function submitForm() {
     var formData = new FormData(document.getElementById('pembelianForm'));
 
@@ -591,6 +693,36 @@ function submitForm() {
 
         // Add details to formData
         formData.append('details', JSON.stringify(details));
+    }
+
+    // Collect pembayaran data
+    var pembayaran = [];
+    $('.pembayaran-item').each(function(index) {
+        var item = $(this);
+        pembayaran.push({
+            metode: item.data('metode'),
+            nominal: item.data('nominal'),
+            keterangan: item.data('keterangan') || ''
+        });
+    });
+
+    // If no items in list, collect from form fields
+    if (pembayaran.length === 0) {
+        var metode = $('#metode_pembayaran').val();
+        var nominal = parseFloat($('#nominal_pembayaran').val());
+        var keterangan = $('#keterangan_pembayaran').val();
+
+        if (metode && nominal > 0) {
+            pembayaran.push({
+                metode: metode,
+                nominal: nominal,
+                keterangan: keterangan || ''
+            });
+        }
+    }
+
+    if (pembayaran.length > 0) {
+        formData.append('pembayaran', JSON.stringify(pembayaran));
     }
 
     $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
@@ -638,6 +770,8 @@ function resetForm() {
     $('#supplier_id').val('');
     $('#addedItemsList').html('');
     $('#addedItemsContainer').hide();
+    $('#pembayaranItems').html('');
+    $('#pembayaranList').hide();
     calculateTotal();
     updateRemoveButtons();
 }

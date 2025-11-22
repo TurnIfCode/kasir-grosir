@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Log;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 
@@ -92,7 +93,7 @@ class SupplierController extends Controller
         // Generate kode_supplier otomatis
         $kodeSupplier = $this->generateKodeSupplier();
 
-        Supplier::create([
+        $supplier = Supplier::create([
             'kode_supplier' => $kodeSupplier,
             'nama_supplier' => $request->nama_supplier,
             'kontak_person' => $request->kontak_person,
@@ -102,10 +103,16 @@ class SupplierController extends Controller
             'kota' => $request->kota,
             'provinsi' => $request->provinsi,
             'status' => $request->status,
-            'created_by' => auth()->check() ? auth()->user()->name : null,
+            'created_by' => auth()->check() ? auth()->user()->id : null,
             'created_at' => now(),
             'updated_at' => now()
         ]);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan supplier baru: ' . $supplier->nama_supplier . ' (Kode Supplier: ' . $supplier->kode_supplier . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,
@@ -154,9 +161,15 @@ class SupplierController extends Controller
             'kota' => $request->kota,
             'provinsi' => $request->provinsi,
             'status' => $request->status,
-            'updated_by' => auth()->check() ? auth()->user()->name : null,
+            'updated_by' => auth()->check() ? auth()->user()->id : null,
             'updated_at' => now()
         ]);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui supplier: ' . $supplier->nama_supplier . ' (Kode Supplier: ' . $supplier->kode_supplier . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,
@@ -167,7 +180,16 @@ class SupplierController extends Controller
     public function delete($id)
     {
         $supplier = Supplier::findOrFail($id);
+        $namaSupplier = $supplier->nama_supplier;
+        $kodeSupplier = $supplier->kode_supplier;
+
         $supplier->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus supplier: ' . $namaSupplier . ' (Kode Supplier: ' . $kodeSupplier . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

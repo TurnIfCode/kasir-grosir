@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Barang;
 use App\Models\Satuan;
 use App\Models\StokMinimum;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class StokMinimumController extends Controller
@@ -85,7 +86,7 @@ class StokMinimumController extends Controller
             ]);
         }
 
-        StokMinimum::create([
+        $stokMinimum = StokMinimum::create([
             'barang_id' => $request->barang_id,
             'jumlah_minimum' => $request->jumlah_minimum,
             'satuan_id' => $request->satuan_id,
@@ -93,6 +94,12 @@ class StokMinimumController extends Controller
             'satuan_terkecil_id' => $request->satuan_terkecil_id,
             'created_by' => auth()->id(),
         ]);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan stok minimum baru untuk barang: ' . $stokMinimum->barang->nama_barang . ' (Kode Barang: ' . $stokMinimum->barang->kode_barang . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,
@@ -110,7 +117,16 @@ class StokMinimumController extends Controller
             ]);
         }
 
+        $namaBarang = $stokMinimum->barang->nama_barang;
+        $kodeBarang = $stokMinimum->barang->kode_barang;
+
         $stokMinimum->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus stok minimum untuk barang: ' . $namaBarang . ' (Kode Barang: ' . $kodeBarang . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

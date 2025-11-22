@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Transaksi;
 use App\Http\Controllers\Controller;
 use App\Models\Pembelian;
 use App\Models\PembelianDetail;
+use App\Models\PembelianPembayaran;
 use App\Models\Supplier;
 use App\Models\Barang;
 use App\Models\KonversiSatuan;
 use App\Models\Satuan;
+use App\Models\KasSaldo;
+use App\Models\Log;
 use App\Services\BarangService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +42,11 @@ class PembelianController extends Controller
             $request->merge(['details' => json_decode($request->details, true)]);
         }
 
+        // Handle pembayaran from JSON string if sent from list
+        if ($request->has('pembayaran') && is_string($request->pembayaran)) {
+            $request->merge(['pembayaran' => json_decode($request->pembayaran, true)]);
+        }
+
         $validator = Validator::make($request->all(), [
             'supplier_id' => 'required|exists:supplier,id',
             'tanggal_pembelian' => 'required|date',
@@ -51,7 +59,11 @@ class PembelianController extends Controller
             'details.*.satuan_id' => 'required|exists:satuan,id',
             'details.*.qty' => 'required|numeric|min:0.01',
             'details.*.harga_beli' => 'required|numeric|min:0',
-            'details.*.keterangan' => 'nullable|string'
+            'details.*.keterangan' => 'nullable|string',
+            'pembayaran' => 'nullable|array',
+            'pembayaran.*.metode' => 'required|in:tunai,transfer',
+            'pembayaran.*.nominal' => 'required|numeric|min:0.01',
+            'pembayaran.*.keterangan' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -114,6 +126,32 @@ class PembelianController extends Controller
             if ($pembelian->status === 'selesai') {
                 foreach ($request->details as $detail) {
                     $this->updateStokDanHargaBarang($detail['barang_id'], $detail['satuan_id'], $detail['qty'], $detail['harga_beli']);
+                }
+            }
+
+            // Simpan pembayaran jika ada
+            if ($request->has('pembayaran') && is_array($request->pembayaran)) {
+                foreach ($request->pembayaran as $pembayaranData) {
+                    $pembayaran = PembelianPembayaran::create([
+                        'pembelian_id' => $pembelian->id,
+                        'metode' => $pembayaranData['metode'],
+                        'nominal' => $pembayaranData['nominal'],
+                        'keterangan' => $pembayaranData['keterangan'] ?? null,
+                        'created_by' => auth()->id(),
+                        'updated_by' => auth()->id()
+                    ]);
+
+                    $nominalPembayaran = round($pembayaran->nominal,2);
+
+                    // Potong saldo kas hanya untuk metode transfer saat pembelian selesai
+                    if ($pembelian->status === 'selesai' && $pembayaran->metode === 'transfer') {
+                        $this->potongSaldoKas($nominalPembayaran);
+                    }
+
+                    // Log pembayaran
+                    Log::create([
+                        'keterangan' => 'Menambah pembayaran pembelian dengan kode ' . $pembelian->kode_pembelian . ' menggunakan metode ' . $pembayaran->metode . ' sebesar Rp ' . number_format($pembayaran->nominal, 0, ',', '.') . ($pembayaran->keterangan ? ' dengan keterangan: ' . $pembayaran->keterangan : '')
+                    ]);
                 }
             }
 
@@ -491,6 +529,23 @@ class PembelianController extends Controller
                 'status' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    private function potongSaldoKas($nominal)
+    {
+        // Ambil saldo kas utama (asumsi sumber_kas = 'utama' atau yang pertama)
+        $kasSaldo = KasSaldo::first(); // Atau bisa disesuaikan dengan logika bisnis
+
+        if ($kasSaldo) {
+            $kasSaldo->decrement('saldo_akhir', $nominal);
+            $kasSaldo->updated_by = auth()->id();
+            $kasSaldo->save();
+
+            // Log pengurangan saldo kas
+            Log::create([
+                'keterangan' => 'Pengurangan saldo kas sebesar Rp ' . number_format($nominal, 0, ',', '.') . ' untuk pembayaran pembelian via transfer'
+            ]);
         }
     }
 

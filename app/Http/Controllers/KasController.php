@@ -4,64 +4,61 @@ namespace App\Http\Controllers;
 
 use App\Models\Kas;
 use App\Models\KasSaldo;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class KasController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         return view('kas.index');
     }
 
     public function data(Request $request)
     {
-        if ($request->ajax()) {
-            $draw = $request->get('draw');
-            $start = $request->get('start');
-            $length = $request->get('length');
-            $search = $request->get('search')['value'];
+        $draw = $request->get('draw');
+        $start = $request->get('start');
+        $length = $request->get('length');
+        $search = $request->get('search')['value'];
 
-            $query = Kas::with('user');
+        $query = Kas::with('user');
 
-            if (!empty($search)) {
-                $query->where('tanggal', 'like', '%' . $search . '%')
-                      ->orWhere('tipe', 'like', '%' . $search . '%')
-                      ->orWhere('sumber_kas', 'like', '%' . $search . '%')
-                      ->orWhere('kategori', 'like', '%' . $search . '%')
-                      ->orWhere('keterangan', 'like', '%' . $search . '%')
-                      ->orWhereHas('user', function($q) use ($search) {
-                          $q->where('name', 'like', '%' . $search . '%');
-                      });
-            }
-
-            $totalRecords = Kas::count();
-            $filteredRecords = $query->count();
-
-            $kas = $query->skip($start)->take($length)->orderBy('tanggal', 'desc')->get();
-
-            $data = [];
-            foreach ($kas as $k) {
-                $data[] = [
-                    'tanggal' => $k->tanggal->format('d/m/Y'),
-                    'tipe' => ucfirst($k->tipe),
-                    'sumber_kas' => $k->sumber_kas,
-                    'kategori' => $k->kategori ?: '-',
-                    'keterangan' => $k->keterangan ?: '-',
-                    'nominal' => 'Rp ' . number_format($k->nominal, 0, ',', '.'),
-                    'user' => $k->user ? $k->user->name : '-',
-                    'aksi' => '<a href="' . route('kas.edit', $k->id) . '" class="btn btn-sm btn-warning">Edit</a> <a data-id="' . $k->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
-                ];
-            }
-
-            return response()->json([
-                'draw' => intval($draw),
-                'recordsTotal' => $totalRecords,
-                'recordsFiltered' => $filteredRecords,
-                'data' => $data
-            ]);
+        if (!empty($search)) {
+            $query->where('tanggal', 'like', '%' . $search . '%')
+                  ->orWhere('tipe', 'like', '%' . $search . '%')
+                  ->orWhere('sumber_kas', 'like', '%' . $search . '%')
+                  ->orWhere('kategori', 'like', '%' . $search . '%')
+                  ->orWhere('keterangan', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function($q) use ($search) {
+                      $q->where('name', 'like', '%' . $search . '%');
+                  });
         }
 
-        return view('kas.index');
+        $totalRecords = Kas::count();
+        $filteredRecords = $query->count();
+
+        $kas = $query->skip($start)->take($length)->orderBy('tanggal', 'desc')->get();
+
+        $data = [];
+        foreach ($kas as $k) {
+            $data[] = [
+                'tanggal' => $k->tanggal->format('d/m/Y'),
+                'tipe' => ucfirst($k->tipe),
+                'sumber_kas' => $k->sumber_kas,
+                'kategori' => $k->kategori ?: '-',
+                'keterangan' => $k->keterangan ?: '-',
+                'nominal' => 'Rp ' . number_format($k->nominal, 0, ',', '.'),
+                'user' => $k->user ? $k->user->name : '-',
+                'aksi' => '<a href="' . route('kas.edit', $k->id) . '" class="btn btn-sm btn-warning">Edit</a> <a data-id="' . $k->id . '" id="btnDelete" class="btn btn-sm btn-danger">Hapus</a>'
+            ];
+        }
+
+        return response()->json([
+            'draw' => intval($draw),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data
+        ]);
     }
 
     public function create()
@@ -121,10 +118,17 @@ class KasController extends Controller
         $kas->keterangan = $keterangan ?: null;
         $kas->nominal = $nominal;
         $kas->user_id = auth()->id();
+        $kas->created_by = auth()->id();
         $kas->save();
 
         // Update saldo kas
         $this->updateSaldoKas($sumberKas, $tipe, $nominal);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominal, 0, ',', '.') . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,
@@ -208,6 +212,12 @@ class KasController extends Controller
         // Update new saldo
         $this->updateSaldoKas($sumberKas, $tipe, $nominal);
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominal, 0, ',', '.') . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Transaksi kas berhasil diperbarui'
@@ -227,7 +237,17 @@ class KasController extends Controller
         // Revert saldo before delete
         $this->updateSaldoKas($kas->sumber_kas, $kas->tipe === 'masuk' ? 'keluar' : 'masuk', $kas->nominal);
 
+        $tipeKas = $kas->tipe;
+        $sumberKas = $kas->sumber_kas;
+        $nominalKas = $kas->nominal;
+
         $kas->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus transaksi kas: ' . ucfirst($tipeKas) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominalKas, 0, ',', '.') . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

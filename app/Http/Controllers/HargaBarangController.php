@@ -99,15 +99,22 @@ class HargaBarangController extends Controller
                 continue;
             }
 
-            HargaBarang::create([
+            $hargaBarang = HargaBarang::create([
                 'barang_id' => $data['barang_id'],
                 'satuan_id' => $data['satuan_id'],
                 'tipe_harga' => $data['tipe_harga'],
                 'harga' => $data['harga'],
                 'status' => $data['status'],
+                'created_by' => auth()->id(),
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            $newLog = new Log();
+            $newLog->keterangan = 'Menambahkan harga barang baru: ' . $hargaBarang->barang->nama_barang . ' (' . $hargaBarang->satuan->nama_satuan . ' - ' . $hargaBarang->tipe_harga . ')';
+            $newLog->created_by = auth()->id();
+            $newLog->created_at = now();
+            $newLog->save();
 
             $savedCount++;
         }
@@ -156,8 +163,15 @@ class HargaBarangController extends Controller
             'tipe_harga' => $request->tipe_harga,
             'harga' => $request->harga,
             'status' => $request->status,
+            'updated_by' => auth()->id(),
             'updated_at' => now()
         ]);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui harga barang: ' . $hargaBarang->barang->nama_barang . ' (' . $hargaBarang->satuan->nama_satuan . ' - ' . $hargaBarang->tipe_harga . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return redirect()->route('harga-barang.index')->with('success', 'Harga barang berhasil diperbarui');
     }
@@ -165,7 +179,17 @@ class HargaBarangController extends Controller
     public function destroy($id)
     {
         $hargaBarang = HargaBarang::findOrFail($id);
+        $namaBarang = $hargaBarang->barang->nama_barang;
+        $namaSatuan = $hargaBarang->satuan->nama_satuan;
+        $tipeHarga = $hargaBarang->tipe_harga;
+
         $hargaBarang->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus harga barang: ' . $namaBarang . ' (' . $namaSatuan . ' - ' . $tipeHarga . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return redirect()->route('harga-barang.index')->with('success', 'Harga barang berhasil dihapus');
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Paket;
 use App\Models\PaketDetail;
+use App\Models\Log;
 use Illuminate\Support\Facades\Auth;
 
 class PaketController extends Controller
@@ -59,7 +60,16 @@ class PaketController extends Controller
             ]);
         }
 
+        $namaPaket = $paket->nama_paket;
+        $kodePaket = $paket->kode_paket;
+
         $paket->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus paket: ' . $namaPaket . ' (Kode Paket: ' . $kodePaket . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

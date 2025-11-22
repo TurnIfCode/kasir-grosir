@@ -18,6 +18,7 @@ class Kas extends Model
         'referensi_id',
         'referensi_tabel',
         'user_id',
+        'created_by',
     ];
 
     protected $casts = [

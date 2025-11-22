@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pelanggan;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class PelangganController extends Controller
@@ -83,7 +84,7 @@ class PelangganController extends Controller
         // Generate kode_pelanggan otomatis
         $kodePelanggan = $this->generateKodePelanggan();
 
-        Pelanggan::create([
+        $pelanggan = Pelanggan::create([
             'kode_pelanggan' => $kodePelanggan,
             'nama_pelanggan' => $request->nama_pelanggan,
             'telepon' => $request->telepon,
@@ -94,6 +95,12 @@ class PelangganController extends Controller
             'created_at' => now(),
             'updated_at' => now()
         ]);
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menambahkan pelanggan baru: ' . $pelanggan->nama_pelanggan . ' (Kode Pelanggan: ' . $pelanggan->kode_pelanggan . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,
@@ -140,6 +147,12 @@ class PelangganController extends Controller
             'updated_at' => now()
         ]);
 
+        $newLog = new Log();
+        $newLog->keterangan = 'Memperbarui pelanggan: ' . $pelanggan->nama_pelanggan . ' (Kode Pelanggan: ' . $pelanggan->kode_pelanggan . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
+
         return response()->json([
             'status' => true,
             'message' => 'Pelanggan berhasil diperbarui'
@@ -149,7 +162,16 @@ class PelangganController extends Controller
     public function delete($id)
     {
         $pelanggan = Pelanggan::findOrFail($id);
+        $namaPelanggan = $pelanggan->nama_pelanggan;
+        $kodePelanggan = $pelanggan->kode_pelanggan;
+
         $pelanggan->delete();
+
+        $newLog = new Log();
+        $newLog->keterangan = 'Menghapus pelanggan: ' . $namaPelanggan . ' (Kode Pelanggan: ' . $kodePelanggan . ')';
+        $newLog->created_by = auth()->id();
+        $newLog->created_at = now();
+        $newLog->save();
 
         return response()->json([
             'status' => true,

@@ -48,7 +48,8 @@ class PenjualanController extends Controller
     public function create()
     {
         $pelanggans = Pelanggan::where('status', 'aktif')->get();
-        return view('penjualan.create', compact('pelanggans'));
+        $defaultPelanggan = Pelanggan::find(1); // Set default pelanggan with id=1
+        return view('penjualan.create', compact('pelanggans', 'defaultPelanggan'));
     }
 
     /**
@@ -116,6 +117,16 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with(['details.barang', 'details.satuan', 'pelanggan', 'pembayarans'])->findOrFail($id);
         return view('penjualan.show', compact('penjualan'));
+    }
+
+    /**
+     * Print the specified resource.
+     */
+    public function print($id)
+    {
+        $penjualan = Penjualan::with(['details.barang', 'details.satuan', 'pelanggan', 'pembayarans', 'creator'])->findOrFail($id);
+        $profilToko = \App\Models\ProfilToko::first();
+        return view('penjualan.print', compact('penjualan', 'profilToko'));
     }
 
     /**

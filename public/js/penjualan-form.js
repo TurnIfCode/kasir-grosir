@@ -18,6 +18,7 @@ function generateKodePenjualan() {
 }
 
 function addNewRow() {
+    // Desktop table row
     const rowHtml = `
         <tr class="detail-row" data-index="${rowIndex}">
             <td>
@@ -39,7 +40,6 @@ function addNewRow() {
             </td>
             <td>
                 <div class="input-group">
-                    <span class="input-group-text">Rp</span>
                     <input type="number" class="form-control harga-jual-input" name="details[${rowIndex}][harga_jual]" data-index="${rowIndex}" min="0" step="0.01" readonly>
                 </div>
             </td>
@@ -61,6 +61,7 @@ function addNewRow() {
 }
 
 function removeRow(index) {
+    // Remove from desktop table
     $(`.detail-row[data-index="${index}"]`).remove();
     calculateTotal();
     updateRemoveButtons();
@@ -74,6 +75,8 @@ function updateRemoveButtons() {
         $('.remove-row').hide();
     }
 }
+
+
 
 function initializeAutocomplete(index) {
     $(`.barang-autocomplete[data-index="${index}"]`).autocomplete({
@@ -256,8 +259,9 @@ function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
 }
 
 function calculateSubtotal(index) {
-    // Update subtotal and keterangan display
+    // Update subtotal and keterangan display for both desktop and mobile
     updateRowDisplay(index);
+    updateMobileCardDisplay(index);
 
     // Get all current details
     const details = getAllDetails();
@@ -302,7 +306,7 @@ function updateRowDisplay(index) {
     let keteranganText = '';
 
     // Logic for ROKOK category
-    if (barangInfo.kategori === 'Rokok' && tipeHarga === 'grosir') {
+    if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir') {
         const baseSubtotal = qty * hargaJual;
         let surcharge = 0;
 
@@ -324,7 +328,7 @@ function updateRowDisplay(index) {
         keteranganText = barangInfo.kategori || '-';
     }
 
-    // Update displays
+    // Update displays for both desktop and mobile
     $(`.subtotal-text[data-index="${index}"]`).text(subtotalText);
     $(`.keterangan-text[data-index="${index}"]`).text(keteranganText);
 }
@@ -468,15 +472,116 @@ function removePaymentRow(index) {
     $(`.payment-row[data-index="${index}"]`).remove();
 }
 
-function submitForm() {
-    // Validate form
-    if (!$('#penjualanForm')[0].checkValidity()) {
-        $('#penjualanForm')[0].reportValidity();
+function submitForm(printAfterSave = false) {
+    // Custom validation
+    let isValid = true;
+    let errorMessage = '';
+
+    // Validate pelanggan
+    if (!$('#pelanggan_id').val()) {
+        isValid = false;
+        errorMessage += 'Pelanggan harus dipilih.\n';
+        $('#pelanggan_autocomplete')[0].setCustomValidity('Pelanggan harus dipilih.');
+    } else {
+        $('#pelanggan_autocomplete')[0].setCustomValidity('');
+    }
+
+    // Validate jenis pembayaran
+    const jenis = $('#jenis_pembayaran').val();
+    if (!jenis) {
+        isValid = false;
+        errorMessage += 'Jenis pembayaran harus dipilih.\n';
+        $('#jenis_pembayaran')[0].setCustomValidity('Jenis pembayaran harus dipilih.');
+    } else {
+        $('#jenis_pembayaran')[0].setCustomValidity('');
+    }
+
+    // Validate dibayar if tunai
+    if (jenis === 'tunai' && (!$('#dibayar').val() || parseFloat($('#dibayar').val()) <= 0)) {
+        isValid = false;
+        errorMessage += 'Nominal bayar harus diisi untuk pembayaran tunai.\n';
+        $('#dibayar')[0].setCustomValidity('Nominal bayar harus diisi.');
+    } else {
+        $('#dibayar')[0].setCustomValidity('');
+    }
+
+    // Validate at least one detail
+    const detailCount = $('.detail-row').length;
+    if (detailCount === 0) {
+        isValid = false;
+        errorMessage += 'Minimal satu barang harus ditambahkan.\n';
+    }
+
+    // Validate each detail row
+    $('.detail-row').each(function() {
+        const index = $(this).data('index');
+        const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+        const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
+        const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+        const qty = $(`.qty-input[data-index="${index}"]`).val();
+
+        if (!barangId) {
+            isValid = false;
+            errorMessage += 'Barang harus dipilih untuk semua item.\n';
+            $(`.barang-autocomplete[data-index="${index}"]`)[0].setCustomValidity('Barang harus dipilih.');
+        } else {
+            $(`.barang-autocomplete[data-index="${index}"]`)[0].setCustomValidity('');
+        }
+
+        if (!satuanId) {
+            isValid = false;
+            errorMessage += 'Satuan harus dipilih untuk semua item.\n';
+            $(`.satuan-select[data-index="${index}"]`)[0].setCustomValidity('Satuan harus dipilih.');
+        } else {
+            $(`.satuan-select[data-index="${index}"]`)[0].setCustomValidity('');
+        }
+
+        if (!tipeHarga) {
+            isValid = false;
+            errorMessage += 'Tipe harga harus dipilih untuk semua item.\n';
+            $(`.tipe-harga-select[data-index="${index}"]`)[0].setCustomValidity('Tipe harga harus dipilih.');
+        } else {
+            $(`.tipe-harga-select[data-index="${index}"]`)[0].setCustomValidity('');
+        }
+
+        if (!qty || parseFloat(qty) <= 0) {
+            isValid = false;
+            errorMessage += 'Qty harus diisi dan lebih dari 0 untuk semua item.\n';
+            $(`.qty-input[data-index="${index}"]`)[0].setCustomValidity('Qty harus diisi.');
+        } else {
+            $(`.qty-input[data-index="${index}"]`)[0].setCustomValidity('');
+        }
+    });
+
+    if (!isValid) {
+        Swal.fire('Validasi Gagal', errorMessage, 'error');
         return;
     }
 
     // Prepare form data
     const formData = new FormData(document.getElementById('penjualanForm'));
+
+    // Collect details from desktop view
+    let detailIndex = 0;
+    $('.detail-row').each(function() {
+        const index = $(this).data('index');
+        if (index !== undefined) {
+            const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+            const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
+            const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+            const qty = $(`.qty-input[data-index="${index}"]`).val();
+            const hargaJual = $(`.harga-jual-input[data-index="${index}"]`).val();
+
+            if (barangId && satuanId && tipeHarga && qty && hargaJual) {
+                formData.append(`details[${detailIndex}][barang_id]`, barangId);
+                formData.append(`details[${detailIndex}][satuan_id]`, satuanId);
+                formData.append(`details[${detailIndex}][tipe_harga]`, tipeHarga);
+                formData.append(`details[${detailIndex}][qty]`, parseFloat(qty));
+                formData.append(`details[${detailIndex}][harga_jual]`, parseFloat(hargaJual));
+                detailIndex++;
+            }
+        }
+    });
 
     $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
 
@@ -495,7 +600,11 @@ function submitForm() {
                     showConfirmButton: false,
                     timer: 2000
                 }).then(function() {
-                    window.location.href = '/penjualan/' + response.data.id;
+                    if (printAfterSave) {
+                        window.location.href = '/penjualan/' + response.data.id + '/print';
+                    } else {
+                        window.location.href = '/penjualan/' + response.data.id;
+                    }
                 });
             } else {
                 Swal.fire('Gagal!', response.message, 'error');
@@ -522,6 +631,7 @@ function submitForm() {
 function resetForm() {
     $('#penjualanForm')[0].reset();
     $('#detailContainer').html('');
+    $('#mobileDetailContainer').html('');
     $('#paymentContainer').html('');
     barangInfoCache = {}; // Clear cache
     rowIndex = 0;
