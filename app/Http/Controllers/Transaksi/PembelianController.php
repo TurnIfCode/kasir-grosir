@@ -144,13 +144,15 @@ class PembelianController extends Controller
                     $nominalPembayaran = round($pembayaran->nominal,2);
 
                     // Potong saldo kas hanya untuk metode transfer saat pembelian selesai
-                    if ($pembelian->status === 'selesai' && $pembayaran->metode === 'transfer') {
+                    if ($pembayaran->metode === 'transfer') {
                         $this->potongSaldoKas($nominalPembayaran);
                     }
 
                     // Log pembayaran
                     Log::create([
-                        'keterangan' => 'Menambah pembayaran pembelian dengan kode ' . $pembelian->kode_pembelian . ' menggunakan metode ' . $pembayaran->metode . ' sebesar Rp ' . number_format($pembayaran->nominal, 0, ',', '.') . ($pembayaran->keterangan ? ' dengan keterangan: ' . $pembayaran->keterangan : '')
+                        'keterangan' => 'Menambah pembayaran pembelian dengan kode ' . $pembelian->kode_pembelian . ' menggunakan metode ' . $pembayaran->metode . ' sebesar Rp ' . number_format($pembayaran->nominal, 0, ',', '.') . ($pembayaran->keterangan ? ' dengan keterangan: ' . $pembayaran->keterangan : ''),
+                        'created_by' => auth()->id(),
+                        'created_at' => now()
                     ]);
                 }
             }
@@ -544,7 +546,8 @@ class PembelianController extends Controller
 
             // Log pengurangan saldo kas
             Log::create([
-                'keterangan' => 'Pengurangan saldo kas sebesar Rp ' . number_format($nominal, 0, ',', '.') . ' untuk pembayaran pembelian via transfer'
+                'keterangan' => 'Pengurangan saldo kas sebesar Rp ' . number_format($nominal, 0, ',', '.') . ' untuk pembayaran pembelian via transfer',
+                'created_by' => auth()->id()
             ]);
         }
     }

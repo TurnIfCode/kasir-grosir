@@ -209,6 +209,8 @@ Route::middleware('auth')->group(function () {
 
     // Laporan Routes
     Route::prefix('laporan')->group(function () {
+        Route::get('/log', [\App\Http\Controllers\LaporanLogController::class, 'index'])->name('laporan.log');
+        Route::get('/log/data', [\App\Http\Controllers\LaporanLogController::class, 'data'])->name('laporan.log.data');
         Route::get('/pembelian', [\App\Http\Controllers\LaporanPembelianController::class, 'index'])->name('laporan.pembelian');
         Route::get('/pembelian/data', [\App\Http\Controllers\LaporanPembelianController::class, 'data'])->name('laporan.pembelian.data');
         Route::get('/pembelian/ringkasan', [\App\Http\Controllers\LaporanPembelianController::class, 'getRingkasan'])->name('laporan.pembelian.ringkasan');
@@ -311,6 +313,21 @@ Route::middleware('auth')->group(function () {
 
     // Profil Toko Routes
     Route::resource('profil-toko', \App\Http\Controllers\ProfilTokoController::class)->only(['index', 'update']);
+
+    // Bad Stock Routes
+    Route::prefix('bad-stock')->group(function () {
+        Route::get('/satuan-konversi/{barangId}', [\App\Http\Controllers\BadStockController::class, 'satuanKonversi'])->name('bad-stock.satuan-konversi');
+        Route::get('/', [\App\Http\Controllers\BadStockController::class, 'index'])->name('bad-stock.index');
+        Route::post('/mutasi-stok', [\App\Http\Controllers\BadStockController::class, 'mutasiStok'])->name('bad-stock.mutasi-stok');
+        Route::post('/barang-pengganti', [\App\Http\Controllers\BadStockController::class, 'barangPengganti'])->name('bad-stock.barang-pengganti');
+        Route::post('/kompensasi-sales', [\App\Http\Controllers\BadStockController::class, 'kompensasiSales'])->name('bad-stock.kompensasi-sales');
+        Route::patch('/kompensasi/{id}/gunakan', [\App\Http\Controllers\BadStockController::class, 'gunakanKompensasi'])->name('bad-stock.gunakan-kompensasi');
+
+        // API Data
+        Route::get('/mutasi-stok/data', [\App\Http\Controllers\BadStockController::class, 'dataMutasiStok'])->name('bad-stock.mutasi-stok.data');
+        Route::get('/barang-pengganti/data', [\App\Http\Controllers\BadStockController::class, 'dataBarangPengganti'])->name('bad-stock.barang-pengganti.data');
+        Route::get('/kompensasi/data', [\App\Http\Controllers\BadStockController::class, 'dataKompensasi'])->name('bad-stock.kompensasi.data');
+    });
 
 });
 Route::get('/penjualan-barang', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'index'])->name('laporan.penjualan-barang');

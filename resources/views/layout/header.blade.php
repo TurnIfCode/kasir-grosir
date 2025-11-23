@@ -383,6 +383,15 @@
       @endif
 
       @if(auth()->user()->role == 'ADMIN')
+      <!-- Bad Stock -->
+      <li class="nav-item">
+        <a class="nav-link" href="{{ route('bad-stock.index') }}">
+          <i class="fas fa-exclamation-triangle me-2"></i> Bad Stock
+        </a>
+      </li>
+      @endif
+
+      @if(auth()->user()->role == 'ADMIN')
       <!-- Keuangan -->
       <li class="nav-item">
         <a href="#menuKeuangan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuKeuangan" role="button" aria-expanded="false">

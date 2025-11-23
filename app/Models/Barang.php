@@ -41,6 +41,11 @@ class Barang extends Model
         return $this->belongsTo(Satuan::class, 'satuan_id');
     }
 
+    public function konversiSatuan()
+    {
+        return $this->hasMany(KonversiSatuan::class, 'barang_id');
+    }
+
     public function barcodes()
     {
         return $this->hasMany(BarangBarcode::class);

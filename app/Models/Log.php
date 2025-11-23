@@ -10,6 +10,7 @@ class Log extends Model
     protected $table = 'log';
 
      protected $fillable = [
-        'keterangan'
+        'keterangan',
+        'created_by'
     ];
 }
