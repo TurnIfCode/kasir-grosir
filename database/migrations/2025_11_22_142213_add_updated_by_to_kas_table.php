@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('kas', function (Blueprint $table) {
-            $table->dropForeign(['updated_by']);
+            $table->dropForeign(['updated_by']); 
             $table->dropColumn('updated_by');
         });
     }
