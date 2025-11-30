@@ -86,7 +86,7 @@
                                 </div>
                                 <div class="row mt-3">
                                     <div class="col-12">
-                                        <label class="form-label fw-medium">Keterangan</label>
+                                        <label class="form-label fw-medium">Pilih Kas</label>
                                         <input type="text" class="form-control" name="details[0][keterangan]" placeholder="Tambahkan keterangan jika diperlukan">
                                     </div>
                                 </div>
@@ -119,9 +119,14 @@
                                     <label for="nominal_pembayaran" class="form-label fw-medium">Nominal <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="nominal_pembayaran" name="nominal_pembayaran" min="0" step="0.01">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-4" id="keterangan_pembayaran_container" style="display: none;">
                                     <label for="keterangan_pembayaran" class="form-label fw-medium">Keterangan</label>
-                                    <input type="text" class="form-control" id="keterangan_pembayaran" name="keterangan_pembayaran" placeholder="Opsional">
+                                    <select class="form-select" id="keterangan_pembayaran" name="keterangan_pembayaran">
+                                        <option value="">Pilih Keterangan</option>
+                                        @foreach($kasSaldo as $kas)
+                                            <option value="{{ $kas->kas }}">{{ $kas->kas }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="mt-3">
@@ -377,6 +382,17 @@ $(document).ready(function() {
     // Update diskon and ppn
     $('#diskon, #ppn').on('input', function() {
         calculateTotal();
+    });
+
+    // Show/hide keterangan_pembayaran based on metode_pembayaran
+    $('#metode_pembayaran').on('change', function() {
+        var metode = $(this).val();
+        if (metode === 'transfer') {
+            $('#keterangan_pembayaran_container').show();
+        } else {
+            $('#keterangan_pembayaran_container').hide();
+            $('#keterangan_pembayaran').val(''); // Clear the value when hidden
+        }
     });
 
     // Add pembayaran to list
@@ -772,6 +788,7 @@ function resetForm() {
     $('#addedItemsContainer').hide();
     $('#pembayaranItems').html('');
     $('#pembayaranList').hide();
+    $('#keterangan_pembayaran_container').hide(); // Hide keterangan field on reset
     calculateTotal();
     updateRemoveButtons();
 }

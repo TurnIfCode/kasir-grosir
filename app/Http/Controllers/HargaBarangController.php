@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\HargaBarang;
 use App\Models\Barang;
 use App\Models\Satuan;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class HargaBarangController extends Controller
@@ -86,6 +87,7 @@ class HargaBarangController extends Controller
 
         $savedCount = 0;
         $errors = [];
+        $savedBarangIds = [];
 
         foreach ($request->harga_data as $index => $data) {
             // Check for duplicate combination
@@ -116,7 +118,40 @@ class HargaBarangController extends Controller
             $newLog->created_at = now();
             $newLog->save();
 
+            $savedBarangIds[] = $data['barang_id'];
             $savedCount++;
+        }
+
+        // Update harga_jual for each unique barang_id
+        $uniqueBarangIds = array_unique($savedBarangIds);
+        foreach ($uniqueBarangIds as $barangId) {
+            $barang = Barang::find($barangId);
+            if ($barang) {
+                // Check for ecer price with matching satuan_id
+                $ecerHarga = HargaBarang::where('barang_id', $barangId)
+                                       ->where('satuan_id', $barang->satuan_id)
+                                       ->where('tipe_harga', 'ecer')
+                                       ->where('status', 'aktif')
+                                       ->first();
+
+                if ($ecerHarga) {
+                    $barang->update(['harga_jual' => $ecerHarga->harga]);
+                } else {
+                    // Check for grosir price
+                    $grosirHarga = HargaBarang::where('barang_id', $barangId)
+                                             ->where('satuan_id', $barang->satuan_id)
+                                             ->where('tipe_harga', 'grosir')
+                                             ->where('status', 'aktif')
+                                             ->first();
+
+                    if ($grosirHarga) {
+                        $barang->update(['harga_jual' => $grosirHarga->harga]);
+                    } else {
+                        // Set to 0 if neither found
+                        $barang->update(['harga_jual' => 0]);
+                    }
+                }
+            }
         }
 
         if ($savedCount > 0) {

@@ -11,6 +11,8 @@ use App\Models\Barang;
 use App\Models\KonversiSatuan;
 use App\Models\Satuan;
 use App\Models\KasSaldoTransaksi;
+use App\Models\KasSaldo;
+use App\Models\Kas;
 use App\Models\Log;
 use App\Services\BarangService;
 use Illuminate\Http\Request;
@@ -32,7 +34,8 @@ class PembelianController extends Controller
 
     public function create()
     {
-        return view('transaksi.pembelian.create');
+        $kasSaldo = \App\Models\KasSaldo::all();
+        return view('transaksi.pembelian.create', compact('kasSaldo'));
     }
 
     public function store(Request $request)
@@ -142,10 +145,11 @@ class PembelianController extends Controller
                     ]);
 
                     $nominalPembayaran = round($pembayaran->nominal,2);
+                    $bankKas = $pembayaran->keterangan;
 
                     // Potong saldo kas hanya untuk metode transfer saat pembelian selesai
                     if ($pembayaran->metode === 'transfer') {
-                        $this->potongSaldoKas($nominalPembayaran);
+                        $this->potongSaldoKas($nominalPembayaran, $bankKas);
                     }
 
                     // Log pembayaran
@@ -534,23 +538,52 @@ class PembelianController extends Controller
         }
     }
 
-    private function potongSaldoKas($nominal)
+    private function potongSaldoKas($nominal, $bankKas)
     {
         // Ambil saldo kas utama (asumsi sumber_kas = 'utama' atau yang pertama)
-        $kasSaldo = KasSaldoTransaksi::first(); // Atau bisa disesuaikan dengan logika bisnis
+        $kasSaldo = KasSaldo::where('kas', $bankKas)->first(); // Atau bisa disesuaikan dengan logika bisnis
+        $kasSaldoId = $kasSaldo->id;
+        $kasSaldoAwal = $kasSaldo->saldo;
+        $kasSaldoAwal = round($kasSaldoAwal, 2);
 
-        if ($kasSaldo) {
-            $kasSaldo->decrement('saldo_akhir', $nominal);
-            $kasSaldo->created_by = auth()->id();
-            $kasSaldo->created_at = now();
-            $kasSaldo->save();
+        $keteranganKas = 'Pengurangan saldo kas sebesar Rp ' . number_format($nominal, 0, ',', '.') . ' untuk pembayaran pembelian via transfer dari kas ' . $bankKas;
+        
+        $kasSaldoAkhir = $kasSaldoAwal - $nominal;
+        $kasSaldoAkhir = round($kasSaldoAkhir, 2);
 
-            // Log pengurangan saldo kas
-            Log::create([
-                'keterangan' => 'Pengurangan saldo kas sebesar Rp ' . number_format($nominal, 0, ',', '.') . ' untuk pembayaran pembelian via transfer',
-                'created_by' => auth()->id()
-            ]);
-        }
+        // disini insert kas saldo transaksi
+        $kasSaldoTransaksi = new KasSaldoTransaksi();
+        $kasSaldoTransaksi->kas_saldo_id = $kasSaldoId;
+        $kasSaldoTransaksi->tipe = 'keluar';
+        $kasSaldoTransaksi->saldo_awal = $kasSaldoAwal;
+        $kasSaldoTransaksi->saldo_akhir = $kasSaldoAkhir;
+        $kasSaldoTransaksi->keterangan = $keteranganKas;
+        $kasSaldoTransaksi->created_by = auth()->id();
+        $kasSaldoTransaksi->created_at = now();
+        $kasSaldoTransaksi->save();
+
+        //disini insert ke kas
+        $kas = new Kas();
+        $kas->tanggal = now();
+        $kas->tipe = 'keluar';
+        $kas->sumber_kas = $bankKas;
+        $kas->kategori = 'Pembelian';
+        $kas->keterangan = $keteranganKas;
+        $kas->nominal = $nominal;
+        $kas->user_id = auth()->id();
+        $kas->created_by = auth()->id();
+        $kas->created_at = now();
+        $kas->updated_by = auth()->id();
+        $kas->updated_at = now();
+        $kas->save();
+
+        // insert ke log
+        Log::create([
+            'keterangan' => $keteranganKas,
+            'created_by' => auth()->id(),
+            'created_at' => now()
+        ]);
+
     }
 
     /**

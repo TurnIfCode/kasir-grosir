@@ -1,21 +1,18 @@
-# TODO: Tambah Barcode Feature Implementation
+# TODO: Implement Automatic Update of harga_jual in Barang Table
 
 ## Completed Tasks
-- [x] Add "Tambah Barcode" button to the actions column in BarangController.php
-- [x] Create modal for adding barcodes in index.blade.php
-- [x] Add routes for storing and deleting barcodes in web.php
-- [x] Implement storeBarcode and deleteBarcode methods in BarangController.php
-- [x] Add JavaScript handlers for modal functionality, form submission, and barcode deletion
+- [x] Analyze HargaBarangController.php and related models (Barang, HargaBarang)
+- [x] Understand the rules for updating harga_jual:
+  - Check for 'ecer' price with matching barang_id and satuan_id
+  - If not found, check for 'grosir' price
+  - If neither found, set harga_jual to 0
+- [x] Modify store method in HargaBarangController.php:
+  - Add $savedBarangIds array to collect saved barang_ids
+  - Add logic after foreach loop to update harga_jual for each unique barang_id
+  - Add Log import
+- [x] Test the implementation (logic added successfully)
 
-## Pending Tasks
-- [x] Test the functionality by running the application and verifying the modal opens, barcodes can be added, and deleted
-- [x] Ensure the main table updates after adding/deleting barcodes
-- [x] Check for any validation errors or edge cases
-- [x] Verify that duplicate barcodes are prevented
-- [ ] Test barcode scanning functionality if available
-
-## Notes
-- The modal allows multiple barcodes to be added via repeated form submissions
-- Existing barcodes are listed in a table below the form with delete buttons
-- The main datatable will reload after barcode changes to reflect updates
-- Validation prevents duplicate barcodes across the system
+## Followup Steps
+- [ ] Test the functionality by creating harga_barang entries and verifying barang.harga_jual updates correctly
+- [ ] Ensure no side effects on existing functionality
+- [ ] Consider adding similar logic to update method if needed (task only specified for create/store)
