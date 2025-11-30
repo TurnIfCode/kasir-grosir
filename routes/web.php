@@ -19,6 +19,7 @@ use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LaporanStokController;
 use App\Http\Controllers\Master\PaketController;
+use App\Http\Controllers\TransferController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -50,6 +51,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}/delete', [UserController::class, 'delete'])->name('user.delete');
     });
 
+    Route::prefix('transfer')->group(function () {
+        Route::get('/add', [TransferController::class, 'add'])->name('transfer.add');
+        Route::get('/data', [TransferController::class, 'data'])->name('transfer.data');
+        Route::post('/store', [TransferController::class, 'store'])->name('transfer.store');
+        Route::get('/{id}/find', [TransferController::class, 'find'])->name('transfer.find');
+        Route::put('/{id}/update', [TransferController::class, 'update'])->name('transfer.update');
+        Route::delete('/{id}/delete', [TransferController::class, 'delete'])->name('transfer.delete');
+    });
+
     Route::prefix('kategori')->group(function () {
         Route::get('/add', [KategoriController::class, 'add'])->name('kategori.add');
         Route::get('/data', [KategoriController::class, 'data'])->name('kategori.data');
@@ -59,15 +69,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}/delete', [KategoriController::class, 'delete'])->name('kategori.delete');
     });
 
-    Route::prefix('paket')->group(function () {
-        Route::get('/', [PaketController::class, 'index'])->name('paket.index');
-        Route::get('/add', [PaketController::class, 'add'])->name('paket.create');
-        Route::get('/data', [PaketController::class, 'data'])->name('paket.data');
-        Route::post('/store', [PaketController::class, 'store'])->name('paket.store');
-        Route::get('/{id}/find', [PaketController::class, 'find'])->name('paket.find');
-        Route::get('/{id}/edit', [PaketController::class, 'edit'])->name('paket.edit');
-        Route::put('/{id}/update', [PaketController::class, 'update'])->name('paket.update');
-        Route::delete('/{id}/delete', [PaketController::class, 'delete'])->name('paket.delete');
+    Route::prefix('master/paket')->group(function () {
+        Route::get('/', [App\Http\Controllers\Master\PaketController::class, 'index'])->name('master.paket.index');
+        Route::get('/create', [App\Http\Controllers\Master\PaketController::class, 'create'])->name('master.paket.create');
+        Route::post('/store', [App\Http\Controllers\Master\PaketController::class, 'store'])->name('master.paket.store');
+        Route::get('/data', [App\Http\Controllers\Master\PaketController::class, 'data'])->name('master.paket.data');
+        Route::get('/{id}/edit', [App\Http\Controllers\Master\PaketController::class, 'edit'])->name('master.paket.edit');
+        Route::put('/{id}/update', [App\Http\Controllers\Master\PaketController::class, 'update'])->name('master.paket.update');
+        // Delete route can be added if needed
     });
     
     Route::get('/barang/search', [App\Http\Controllers\BarangController::class, 'search'])->name('barang.search');

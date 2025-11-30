@@ -8,17 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaketDetail extends Model
 {
-    
     use HasFactory;
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $table = 'paket_detail';
 
     protected $fillable = [
         'paket_id',
         'barang_id',
-        'jumlah',
         'created_by',
         'updated_by',
     ];
@@ -42,5 +40,4 @@ class PaketDetail extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-
 }

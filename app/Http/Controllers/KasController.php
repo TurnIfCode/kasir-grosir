@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kas;
 use App\Models\KasSaldo;
+use App\Models\KasSaldoTransaksi;
 use App\Models\Log;
 use Illuminate\Http\Request;
 
@@ -109,6 +110,22 @@ class KasController extends Controller
                 'message' => 'Nominal harus berupa angka positif'
             ]);
         }
+        
+        
+        
+        //disini cek dulu keluar atau tidak
+        if ($tipe == 'keluar') {
+            //ambil data saldo kas
+            $saldo = KasSaldo::where('kas', $sumberKas)->first();
+            //cek apakah saldo cukup
+            if (!$saldo) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Saldo kas "' . $sumberKas . '" tidak mencukupi untuk transaksi keluar sebesar Rp ' . number_format($nominal, 0, ',', '.')
+                ]);
+            }
+        }
+
 
         $kas = new Kas();
         $kas->tanggal = $tanggal;
@@ -121,8 +138,10 @@ class KasController extends Controller
         $kas->created_by = auth()->id();
         $kas->save();
 
+        $keteranganTransaksi = 'Transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominal, 0, ',', '.') . ')';
+
         // Update saldo kas
-        $this->updateSaldoKas($sumberKas, $tipe, $nominal);
+        $this->updateSaldoKas($sumberKas, $tipe, $nominal, $keteranganTransaksi);
 
         $newLog = new Log();
         $newLog->keterangan = 'Menambahkan transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominal, 0, ',', '.') . ')';
@@ -198,8 +217,10 @@ class KasController extends Controller
             ]);
         }
 
+        $keteranganTransaksi = 'Menghapus transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($kas->nominal, 0, ',', '.') . ')';
+
         // Revert previous saldo
-        $this->updateSaldoKas($kas->sumber_kas, $kas->tipe === 'masuk' ? 'keluar' : 'masuk', $kas->nominal);
+        $this->updateSaldoKas($kas->sumber_kas, $kas->tipe === 'masuk' ? 'keluar' : 'masuk', $kas->nominal,$keteranganTransaksi);
 
         $kas->tanggal = $tanggal;
         $kas->tipe = $tipe;
@@ -209,8 +230,9 @@ class KasController extends Controller
         $kas->nominal = $nominal;
         $kas->save();
 
+        $keteranganTransaksi = 'Memperbarui transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominal, 0, ',', '.') . ')';
         // Update new saldo
-        $this->updateSaldoKas($sumberKas, $tipe, $nominal);
+        $this->updateSaldoKas($sumberKas, $tipe, $nominal, $keteranganTransaksi);
 
         $newLog = new Log();
         $newLog->keterangan = 'Memperbarui transaksi kas: ' . ucfirst($tipe) . ' - ' . $sumberKas . ' (Rp ' . number_format($nominal, 0, ',', '.') . ')';
@@ -234,8 +256,10 @@ class KasController extends Controller
             ]);
         }
 
+        $keteranganTransaksi = 'Menghapus transaksi kas: ' . ucfirst($kas->tipe) . ' - ' . $kas->sumber_kas . ' (Rp ' . number_format($kas->nominal, 0, ',', '.') . ')';
+
         // Revert saldo before delete
-        $this->updateSaldoKas($kas->sumber_kas, $kas->tipe === 'masuk' ? 'keluar' : 'masuk', $kas->nominal);
+        $this->updateSaldoKas($kas->sumber_kas, $kas->tipe === 'masuk' ? 'keluar' : 'masuk', $kas->nominal, $keteranganTransaksi);
 
         $tipeKas = $kas->tipe;
         $sumberKas = $kas->sumber_kas;
@@ -255,23 +279,46 @@ class KasController extends Controller
         ]);
     }
 
-    private function updateSaldoKas($sumberKas, $tipe, $nominal)
+    private function updateSaldoKas($sumberKas, $tipe, $nominal, $keteranganTransaksi)
     {
-        $saldo = KasSaldo::where('sumber_kas', $sumberKas)->first();
+        //disini ambil data kas_saldo berdasarkan sumber_kas
+
+        $saldo = KasSaldo::where('kas', $sumberKas)->first();
 
         if (!$saldo) {
             $saldo = new KasSaldo();
-            $saldo->sumber_kas = $sumberKas;
-            $saldo->saldo_awal = 0;
-            $saldo->saldo_akhir = 0;
+            $saldo->kas = $sumberKas;
+            $saldo->saldo = 0;
+            $saldo->created_by = auth()->id();
+            $saldo->created_at = now();
+            $saldo->updated_by = auth()->id();
+            $saldo->updated_at = now();
+            $saldo->save();
         }
+
+        $saldoAwal = round($saldo->saldo,2);
 
         if ($tipe === 'masuk') {
-            $saldo->saldo_akhir += $nominal;
+            $saldoAkhir = $saldo->saldo+$nominal;
         } else {
-            $saldo->saldo_akhir -= $nominal;
+            $saldoAkhir = $saldo->saldo-$nominal;
         }
+        $saldoAkhir = round($saldoAkhir,2);
 
+        $saldo->saldo = $saldoAkhir;
+        $saldo->updated_by =  auth()->id();
+        $saldo->updated_at = now();
         $saldo->save();
+
+        // simpan ke kas_saldo_transaksi
+        $newKasSaldoTransaksi = new KasSaldoTransaksi();
+        $newKasSaldoTransaksi->kas_saldo_id = $saldo->id;
+        $newKasSaldoTransaksi->tipe = $tipe;
+        $newKasSaldoTransaksi->saldo_awal = $saldoAwal;
+        $newKasSaldoTransaksi->saldo_akhir = $saldoAkhir;
+        $newKasSaldoTransaksi->keterangan = $keteranganTransaksi;
+        $newKasSaldoTransaksi->created_by = auth()->id();
+        $newKasSaldoTransaksi->created_at = now();
+        $newKasSaldoTransaksi->save();
     }
 }

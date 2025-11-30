@@ -10,7 +10,7 @@ use App\Models\Supplier;
 use App\Models\Barang;
 use App\Models\KonversiSatuan;
 use App\Models\Satuan;
-use App\Models\KasSaldo;
+use App\Models\KasSaldoTransaksi;
 use App\Models\Log;
 use App\Services\BarangService;
 use Illuminate\Http\Request;
@@ -537,11 +537,12 @@ class PembelianController extends Controller
     private function potongSaldoKas($nominal)
     {
         // Ambil saldo kas utama (asumsi sumber_kas = 'utama' atau yang pertama)
-        $kasSaldo = KasSaldo::first(); // Atau bisa disesuaikan dengan logika bisnis
+        $kasSaldo = KasSaldoTransaksi::first(); // Atau bisa disesuaikan dengan logika bisnis
 
         if ($kasSaldo) {
             $kasSaldo->decrement('saldo_akhir', $nominal);
-            $kasSaldo->updated_by = auth()->id();
+            $kasSaldo->created_by = auth()->id();
+            $kasSaldo->created_at = now();
             $kasSaldo->save();
 
             // Log pengurangan saldo kas

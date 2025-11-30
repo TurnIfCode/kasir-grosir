@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KasSaldo;
+use App\Models\KasSaldoTransaksi;
 use Illuminate\Http\Request;
 
 class KasSaldoController extends Controller
 {
     public function index()
     {
-        $saldos = KasSaldo::all();
-        return view('kas-saldo.index', compact('saldos'));
+        $kasSaldos = \App\Models\KasSaldo::all();
+        return view('kas-saldo.index', compact('kasSaldos'));
     }
 
     public function data(Request $request)
@@ -20,25 +20,31 @@ class KasSaldoController extends Controller
             $start = $request->get('start');
             $length = $request->get('length');
             $search = $request->get('search')['value'];
+            $kasSaldoId = $request->get('kas_saldo_id');
 
-            $query = KasSaldo::query();
+            $query = KasSaldoTransaksi::query();
 
             if (!empty($search)) {
                 $query->where('sumber_kas', 'like', '%' . $search . '%');
             }
 
-            $totalRecords = KasSaldo::count();
+            if ($kasSaldoId && $kasSaldoId !== 'all') {
+                $query->where('kas_saldo_id', $kasSaldoId);
+            }
+
+            $totalRecords = KasSaldoTransaksi::count();
             $filteredRecords = $query->count();
 
-            $saldos = $query->skip($start)->take($length)->get();
+            $saldos = $query->orderBy('id', 'desc')->skip($start)->take($length)->get();
 
             $data = [];
             foreach ($saldos as $saldo) {
                 $data[] = [
-                    'sumber_kas' => $saldo->sumber_kas,
+                    'sumber_kas' => $saldo->kasSaldo ? $saldo->kasSaldo->kas : '-',
+                    'tipe' => $saldo->tipe,
                     'saldo_awal' => 'Rp ' . number_format($saldo->saldo_awal, 0, ',', '.'),
                     'saldo_akhir' => 'Rp ' . number_format($saldo->saldo_akhir, 0, ',', '.'),
-                    'aksi' => '<a href="' . route('kas-saldo.edit', $saldo->id) . '" class="btn btn-sm btn-warning">Edit</a>'
+                    'keterangan' => $saldo->keterangan
                 ];
             }
 
@@ -86,7 +92,7 @@ class KasSaldoController extends Controller
             ]);
         }
 
-        $saldo = new KasSaldo();
+        $saldo = new KasSaldoTransaksi();
         $saldo->sumber_kas = $sumberKas;
         $saldo->saldo_awal = $saldoAwal;
         $saldo->saldo_akhir = $saldoAwal;
@@ -100,7 +106,7 @@ class KasSaldoController extends Controller
 
     public function edit($id)
     {
-        $saldo = KasSaldo::find($id);
+        $saldo = KasSaldoTransaksi::find($id);
         if (!$saldo) {
             return redirect()->route('kas-saldo.index')->with('error', 'Data tidak ditemukan');
         }
@@ -110,7 +116,7 @@ class KasSaldoController extends Controller
 
     public function update(Request $request, $id)
     {
-        $saldo = KasSaldo::find($id);
+        $saldo = KasSaldoTransaksi::find($id);
         if (!$saldo) {
             return response()->json([
                 'status' => false,
@@ -129,7 +135,7 @@ class KasSaldoController extends Controller
         }
 
         // Check if sumber_kas already exists for other records
-        $existing = KasSaldo::where('sumber_kas', $sumberKas)->where('id', '!=', $id)->first();
+        $existing = KasSaldoTransaksi::where('sumber_kas', $sumberKas)->where('id', '!=', $id)->first();
         if ($existing) {
             return response()->json([
                 'status' => false,

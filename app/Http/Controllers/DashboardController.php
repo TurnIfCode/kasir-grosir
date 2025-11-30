@@ -41,7 +41,7 @@ class DashboardController extends Controller
             ->where('status', 'aktif')
             ->count();
 
-        $saldoKas = DB::table('kas_saldo')
+        $saldoKas = DB::table('kas_saldo_transaksi')
             ->orderBy('created_at', 'desc')
             ->value('saldo_akhir') ?? 0;
 

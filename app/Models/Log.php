@@ -9,8 +9,13 @@ class Log extends Model
     public $timestamps = false;
     protected $table = 'log';
 
-     protected $fillable = [
+    protected $fillable = [
         'keterangan',
         'created_by'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }

@@ -10,22 +10,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Paket extends Model
 {
     use HasFactory;
-    public $timestamps = false;
+    public $timestamps = true;
     protected $table = 'paket';
 
     protected $fillable = [
-        'kode_paket',
-        'nama_paket',
-        'harga_per_3',
-        'harga_per_unit',
-        'keterangan',
+        'nama',
+        'total_qty',
+        'harga',
+        'status',
         'created_by',
         'updated_by',
     ];
 
     protected $casts = [
-        'harga_per_3' => 'integer',
-        'harga_per_unit' => 'integer',
+        'total_qty' => 'integer',
+        'harga' => 'integer',
     ];
 
     public function details(): HasMany

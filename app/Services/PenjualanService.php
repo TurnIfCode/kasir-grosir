@@ -162,6 +162,17 @@ class PenjualanService
     /**
      * Calculate subtotal with paket logic
      */
+    // Helper method to get harga from harga_barang by barang_id, satuan_id, tipe_harga
+    private function getHargaBarang(int $barangId, int $satuanId, string $tipeHarga): float
+    {
+        $hargaBarang = \App\Models\HargaBarang::where('barang_id', $barangId)
+            ->where('satuan_id', $satuanId)
+            ->where('tipe_harga', $tipeHarga)
+            ->first();
+
+        return $hargaBarang ? (float)$hargaBarang->harga : 0;
+    }
+
     public function calculateSubtotalWithPaket(array $details): float
     {
         $subtotal = 0;
@@ -172,7 +183,11 @@ class PenjualanService
             $barangId = $detail['barang_id'];
             $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
                 $q->where('barang_id', $barangId);
-            })->with('details')->get();
+            })
+            ->with('details')
+            ->orderBy('id', 'asc')
+            ->get();
+
 
             if ($pakets->isNotEmpty()) {
                 foreach ($pakets as $paket) {
@@ -188,19 +203,20 @@ class PenjualanService
             }
         }
 
-        // Find max harga_per_3 for mixed paket transactions
-        $maxHargaPer3 = 0;
+        // Find max harga for mixed paket transactions
+        $maxHarga = 0;
         $paketIdsInTransaction = [];
         foreach ($paketTotals as $paketData) {
             if ($paketData['total_qty'] > 0) {
                 $paketIdsInTransaction[] = $paketData['paket']->id;
-                $maxHargaPer3 = max($maxHargaPer3, $paketData['paket']->harga_per_3);
+                $maxHarga = max($maxHarga, $paketData['paket']->harga);
             }
         }
 
         // Second pass: calculate subtotals
         foreach ($details as $detail) {
             $barangId = $detail['barang_id'];
+            $satuanId = $detail['satuan_id'];
             $qty = $detail['qty'];
             $harga = $detail['harga_jual'];
             $tipeHarga = $detail['tipe_harga'];
@@ -217,20 +233,23 @@ class PenjualanService
             if ($paketFound) {
                 // Paket logic for MINUMAN
                 $totalQtyPaket = $paketFound['total_qty'];
+                $totalQtyThreshold = $paketFound['paket']->total_qty;
 
-                // Jika ada varian campuran, gunakan harga_per_3 tertinggi
+                // Jika ada varian campuran, gunakan harga tertinggi
                 if (count($paketIdsInTransaction) > 1) {
-                    if ($totalQtyPaket >= 3) {
-                        $hargaPaket = $maxHargaPer3 / 3;
+                    if ($totalQtyPaket >= $totalQtyThreshold) {
+                        $hargaPaket = $maxHarga / $totalQtyThreshold;
                     } else {
-                        $hargaPaket = $paketFound['paket']->harga_per_unit;
+                        // Get harga from harga_barang depending on satuan and tipe_harga
+                        $hargaPaket = $this->getHargaBarang($barangId, $satuanId, $tipeHarga);
                     }
                 } else {
                     // Single paket
-                    if ($totalQtyPaket >= 3) {
-                        $hargaPaket = $paketFound['paket']->harga_per_3 / 3;
+                    if ($totalQtyPaket >= $totalQtyThreshold) {
+                        $hargaPaket = $paketFound['paket']->harga / $totalQtyThreshold;
                     } else {
-                        $hargaPaket = $paketFound['paket']->harga_per_unit;
+                        // Get harga from harga_barang depending on satuan and tipe_harga
+                        $hargaPaket = $this->getHargaBarang($barangId, $satuanId, $tipeHarga);
                     }
                 }
 

@@ -38,41 +38,34 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const filterForm = document.getElementById('filterForm');
-    const logTableBody = document.querySelector('#logTable tbody');
-
-    function fetchLogs(tanggalAwal, tanggalAkhir) {
-        fetch(`{{ route('laporan.log.data') }}?tanggal_awal=${tanggalAwal}&tanggal_akhir=${tanggalAkhir}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    logTableBody.innerHTML = '';
-                    data.data.forEach(log => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${log.id}</td>
-                            <td>${log.keterangan}</td>
-                            <td>${log.created_by || '-'}</td>
-                            <td>${log.created_at || '-'}</td>
-                        `;
-                        logTableBody.appendChild(row);
-                    });
-                }
-            });
-    }
-
-    // Initial fetch with default dates
-    const defaultTanggalAwal = document.getElementById('tanggal_awal').value;
-    const defaultTanggalAkhir = document.getElementById('tanggal_akhir').value;
-    fetchLogs(defaultTanggalAwal, defaultTanggalAkhir);
+$(document).ready(function() {
+    var logTable = $('#logTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('laporan.log.data') }}",
+            data: function(d) {
+                d.tanggal_awal = $('#tanggal_awal').val();
+                d.tanggal_akhir = $('#tanggal_akhir').val();
+            }
+        },
+        searching: true,
+        paging: true,
+        info: true,
+        ordering: true,
+        order: [[3, 'desc']], // Order by Tanggal descending by default
+        columns: [
+            { data: 'id' },
+            { data: 'keterangan' },
+            { data: 'created_by', defaultContent: '-' },
+            { data: 'created_at', defaultContent: '-' }
+        ]
+    });
 
     // Setup filter form submit
-    filterForm.addEventListener('submit', function(e) {
+    $('#filterForm').on('submit', function(e) {
         e.preventDefault();
-        const tanggalAwal = document.getElementById('tanggal_awal').value;
-        const tanggalAkhir = document.getElementById('tanggal_akhir').value;
-        fetchLogs(tanggalAwal, tanggalAkhir);
+        logTable.ajax.reload();
     });
 });
 </script>

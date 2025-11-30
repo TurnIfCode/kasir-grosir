@@ -13,15 +13,19 @@ return new class extends Migration
     {
         Schema::create('paket', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_paket', 50);
-            $table->string('nama_paket', 100);
-            $table->integer('harga_per_3')->default(0);
-            $table->integer('harga_per_unit')->default(0);
-            $table->string('keterangan', 255)->nullable();
+            $table->string('nama', 100);
+            $table->integer('total_qty')->unsigned();
+            $table->integer('harga')->unsigned();
+            $table->enum('status', ['aktif', 'nonaktif'])->default('aktif');
+
+            // audit fields
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamp('created_at')->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->unsignedBigInteger('updated_by')->nullable();
-            $table->timestamp('updated_at')->default(DB::raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'));
+            $table->timestamp('updated_at')->nullable()->default(null)->useCurrentOnUpdate();
+
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
+            $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
         });
     }
 

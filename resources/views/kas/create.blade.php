@@ -83,13 +83,21 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              window.location.href = "{{ route('kas.index') }}";
-            });
+            if (response.status) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                window.location.href = "{{ route('kas.index') }}";
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              });
+            }
           },
           error: function(xhr) {
             Swal.fire({

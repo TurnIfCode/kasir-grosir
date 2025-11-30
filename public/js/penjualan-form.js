@@ -1,6 +1,7 @@
 let rowIndex = 0;
 let paymentIndex = 0;
 let barangInfoCache = {}; // Cache for barang information
+let paketInfoCache = {}; // Cache for paket data per barang
 
 $(document).ready(function() {
     // Initialize form
@@ -109,18 +110,31 @@ function loadBarangInfo(index, barangId) {
     if (barangInfoCache[barangId]) {
         // Use cached data
         updateBarangInfo(index, barangInfoCache[barangId]);
-        return;
+    } else {
+        $.ajax({
+            url: '/barang/' + barangId + '/info',
+            success: function(data) {
+                if (data.status === 'success') {
+                    barangInfoCache[barangId] = data.data;
+                    updateBarangInfo(index, data.data);
+                }
+            }
+        });
     }
 
-    $.ajax({
-        url: '/barang/' + barangId + '/info',
-        success: function(data) {
-            if (data.status === 'success') {
-                barangInfoCache[barangId] = data.data;
-                updateBarangInfo(index, data.data);
+    // Fetch paket info for the barang
+    if (paketInfoCache[barangId]) {
+        // Paket info cached, no action needed here
+    } else {
+        $.ajax({
+            url: '/penjualan/get-paket-barang/' + barangId,
+            success: function(data) {
+                if (data.status === 'success') {
+                    paketInfoCache[barangId] = data.data;
+                }
             }
-        }
-    });
+        });
+    }
 }
 
 function loadHarga(index) {
@@ -259,9 +273,8 @@ function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
 }
 
 function calculateSubtotal(index) {
-    // Update subtotal and keterangan display for both desktop and mobile
+    // Update subtotal and keterangan display for desktop only
     updateRowDisplay(index);
-    updateMobileCardDisplay(index);
 
     // Get all current details
     const details = getAllDetails();
@@ -299,14 +312,37 @@ function updateRowDisplay(index) {
 
     const barangInfo = barangInfoCache[barangId];
     const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
-    const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
     const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
 
     let subtotalText = '';
     let keteranganText = '';
 
-    // Logic for ROKOK category
-    if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir') {
+    const paketData = paketInfoCache[barangId];
+
+    if (paketData && paketData.length > 0) {
+        // Paket harga logic
+        const paket = paketData[0]; // Use first paket if multiple
+
+        // Calculate harga_per_unit and harga_per_3 from paket.harga and paket.total_qty dynamically
+        const totalQty = paket.total_qty || 1;
+        const hargaTotal = paket.harga || paket.harga_per_unit * totalQty || 0; // fallback if old props exist
+
+        const hargaPerUnit = Math.round((hargaTotal / totalQty) * 100) / 100;
+        const hargaPer3 = hargaPerUnit * 3;
+
+        let hargaPaket = 0;
+        if (qty >= 3) {
+            hargaPaket = hargaPer3 / 3;
+        } else {
+            hargaPaket = hargaPerUnit;
+        }
+
+        const subtotal = qty * hargaPaket;
+        subtotalText = subtotal.toLocaleString('id-ID');
+        keteranganText = `Paket: ${paket.nama_paket}`;
+    } else if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir') {
+        // Logic for ROKOK category
+        const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const baseSubtotal = qty * hargaJual;
         let surcharge = 0;
 
@@ -320,9 +356,8 @@ function updateRowDisplay(index) {
 
         const total = baseSubtotal + surcharge;
         subtotalText = `${baseSubtotal.toLocaleString('id-ID')} + ${surcharge.toLocaleString('id-ID')} = ${total.toLocaleString('id-ID')}`;
-
-    // Logic for paket items
     } else {
+        const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const subtotal = qty * hargaJual;
         subtotalText = subtotal.toLocaleString('id-ID');
         keteranganText = barangInfo.kategori || '-';

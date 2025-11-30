@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,16 +12,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kas_saldo', function (Blueprint $table) {
+        Schema::create('transfer', function (Blueprint $table) {
             $table->id();
-            $table->string('kas', 100);
-            $table->decimal('saldo', 15, 2)->default(0);
+            $table->string('bank_asal', 100)->nullable();
+            $table->string('bank_tujuan', 100)->nullable();
+            $table->decimal('nominal_transfer', 15, 2)->nullable();
+            $table->decimal('admin_bank', 15, 2)->nullable();
+            $table->decimal('margin', 15, 2)->nullable();
+            $table->decimal('grand_total', 15, 2)->nullable();
+            $table->text('catatan')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null')->onUpdate('cascade');
-            $table->unsignedBigInteger('updated_by')->nullable();
-            $table->timestamp('updated_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
-            $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null')->onUpdate('cascade');
         });
     }
 
@@ -29,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('kas_saldo');
+        Schema::dropIfExists('transfer');
     }
 };

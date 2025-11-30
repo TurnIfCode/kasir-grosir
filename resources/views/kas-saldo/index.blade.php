@@ -3,16 +3,24 @@
 <div class="container-fluid">
   <h3 class="mb-4">Data Saldo Kas</h3>
   <div class="card p-4">
-    <div class="d-flex justify-content-between mb-3">
-      <a href="{{ route('kas-saldo.create') }}" class="btn btn-primary">Tambah Saldo Kas</a>
+  <div class="d-flex justify-content-between mb-3">
+      <form method="GET" id="filterForm" class="d-flex">
+        <select name="kas_saldo_id" id="kas_saldo_id" class="form-select me-2" style="width: auto;">
+          <option value="all">Semua</option>
+          @foreach($kasSaldos as $kasSaldo)
+            <option value="{{ $kasSaldo->id }}" {{ request('kas_saldo_id') == $kasSaldo->id ? 'selected' : '' }}>{{ $kasSaldo->kas }}</option>
+          @endforeach
+        </select>
+      </form>
     </div>
     <table id="kasSaldoTable" class="table table-striped">
       <thead>
         <tr>
           <th>Sumber Kas</th>
+          <th>Tipe</th>
           <th>Saldo Awal</th>
           <th>Saldo Akhir</th>
-          <th>Aksi</th>
+          <th>Keterangan</th>
         </tr>
       </thead>
     </table>
@@ -27,13 +35,17 @@ $(document).ready(function() {
     serverSide: true,
     ajax: {
       url: '{{ route("kas-saldo.data") }}',
-      type: 'GET'
+      type: 'GET',
+      data: function(d) {
+        d.kas_saldo_id = $('#kas_saldo_id').val();
+      }
     },
     columns: [
       { data: 'sumber_kas', name: 'sumber_kas' },
+      { data: 'tipe', name: 'tipe' },
       { data: 'saldo_awal', name: 'saldo_awal' },
       { data: 'saldo_akhir', name: 'saldo_akhir' },
-      { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
+      { data: 'keterangan', name: 'keterangan' },
     ],
     order: [[0, 'asc']],
     responsive: true,
@@ -53,6 +65,11 @@ $(document).ready(function() {
         previous: "Sebelumnya"
       }
     }
+  });
+
+  // Reload table on filter change
+  $('#kas_saldo_id').on('change', function() {
+    table.ajax.reload();
   });
 
   // Delete handler

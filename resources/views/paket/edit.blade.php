@@ -1,5 +1,8 @@
-@include('layout.header')
+@extends('layout.master')
 
+@section('title', 'Edit Paket')
+
+@section('content')
 <div class="container-fluid">
   <h3 class="mb-4">Edit Paket</h3>
 
@@ -13,7 +16,7 @@
   </div>
   @endif
 
-  <form action="{{ route('master.paket.update', $paket->id) }}" method="POST" id="paketForm">
+  <form action="{{ route('paket.update', $paket->id) }}" method="POST" id="paketForm">
     @csrf
     @method('PUT')
     <div class="mb-3">
@@ -50,19 +53,35 @@
     </div>
 
     <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-    <a href="{{ route('master.paket.index') }}" class="btn btn-secondary">Batal</a>
+    <a href="{{ route('paket.index') }}" class="btn btn-secondary">Batal</a>
   </form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-
-  <script>
-  $(document).ready(function() {
-    $('#barang_ids').select2({
-      placeholder: 'Cari dan pilih barang'
-    });
+@section('scripts')
+<script>
+$(document).ready(function() {
+  $('#barang_ids').select2({
+    placeholder: 'Cari dan pilih barang',
+    minimumInputLength: 2,
+    ajax: {
+      url: '{{ route('barang.select2') }}',
+      dataType: 'json',
+      delay: 250,
+      data: function(params) {
+        return {
+          q: params.term
+        };
+      },
+      processResults: function(data) {
+        return {
+          results: data.items
+        };
+      },
+      cache: true
+    }
   });
-  </script>
+});
+</script>
+@endsection
 
-@include('layout.footer')
+@endsection

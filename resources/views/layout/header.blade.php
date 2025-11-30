@@ -311,8 +311,8 @@
               Paket
             </a>
             <ul class="collapse nav flex-column ms-3" id="menuPaket" data-bs-parent="#menuMasterData">
-              <li><a class="nav-link" href="{{ route('paket.create') }}">Tambah</a></li>
-              <li><a class="nav-link" href="{{ route('paket.index') }}">Data</a></li>
+              <li><a class="nav-link" href="{{ route('master.paket.create') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('master.paket.index') }}">Data</a></li>
             </ul>
           </li>
           <!-- Jenis Barang -->
@@ -369,6 +369,27 @@
         <ul class="collapse nav flex-column ms-3" id="menuPenjualan" data-bs-parent="#sidebarMenu">
           <li><a class="nav-link" href="{{ route('penjualan.create') }}">Tambah Penjualan</a></li>
           <li><a class="nav-link" href="{{ route('penjualan.index') }}">Lihat Daftar</a></li>
+        </ul>
+      </li>
+      @endif
+
+      @if(auth()->user()->role == 'ADMIN')
+      <!-- Transaksi -->
+      <li class="nav-item">
+        <a href="#menuTransaksi" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuTransaksi" role="button" aria-expanded="false">
+          <i class="fas fa-exchange-alt"></i> Transaksi
+        </a>
+        <ul class="collapse nav flex-column ms-3" id="menuTransaksi" data-bs-parent="#sidebarMenu">
+          <!-- Transfer -->
+          <li class="nav-item">
+            <a href="#menuTransfer" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuTransfer" role="button" aria-expanded="false">
+              Transfer
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuTransfer" data-bs-parent="#menuTransaksi">
+              <li style="margin-bottom: 5px;"><a class="nav-link" href="{{ route('transfer.add') }}">Tambah</a></li>
+              <li style="margin-bottom: 5px;"><a class="nav-link" href="{{ route('transfer.data') }}">Data</a></li>
+            </ul>
+          </li>
         </ul>
       </li>
       @endif
@@ -515,7 +536,7 @@
         $('#menuHargaBarang').addClass('show');
         $('a[href="#menuHargaBarang"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
-      } else if (pathname.startsWith('/paket')) {
+      } else if (pathname.startsWith('/master/paket')) {
         $('#menuMasterData').addClass('show');
         $('a[href="#menuMasterData"]').addClass('active');
         $('#menuPaket').addClass('show');
@@ -558,6 +579,12 @@
       } else if (pathname.startsWith('/profil-toko')) {
         $('#menuPengaturan').addClass('show');
         $('a[href="#menuPengaturan"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/transfer')) {
+        $('#menuTransaksi').addClass('show');
+        $('a[href="#menuTransaksi"]').addClass('active');
+        $('#menuTransfer').addClass('show');
+        $('a[href="#menuTransfer"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
       }
 

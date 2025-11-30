@@ -1,26 +1,13 @@
-# TODO: Add Logs and Fix Timestamps in Controllers
+# TODO List for Kas Saldo Page Modification
 
-## Controllers to Update:
-- [ ] KategoriController: Add log in update method
-- [ ] SatuanController: Add log in store method
-- [ ] JenisBarangController: Add log in delete method
-- [ ] PelangganController: Add log in update method, fix timestamps in store (set updated_by in create)
-- [ ] SupplierController: Add log in update method, fix timestamps in store (set updated_by in create)
-- [ ] HargaBarangController: Check and add logs if missing
-- [ ] ProfilTokoController: Check update method
-- [ ] StokMinimumController: Check store and delete
-- [ ] KasController: Check store and update
-- [ ] StokOpnameController: Check store
-- [ ] Master/PaketController: Check store, update, delete
-- [ ] KasSaldoController: Check store and update
-- [ ] Transaksi/PembelianController: Check store and update
-- [ ] KonversiSatuanController: Check store, update, delete
-- [ ] UserController: Check store, update, delete
-- [ ] Api/PenjualanApiController: Check store
-- [ ] PenjualanController: Check store and update
+## Completed Tasks
+- [x] Update KasSaldoController index method to pass kasSaldos to view
+- [x] Replace "Tambah Saldo Kas" button with form select in index.blade.php
+- [x] Add JavaScript to send kas_saldo_id parameter in DataTable AJAX request
+- [x] Update KasSaldoController data method to filter by kas_saldo_id
+- [x] Add change event handler for select to reload DataTable
 
-## Notes:
-- Ensure in store: set created_by, created_at, and updated_by = created_by, updated_at = created_at
-- In update: set updated_by, updated_at
-- Add Log insertion after save in store/update, after delete in delete
-- Log keterangan: 'Menambahkan/Memperbarui/Menghapus [entity]: [name] ([code]: [code])'
+## Pending Tasks
+- [ ] Test the functionality to ensure filtering works correctly
+- [ ] Verify that "Semua" shows all transactions and specific kas_saldo_id filters correctly
+- [ ] Ensure ordering is by kas_saldo_transaksi_id desc as specified

@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Master;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Paket;
 use App\Models\PaketDetail;
 use App\Models\Barang;
@@ -15,71 +14,12 @@ class PaketController extends Controller
     public function index()
     {
         $paket = Paket::with('details.barang')->paginate(10);
-        return view('master.paket.index', compact('paket'));
-    }
-
-    public function data(Request $request)
-    {
-        $columns = [
-            0 => 'id',
-            1 => 'nama',
-            2 => 'total_qty',
-            3 => 'harga',
-            4 => 'status',
-        ];
-
-        $totalData = Paket::count();
-        $totalFiltered = $totalData;
-
-        $limit = $request->input('length');
-        $start = $request->input('start');
-        $orderColumnIndex = $request->input('order.0.column');
-        $orderColumn = $columns[$orderColumnIndex] ?? 'id';
-        $orderDir = $request->input('order.0.dir', 'asc');
-        $searchValue = $request->input('search.value');
-
-        $query = Paket::query();
-
-        if(!empty($searchValue)) {
-            $query->where(function($q) use ($searchValue) {
-                $q->where('nama', 'LIKE', "%{$searchValue}%")
-                  ->orWhere('status', 'LIKE', "%{$searchValue}%");
-            });
-
-            $totalFiltered = $query->count();
-        }
-
-        $paket = $query->offset($start)
-            ->limit($limit)
-            ->orderBy($orderColumn, $orderDir)
-            ->get();
-
-        $data = [];
-
-        foreach ($paket as $item) {
-            $nestedData = [];
-            $nestedData[] = $item->id;
-            $nestedData[] = $item->nama;
-            $nestedData[] = $item->total_qty;
-            $nestedData[] = number_format($item->harga);
-            $nestedData[] = ucfirst($item->status);
-            $nestedData[] = '<a href="'. route('master.paket.edit', $item->id) .'" class="btn btn-sm btn-warning">Edit</a>';
-            $data[] = $nestedData;
-        }
-
-        $json_data = [
-            "draw"            => intval($request->input('draw')),
-            "recordsTotal"    => intval($totalData),
-            "recordsFiltered" => intval($totalFiltered),
-            "data"            => $data
-        ];
-
-        return response()->json($json_data);
+        return view('paket.index', compact('paket'));
     }
 
     public function create()
     {
-        return view('master.paket.create');
+        return view('paket.add');
     }
 
     public function store(Request $request)
@@ -97,7 +37,7 @@ class PaketController extends Controller
         try {
             $paket = Paket::create([
                 'nama' => $request->nama,
-                'total_qty' => $request->total_qty,
+                'total_qty' => round($request->total_qty),
                 'harga' => $request->harga,
                 'status' => $request->status,
                 'created_by' => Auth::id(),
@@ -113,7 +53,7 @@ class PaketController extends Controller
                 ]);
             }
             DB::commit();
-            return redirect()->route('master.paket.index')->with('success', 'Paket created successfully.');
+            return redirect()->route('paket.index')->with('success', 'Paket created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->withErrors(['error' => 'Failed to create paket: ' . $e->getMessage()]);
@@ -123,7 +63,7 @@ class PaketController extends Controller
     public function edit($id)
     {
         $paket = Paket::with('details.barang')->findOrFail($id);
-        return view('master.paket.edit', compact('paket'));
+        return view('paket.edit', compact('paket'));
     }
 
     public function update(Request $request, $id)
@@ -149,10 +89,12 @@ class PaketController extends Controller
             ]);
 
             // Sync paket details
+            // Delete details not in submitted barang_ids
             PaketDetail::where('paket_id', $id)
                 ->whereNotIn('barang_id', $request->barang_ids)
                 ->delete();
 
+            // Add new barang_ids not already in details
             $existingBarangIds = PaketDetail::where('paket_id', $id)->pluck('barang_id')->toArray();
 
             foreach ($request->barang_ids as $barang_id) {
@@ -167,7 +109,7 @@ class PaketController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('master.paket.index')->with('success', 'Paket updated successfully.');
+            return redirect()->route('paket.index')->with('success', 'Paket updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->withErrors(['error' => 'Failed to update paket: ' . $e->getMessage()]);
