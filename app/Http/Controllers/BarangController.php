@@ -61,7 +61,7 @@ class BarangController extends Controller
                     'harga_beli' => 'Rp ' . number_format($barang->harga_beli, 0, ',', '.'),
                     'harga_jual' => 'Rp ' . number_format($barang->harga_jual, 0, ',', '.'),
                     'deskripsi' => $barang->deskripsi ?: '-',
-                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $barang->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $barang->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" id="btnStokMinimum" data-id="' . $barang->id . '" class="btn btn-sm btn-secondary"><i class="fas fa-exclamation-triangle"></i></a> <a href="#" data-id="' . $barang->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $barang->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $barang->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" id="btnTambahBarcode" data-id="' . $barang->id . '" class="btn btn-sm btn-success"><i class="fas fa-barcode"></i></a> <a href="#" id="btnStokMinimum" data-id="' . $barang->id . '" class="btn btn-sm btn-secondary"><i class="fas fa-exclamation-triangle"></i></a> <a href="#" data-id="' . $barang->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
 
@@ -388,5 +388,45 @@ class BarangController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    // Store barcode
+    public function storeBarcode(Request $request)
+    {
+        $request->validate([
+            'barang_id' => 'required|integer|exists:barang,id',
+            'barcode' => 'required|string|max:100|unique:barang_barcodes,barcode',
+        ]);
+
+        $barcode = BarangBarcode::create([
+            'barang_id' => $request->barang_id,
+            'barcode' => $request->barcode,
+            'created_by' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Barcode berhasil ditambahkan',
+            'data' => $barcode
+        ]);
+    }
+
+    // Delete barcode
+    public function deleteBarcode($id)
+    {
+        $barcode = BarangBarcode::find($id);
+        if (!$barcode) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Barcode tidak ditemukan'
+            ]);
+        }
+
+        $barcode->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Barcode berhasil dihapus'
+        ]);
     }
 }

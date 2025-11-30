@@ -115,6 +115,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/stok-minimum/store', [\App\Http\Controllers\StokMinimumController::class, 'store'])->name('barang.stok-minimum.store');
         Route::delete('/stok-minimum/{id}/delete', [\App\Http\Controllers\StokMinimumController::class, 'delete'])->name('barang.stok-minimum.delete');
         Route::get('/{barangId}/stok-minimum', [\App\Http\Controllers\StokMinimumController::class, 'getByBarang'])->name('barang.stok-minimum.get');
+
+        // Barcode
+        Route::post('/barcode/store', [BarangController::class, 'storeBarcode'])->name('barang.barcode.store');
+        Route::delete('/barcode/{id}/delete', [BarangController::class, 'deleteBarcode'])->name('barang.barcode.delete');
     });
 
     Route::prefix('satuan')->group(function () {

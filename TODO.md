@@ -1,13 +1,21 @@
-# TODO List for Kas Saldo Page Modification
+# TODO: Tambah Barcode Feature Implementation
 
 ## Completed Tasks
-- [x] Update KasSaldoController index method to pass kasSaldos to view
-- [x] Replace "Tambah Saldo Kas" button with form select in index.blade.php
-- [x] Add JavaScript to send kas_saldo_id parameter in DataTable AJAX request
-- [x] Update KasSaldoController data method to filter by kas_saldo_id
-- [x] Add change event handler for select to reload DataTable
+- [x] Add "Tambah Barcode" button to the actions column in BarangController.php
+- [x] Create modal for adding barcodes in index.blade.php
+- [x] Add routes for storing and deleting barcodes in web.php
+- [x] Implement storeBarcode and deleteBarcode methods in BarangController.php
+- [x] Add JavaScript handlers for modal functionality, form submission, and barcode deletion
 
 ## Pending Tasks
-- [ ] Test the functionality to ensure filtering works correctly
-- [ ] Verify that "Semua" shows all transactions and specific kas_saldo_id filters correctly
-- [ ] Ensure ordering is by kas_saldo_transaksi_id desc as specified
+- [x] Test the functionality by running the application and verifying the modal opens, barcodes can be added, and deleted
+- [x] Ensure the main table updates after adding/deleting barcodes
+- [x] Check for any validation errors or edge cases
+- [x] Verify that duplicate barcodes are prevented
+- [ ] Test barcode scanning functionality if available
+
+## Notes
+- The modal allows multiple barcodes to be added via repeated form submissions
+- Existing barcodes are listed in a table below the form with delete buttons
+- The main datatable will reload after barcode changes to reflect updates
+- Validation prevents duplicate barcodes across the system

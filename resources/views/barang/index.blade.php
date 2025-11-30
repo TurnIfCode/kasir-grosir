@@ -46,6 +46,52 @@
   </div>
 </div>
 
+<!-- Modal Tambah Barcode -->
+<div class="modal fade" id="tambahBarcodeModal" tabindex="-1" aria-labelledby="tambahBarcodeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tambahBarcodeModalLabel">Tambah Barcode</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="barcodeBarangId">
+        <div class="mb-3">
+          <label for="barcodeBarangNama" class="form-label">Barang</label>
+          <input type="text" class="form-control" id="barcodeBarangNama" readonly>
+        </div>
+
+        <form id="tambahBarcodeForm">
+          @csrf
+          <input type="hidden" id="barcodeBarangIdForm" name="barang_id">
+          <div class="mb-3">
+            <label for="barcodeInput" class="form-label">Barcode</label>
+            <input type="text" class="form-control" id="barcodeInput" name="barcode" placeholder="Scan atau input barcode">
+          </div>
+          <button type="submit" class="btn btn-primary">Tambah Barcode</button>
+        </form>
+
+        <hr>
+        <h6>Daftar Barcode</h6>
+        <table class="table table-bordered" id="barcodeListTable">
+          <thead>
+            <tr>
+              <th>Barcode</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="barcodeListBody">
+            <!-- Data akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edit Barang -->
 <div class="modal fade" id="editBarangModal" tabindex="-1" aria-labelledby="editBarangModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -502,6 +548,132 @@ $(document).ready(function() {
     } else {
       validator.focusInvalid();
     }
+  });
+
+  // Tambah Barcode handler
+  $(document).on('click', '#btnTambahBarcode', function() {
+    var barangId = $(this).data('id');
+
+    // Get barang details
+    $.ajax({
+      url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var barang = response.data;
+          $('#barcodeBarangId').val(barang.id);
+          $('#barcodeBarangIdForm').val(barang.id);
+          $('#barcodeBarangNama').val(barang.nama_barang + ' (' + barang.kode_barang + ')');
+
+          // Load existing barcodes
+          loadBarcodeList(barangId);
+
+          $('#tambahBarcodeModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
+  });
+
+  // Load barcode list
+  function loadBarcodeList(barangId) {
+    $.ajax({
+      url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
+      type: 'GET',
+      success: function(response) {
+        if (response.status) {
+          var barcodes = response.data.barcodes || [];
+          var html = '';
+          barcodes.forEach(function(b) {
+            html += '<tr>';
+            html += '<td>' + b.barcode + '</td>';
+            html += '<td><a href="#" class="btn btn-sm btn-danger delete-barcode" data-id="' + b.id + '"><i class="fas fa-trash"></i></a></td>';
+            html += '</tr>';
+          });
+          $('#barcodeListBody').html(html);
+        }
+      },
+      error: function() {
+        console.log('Error loading barcode list');
+      }
+    });
+  }
+
+  // Submit tambah barcode form
+  $('#tambahBarcodeForm').on('submit', function(e) {
+    e.preventDefault();
+
+    var $btn = $(this).find('button[type="submit"]');
+    $btn.prop('disabled', true).text('Menyimpan...');
+
+    $.ajax({
+      url: '{{ route("barang.barcode.store") }}',
+      type: 'POST',
+      data: $(this).serialize(),
+      success: function(response) {
+        if (response.status) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: response.message
+          });
+          $("[name='barcode']").val('');
+          $("[name='barcode']").focus().select();
+          //$('#tambahBarcodeForm')[0].reset();
+          var barangId = $('#barcodeBarangId').val();
+          loadBarcodeList(barangId);
+          table.ajax.reload(); // Reload main table
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function(xhr) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
+      },
+      complete: function() {
+        $btn.prop('disabled', false).text('Tambah Barcode');
+      }
+    });
+  });
+
+  // Delete barcode
+  $(document).on('click', '.delete-barcode', function() {
+    var barcodeId = $(this).data('id');
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Barcode yang dihapus tidak dapat dikembalikan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: '{{ route("barang.barcode.delete", ":id") }}'.replace(':id', barcodeId),
+          type: 'DELETE',
+          data: { _token: '{{ csrf_token() }}' },
+          success: function(response) {
+            if (response.status) {
+              Swal.fire('Terhapus!', response.message, 'success');
+              var barangId = $('#barcodeBarangId').val();
+              loadBarcodeList(barangId);
+              table.ajax.reload(); // Reload main table
+            } else {
+              Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+            }
+          },
+          error: function() {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+          }
+        });
+      }
+    });
   });
 
   // Stok Minimum handler
