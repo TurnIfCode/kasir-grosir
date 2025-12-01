@@ -289,6 +289,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/stok-opname/data', [\App\Http\Controllers\LaporanStokOpnameController::class, 'getData'])->name('laporan.stok-opname.data');
         Route::get('/stok-opname/{id}', [\App\Http\Controllers\LaporanStokOpnameController::class, 'show'])->name('laporan.stok-opname.show');
         Route::get('/stok-opname/{id}/export-pdf', [\App\Http\Controllers\LaporanStokOpnameController::class, 'exportPDF'])->name('laporan.stok-opname.export-pdf');
+
+        Route::get('/kas-saldo', [\App\Http\Controllers\LaporanKasSaldoController::class, 'index'])->name('laporan.kas-saldo');
+        Route::get('/kas-saldo/data', [\App\Http\Controllers\LaporanKasSaldoController::class, 'data'])->name('laporan.kas-saldo.data');
+        Route::get('/kas-saldo/ringkasan', [\App\Http\Controllers\LaporanKasSaldoController::class, 'getRingkasan'])->name('laporan.kas-saldo.ringkasan');
+        Route::get('/kas-saldo/export-pdf', [\App\Http\Controllers\LaporanKasSaldoController::class, 'exportPDF'])->name('laporan.kas-saldo.export_pdf');
     });
 
     // Stok Opname Routes

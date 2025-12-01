@@ -457,6 +457,7 @@
           <li><a class="nav-link" href="{{ route('laporan.rekap_harian') }}"><i class="fas fa-calendar-day"></i> Rekap Harian</a></li>
           <li><a class="nav-link" href="{{ route('laporan.rekap_bulanan') }}"><i class="fas fa-calendar-alt"></i> Rekap Bulanan</a></li>
           <li><a class="nav-link" href="{{ route('laporan.stok-opname') }}"><i class="fas fa-clipboard-check"></i> Stok Opname</a></li>
+          <li><a class="nav-link" href="{{ route('laporan.kas-saldo') }}"><i class="fas fa-money-bill-wave"></i> Saldo Kas</a></li>
         </ul>
       </li>
 
