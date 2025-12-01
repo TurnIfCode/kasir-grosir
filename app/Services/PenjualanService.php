@@ -257,15 +257,15 @@ class PenjualanService
             } else {
                 // Non-paket logic
                 $barang = \App\Models\Barang::find($barangId);
-                if ($barang && $barang->kategori_id == 1 && $tipeHarga === 'grosir') {
-                    // ROKOK grosir logic
+                if ($barang && $barang->kategori_id == 1 && $tipeHarga === 'grosir' && $satuanId == 2) {
+                    // ROKOK grosir logic - only for bungkus (satuanId == 2)
                     if ($qty <= 4) {
                         $subtotal += ($harga * $qty) + 500;
                     } elseif ($qty >= 5) {
                         $subtotal += ($harga * $qty) + 1000;
                     }
                 } else {
-                    // Normal calculation for MINUMAN non-paket or other categories
+                    // Normal calculation for MINUMAN non-paket or other categories, or ROKOK in slop units
                     $subtotal += $harga * $qty;
                 }
             }

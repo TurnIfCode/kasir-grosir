@@ -313,6 +313,7 @@ function updateRowDisplay(index) {
     const barangInfo = barangInfoCache[barangId];
     const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
     const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+    const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
 
     let subtotalText = '';
     let keteranganText = '';
@@ -340,7 +341,7 @@ function updateRowDisplay(index) {
         const subtotal = qty * hargaPaket;
         subtotalText = subtotal.toLocaleString('id-ID');
         keteranganText = `Paket: ${paket.nama_paket}`;
-    } else if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir') {
+    } else if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir' && satuanId == 2) {
         // Logic for ROKOK category
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const baseSubtotal = qty * hargaJual;
