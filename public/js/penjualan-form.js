@@ -2,6 +2,8 @@ let rowIndex = 0;
 let paymentIndex = 0;
 let barangInfoCache = {}; // Cache for barang information
 let paketInfoCache = {}; // Cache for paket data per barang
+let calculateTimeout = null; // For debouncing calculations
+let isCalculating = false; // Flag to prevent recursion in calculations
 
 $(document).ready(function() {
     // Initialize form
@@ -124,20 +126,43 @@ function loadBarangInfo(index, barangId) {
 
     // Fetch paket info for the barang
     if (paketInfoCache[barangId]) {
-        // Paket info cached, no action needed here
+        // Paket info cached, update display after loading
+        updateRowDisplay(index);
     } else {
         $.ajax({
             url: '/penjualan/get-paket-barang/' + barangId,
             success: function(data) {
                 if (data.status === 'success') {
                     paketInfoCache[barangId] = data.data;
+                    // Update display after paket info is loaded
+                    updateRowDisplay(index);
                 }
             }
         });
     }
 }
 
-function loadHarga(index) {
+function getTotalQtyForPaket(paket) {
+    let totalQty = 0;
+    $('.detail-row').each(function() {
+        const rowIndex = $(this).data('index');
+        const barangId = $(`.barang-id-input[data-index="${rowIndex}"]`).val();
+        if (paket.barang_ids.includes(parseInt(barangId))) {
+            const qty = parseFloat($(`.qty-input[data-index="${rowIndex}"]`).val()) || 0;
+            totalQty += qty;
+        }
+    });
+    return totalQty;
+}
+
+function updateAllPaketHarga() {
+    $('.detail-row').each(function() {
+        const index = $(this).data('index');
+        loadHarga(index, true);
+    });
+}
+
+function loadHarga(index, skipCalculation = false) {
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
     const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
     const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
@@ -146,13 +171,40 @@ function loadHarga(index) {
         return;
     }
 
+    // Check if barang is in paket and paket condition applies
+    if (paketInfoCache[barangId] && paketInfoCache[barangId].length > 0) {
+        // Find the paket with highest harga that applies
+        let selectedPaket = null;
+        for (const paket of paketInfoCache[barangId]) {
+            const totalQty = getTotalQtyForPaket(paket);
+            if (totalQty >= paket.total_qty) {
+                if (!selectedPaket || paket.harga > selectedPaket.harga) {
+                    selectedPaket = paket;
+                }
+            }
+        }
+
+        if (selectedPaket) {
+            // Apply paket harga
+            const paketHargaJual = selectedPaket.harga / selectedPaket.total_qty;
+            $(`.harga-jual-input[data-index="${index}"]`).val(paketHargaJual.toFixed(2));
+            if (!skipCalculation) {
+                calculateSubtotal(index);
+            }
+            return;
+        }
+    }
+
+    // Fallback to normal harga
     $.ajax({
         url: `/penjualan/barang/${barangId}/harga/${satuanId}`,
         data: { tipe: tipeHarga },
         success: function(data) {
             if (data.status === 'success') {
                 $(`.harga-jual-input[data-index="${index}"]`).val(data.data.harga);
-                calculateSubtotal(index);
+                if (!skipCalculation) {
+                    calculateSubtotal(index);
+                }
             }
         }
     });
@@ -273,8 +325,31 @@ function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
 }
 
 function calculateSubtotal(index) {
-    // Update subtotal and keterangan display for desktop only
+    // Prevent recursion
+    if (isCalculating) {
+        return;
+    }
+
+    // Clear previous timeout
+    if (calculateTimeout) {
+        clearTimeout(calculateTimeout);
+    }
+
+    // Update row display immediately for better UX
     updateRowDisplay(index);
+
+    // Update paket harga for all rows before calculation
+    updateAllPaketHarga();
+
+    // Debounce the calculation by 500ms
+    calculateTimeout = setTimeout(function() {
+        performCalculation();
+    }, 500);
+}
+
+function performCalculation() {
+    // Set calculating flag
+    isCalculating = true;
 
     // Get all current details
     const details = getAllDetails();
@@ -282,6 +357,7 @@ function calculateSubtotal(index) {
     // If no valid details, set totals to 0
     if (details.length === 0) {
         updateTotals({ subtotal: 0, pembulatan: 0, grand_total: 0 });
+        isCalculating = false;
         return;
     }
 
@@ -297,12 +373,16 @@ function calculateSubtotal(index) {
             if (response.status === 'success') {
                 updateTotals(response.data);
             }
+            isCalculating = false;
         },
         error: function(xhr) {
             console.error('Error calculating subtotal:', xhr.responseText);
+            isCalculating = false;
         }
     });
 }
+
+
 
 function updateRowDisplay(index) {
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
@@ -318,45 +398,28 @@ function updateRowDisplay(index) {
     let subtotalText = '';
     let keteranganText = '';
 
-    const paketData = paketInfoCache[barangId];
-
-    if (paketData && paketData.length > 0) {
-        // Paket harga logic
-        const paket = paketData[0]; // Use first paket if multiple
-
-        // Calculate harga_per_unit and harga_per_3 from paket.harga and paket.total_qty dynamically
-        const totalQty = paket.total_qty || 1;
-        const hargaTotal = paket.harga || paket.harga_per_unit * totalQty || 0; // fallback if old props exist
-
-        const hargaPerUnit = Math.round((hargaTotal / totalQty) * 100) / 100;
-        const hargaPer3 = hargaPerUnit * 3;
-
-        let hargaPaket = 0;
-        if (qty >= 3) {
-            hargaPaket = hargaPer3 / 3;
-        } else {
-            hargaPaket = hargaPerUnit;
-        }
-
-        const subtotal = qty * hargaPaket;
-        subtotalText = subtotal.toLocaleString('id-ID');
-        keteranganText = `Paket: ${paket.nama_paket}`;
-    } else if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir' && satuanId == 2) {
+    if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir' && satuanId == 2) {
         // Logic for ROKOK category
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const baseSubtotal = qty * hargaJual;
         let surcharge = 0;
 
-        if (qty >= 1 && qty <= 4) {
-            surcharge = 500;
-            keteranganText = 'Rokok Grosir';
-        } else if (qty >= 5) {
-            surcharge = 1000;
-            keteranganText = 'Rokok Grosir';
+        if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal') {
+            if (qty >= 1 && qty <= 4) {
+                surcharge = 500;
+            } else if (qty >= 5) {
+                surcharge = 1000;
+            }
         }
 
-        const total = baseSubtotal + surcharge;
-        subtotalText = `${baseSubtotal.toLocaleString('id-ID')} + ${surcharge.toLocaleString('id-ID')} = ${total.toLocaleString('id-ID')}`;
+        keteranganText = 'Rokok Grosir';
+
+        if (surcharge > 0) {
+            const total = baseSubtotal + surcharge;
+            subtotalText = `${baseSubtotal.toLocaleString('id-ID')} + ${surcharge.toLocaleString('id-ID')} = ${total.toLocaleString('id-ID')}`;
+        } else {
+            subtotalText = baseSubtotal.toLocaleString('id-ID');
+        }
     } else {
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const subtotal = qty * hargaJual;
@@ -665,11 +728,21 @@ function submitForm(printAfterSave = false) {
 
 
 function resetForm() {
+    // Clear any pending calculation timeout
+    if (calculateTimeout) {
+        clearTimeout(calculateTimeout);
+        calculateTimeout = null;
+    }
+
+    // Reset calculation flag
+    isCalculating = false;
+
     $('#penjualanForm')[0].reset();
     $('#detailContainer').html('');
     $('#mobileDetailContainer').html('');
     $('#paymentContainer').html('');
     barangInfoCache = {}; // Clear cache
+    paketInfoCache = {}; // Clear paket cache
     rowIndex = 0;
     paymentIndex = 0;
     addNewRow();

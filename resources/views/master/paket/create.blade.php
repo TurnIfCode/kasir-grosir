@@ -6,7 +6,7 @@
     <form id="paketForm" method="POST" action="{{ route('master.paket.store') }}">
       @csrf
       <div class="mb-3">
-        <label for="nama" class="form-label">Nama Paket <span class="text-danger">*</span></label>
+        <label for="nama_paket" class="form-label">Nama Paket <span class="text-danger">*</span></label>
         <input type="text" class="form-control form-control-lg" id="nama" name="nama" placeholder="Masukkan nama paket" required>
       </div>
       <div class="mb-3">
@@ -15,7 +15,7 @@
       </div>
       <div class="mb-3">
         <label for="harga" class="form-label">Harga <span class="text-danger">*</span></label>
-        <input type="number" class="form-control form-control-lg" id="harga" name="harga" placeholder="0" min="0" required>
+        <input type="number" class="form-control form-control-lg" id="harga" name="harga" placeholder="0" min="0" step="0.01" required>
       </div>
       <div class="mb-3">
         <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
@@ -119,7 +119,7 @@ $(document).ready(function() {
       harga: {
         required: "Harga wajib diisi",
         number: "Harga harus berupa angka",
-        min: "Harga tidak boleh negatif"
+        min: "Harga minimal 0"
       },
       status: {
         required: "Status wajib dipilih"

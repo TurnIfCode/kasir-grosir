@@ -346,9 +346,7 @@ class BarangController extends Controller
             $paket = $paketDetail->paket;
             if ($paket) {
                 $paketInfo = [
-                    'nama_paket' => $paket->nama_paket,
-                    'harga_per_3' => $paket->harga_per_3,
-                    'harga_per_unit' => $paket->harga_per_unit
+                    'nama_paket' => $paket->nama
                 ];
             }
         }
@@ -359,10 +357,10 @@ class BarangController extends Controller
                 'id' => $barang->id,
                 'nama_barang' => $barang->nama_barang,
                 'kategori' => $barang->kategori ? $barang->kategori->nama_kategori : null,
+                'jenis' => $barang->jenis,
                 'harga' => round($barang->harga_jual, 0),
                 'is_paket' => $isPaket,
                 'nama_paket' => $paketInfo ? $paketInfo['nama_paket'] : null,
-                'harga_per_3' => $paketInfo ? $paketInfo['harga_per_3'] : null,
                 'paket' => $paketInfo ? [$paketInfo] : []
             ]
         ]);

@@ -24,8 +24,7 @@ class PaketController extends Controller
             0 => 'id',
             1 => 'nama',
             2 => 'total_qty',
-            3 => 'harga',
-            4 => 'status',
+            3 => 'status',
         ];
 
         $totalData = Paket::count();
@@ -61,7 +60,7 @@ class PaketController extends Controller
             $nestedData[] = $item->id;
             $nestedData[] = $item->nama;
             $nestedData[] = $item->total_qty;
-            $nestedData[] = number_format($item->harga);
+            $nestedData[] = 'Rp ' . number_format($item->harga, 0, ',', '.');
             $nestedData[] = ucfirst($item->status);
             $nestedData[] = '<a href="'. route('master.paket.edit', $item->id) .'" class="btn btn-sm btn-warning">Edit</a>';
             $data[] = $nestedData;
@@ -87,7 +86,7 @@ class PaketController extends Controller
         $request->validate([
             'nama' => 'required|string|max:100',
             'total_qty' => 'required|integer|min:1',
-            'harga' => 'required|integer|min:0',
+            'harga' => 'required|numeric|min:0',
             'status' => 'required|in:aktif,nonaktif',
             'barang_ids' => 'required|array',
             'barang_ids.*' => 'integer|exists:barang,id',
@@ -113,9 +112,25 @@ class PaketController extends Controller
                 ]);
             }
             DB::commit();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Paket berhasil ditambahkan'
+                ]);
+            }
+
             return redirect()->route('master.paket.index')->with('success', 'Paket created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create paket: ' . $e->getMessage()
+                ], 500);
+            }
+
             return back()->withInput()->withErrors(['error' => 'Failed to create paket: ' . $e->getMessage()]);
         }
     }
@@ -131,7 +146,7 @@ class PaketController extends Controller
         $request->validate([
             'nama' => 'required|string|max:100',
             'total_qty' => 'required|integer|min:1',
-            'harga' => 'required|integer|min:0',
+            'harga' => 'required|numeric|min:0',
             'status' => 'required|in:aktif,nonaktif',
             'barang_ids' => 'required|array',
             'barang_ids.*' => 'integer|exists:barang,id',

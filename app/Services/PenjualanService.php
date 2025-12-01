@@ -26,6 +26,9 @@ class PenjualanService
             // Generate kode penjualan
             $kodePenjualan = $this->generateKodePenjualan();
 
+            // Update harga_jual for paket if applicable
+            $details = $this->updateHargaJualForPaket($details);
+
             // Calculate totals with paket logic
             $subtotal = round($this->calculateSubtotalWithPaket($details));
             $pembulatan = $this->calculatePembulatan($subtotal);
@@ -176,102 +179,35 @@ class PenjualanService
     public function calculateSubtotalWithPaket(array $details): float
     {
         $subtotal = 0;
-        $paketTotals = []; // Track total qty per paket
 
-        // First pass: calculate paket totals
         foreach ($details as $detail) {
-            $barangId = $detail['barang_id'];
-            $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
-                $q->where('barang_id', $barangId);
-            })
-            ->with('details')
-            ->orderBy('id', 'asc')
-            ->get();
-
-
-            if ($pakets->isNotEmpty()) {
-                foreach ($pakets as $paket) {
-                    if (!isset($paketTotals[$paket->id])) {
-                        $paketTotals[$paket->id] = [
-                            'paket' => $paket,
-                            'total_qty' => 0,
-                            'barang_ids' => $paket->details->pluck('barang_id')->toArray()
-                        ];
-                    }
-                    $paketTotals[$paket->id]['total_qty'] += $detail['qty'];
-                }
-            }
-        }
-
-        // Find max harga for mixed paket transactions
-        $maxHarga = 0;
-        $paketIdsInTransaction = [];
-        foreach ($paketTotals as $paketData) {
-            if ($paketData['total_qty'] > 0) {
-                $paketIdsInTransaction[] = $paketData['paket']->id;
-                $maxHarga = max($maxHarga, $paketData['paket']->harga);
-            }
-        }
-
-        // Second pass: calculate subtotals
-        foreach ($details as $detail) {
-            $barangId = $detail['barang_id'];
-            $satuanId = $detail['satuan_id'];
-            $qty = $detail['qty'];
-            $harga = $detail['harga_jual'];
-            $tipeHarga = $detail['tipe_harga'];
-
-            // Check if barang is in paket
-            $paketFound = null;
-            foreach ($paketTotals as $paketData) {
-                if (in_array($barangId, $paketData['barang_ids'])) {
-                    $paketFound = $paketData;
-                    break;
-                }
-            }
-
-            if ($paketFound) {
-                // Paket logic for MINUMAN
-                $totalQtyPaket = $paketFound['total_qty'];
-                $totalQtyThreshold = $paketFound['paket']->total_qty;
-
-                // Jika ada varian campuran, gunakan harga tertinggi
-                if (count($paketIdsInTransaction) > 1) {
-                    if ($totalQtyPaket >= $totalQtyThreshold) {
-                        $hargaPaket = $maxHarga / $totalQtyThreshold;
-                    } else {
-                        // Get harga from harga_barang depending on satuan and tipe_harga
-                        $hargaPaket = $this->getHargaBarang($barangId, $satuanId, $tipeHarga);
-                    }
-                } else {
-                    // Single paket
-                    if ($totalQtyPaket >= $totalQtyThreshold) {
-                        $hargaPaket = $paketFound['paket']->harga / $totalQtyThreshold;
-                    } else {
-                        // Get harga from harga_barang depending on satuan and tipe_harga
-                        $hargaPaket = $this->getHargaBarang($barangId, $satuanId, $tipeHarga);
-                    }
-                }
-
-                $subtotal += $qty * $hargaPaket;
-            } else {
-                // Non-paket logic
-                $barang = \App\Models\Barang::find($barangId);
-                if ($barang && $barang->kategori_id == 1 && $tipeHarga === 'grosir' && $satuanId == 2) {
-                    // ROKOK grosir logic - only for bungkus (satuanId == 2)
-                    if ($qty <= 4) {
-                        $subtotal += ($harga * $qty) + 500;
-                    } elseif ($qty >= 5) {
-                        $subtotal += ($harga * $qty) + 1000;
-                    }
-                } else {
-                    // Normal calculation for MINUMAN non-paket or other categories, or ROKOK in slop units
-                    $subtotal += $harga * $qty;
-                }
-            }
+            $subtotal += $this->calculateNormalPrice($detail);
         }
 
         return $subtotal;
+    }
+
+    /**
+     * Calculate normal price for a detail item
+     */
+    private function calculateNormalPrice(array $detail): float
+    {
+        $barangId = $detail['barang_id'];
+        $satuanId = $detail['satuan_id'];
+        $qty = $detail['qty'];
+        $harga = $detail['harga_jual'];
+        $tipeHarga = $detail['tipe_harga'];
+
+        $barang = \App\Models\Barang::find($barangId);
+        if ($barang && $barang->kategori_id == 1 && $barang->jenis === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
+            if ($qty <= 4) {
+                return ($harga * $qty) + 500;
+            } elseif ($qty >= 5) {
+                return ($harga * $qty) + 1000;
+            }
+        }
+
+        return $harga * $qty;
     }
 
     /**
@@ -327,5 +263,106 @@ class PenjualanService
             return max(0, $dibayar - $grandTotal);
         }
         return 0;
+    }
+
+    /**
+     * Update harga_jual in details based on paket pricing rules
+     */
+    private function updateHargaJualForPaket(array $details): array
+    {
+        // Get all active pakets with details
+        $pakets = \App\Models\Paket::with('details')->where('status', 'aktif')->get();
+
+        // Group details by paket_id for applicable pakets
+        $paketAssignments = [];
+
+        foreach ($pakets as $paket) {
+            $paketBarangIds = $paket->details->pluck('barang_id')->toArray();
+            $paketDetails = collect($details)->whereIn('barang_id', $paketBarangIds);
+            $totalQty = $paketDetails->sum('qty');
+
+            if ($totalQty >= $paket->total_qty) {
+                // Paket applies, assign to details
+                foreach ($details as $index => $detail) {
+                    if (in_array($detail['barang_id'], $paketBarangIds)) {
+                        if (!isset($paketAssignments[$index]) || $paket->harga > $paketAssignments[$index]['paket']->harga) {
+                            $paketAssignments[$index] = [
+                                'paket' => $paket,
+                                'harga_jual' => $paket->harga / $paket->total_qty
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Apply the assignments
+        foreach ($paketAssignments as $index => $assignment) {
+            $details[$index]['harga_jual'] = $assignment['harga_jual'];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Determine which paket applies based on purchased items
+     * Returns paket details if applicable, null otherwise
+     */
+    public function determinePaket(array $details): ?array
+    {
+        // Get active pakets with details, sorted by harga ascending (lowest harga first)
+        $pakets = \App\Models\Paket::with('details')->where('status', 'aktif')->orderBy('harga')->get();
+
+        if ($pakets->count() < 2) {
+            return null; // Need at least two pakets
+        }
+
+        $topIcePaket = $pakets->first(); // Lowest harga: paket top ice
+        $campurPaket = $pakets->last(); // Highest harga: paket campur
+
+        // Get all unique barang_ids from details
+        $barangIds = collect($details)->pluck('barang_id')->unique()->toArray();
+
+        // Check if all barang_ids are in top ice paket details
+        $topIceBarangIds = $topIcePaket->details->pluck('barang_id')->toArray();
+        $isAllTopIce = collect($barangIds)->every(function ($barangId) use ($topIceBarangIds) {
+            return in_array($barangId, $topIceBarangIds);
+        });
+
+        // Select paket: top ice if all items match, else campur
+        $selectedPaket = $isAllTopIce ? $topIcePaket : $campurPaket;
+
+        // Get barang_ids from selected paket
+        $selectedPaketBarangIds = $selectedPaket->details->pluck('barang_id')->toArray();
+
+        // Calculate matching barang_ids: intersection of transaction barang_ids and paket barang_ids
+        $matchingBarangIds = array_intersect($barangIds, $selectedPaketBarangIds);
+
+        // Paket valid only if number of distinct matching barang_ids == total_qty
+        if (count($matchingBarangIds) != $selectedPaket->total_qty) {
+            return null; // Paket not valid
+        }
+
+        // Calculate matching qty: sum qty of items that are in selected paket
+        $matchingQty = collect($details)->whereIn('barang_id', $selectedPaketBarangIds)->sum('qty');
+
+        // Calculate jumlah paket (floor division)
+        $jumlahPaket = floor($matchingQty / $selectedPaket->total_qty);
+
+        if ($jumlahPaket == 0) {
+            return null; // No paket applies
+        }
+
+        // Calculate prices
+        $hargaPerPaket = $selectedPaket->harga;
+        $hargaSatuan = round($hargaPerPaket / $selectedPaket->total_qty, 2);
+        $totalHargaPaket = $jumlahPaket * $hargaPerPaket;
+
+        return [
+            'jumlah_paket' => $jumlahPaket,
+            'harga_per_paket' => $hargaPerPaket,
+            'harga_satuan' => $hargaSatuan,
+            'total_harga_paket' => $totalHargaPaket
+        ];
     }
 }

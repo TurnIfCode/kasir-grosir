@@ -24,7 +24,7 @@ class Paket extends Model
 
     protected $casts = [
         'total_qty' => 'integer',
-        'harga' => 'integer',
+        'status' => 'string',
     ];
 
     public function details(): HasMany

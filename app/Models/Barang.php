@@ -19,6 +19,7 @@ class Barang extends Model
         'multi_satuan',
         'deskripsi',
         'status',
+        'jenis',
         'created_by',
         'updated_by'
     ];

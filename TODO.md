@@ -1,11 +1,14 @@
-# TODO: LAPORAN SALDO KAS
+# TODO: Fix Paket Pricing Logic in PenjualanService.php
 
 ## Tasks
-- [x] Buat LaporanKasSaldoController dengan method: index, data, getRingkasan, exportPDF
-- [x] Tambah routes di web.php dalam prefix laporan
-- [x] Buat view resources/views/laporan/kas-saldo.blade.php
-- [x] Buat view PDF resources/views/laporan/kas-saldo-pdf.blade.php
-- [x] Implementasi SQL query untuk logika laporan (sudah diimplementasi di controller)
-- [ ] Test query dan pastikan perhitungan akurat
-- [ ] Buat struktur output JSON
-- [ ] Buat versi Laravel Query Builder
+- [x] Modify paket selection in calculateSubtotalWithPaket to pick the lowest harga paket per total_qty group instead of highest.
+- [x] Change bestPaket selection to sort by ascending harga (lowest first) instead of descending.
+
+## Details
+- File: app/Services/PenjualanService.php
+- Method: calculateSubtotalWithPaket
+- Change: In groupedPakets, select $group->sortBy('harga')->first() instead of sortByDesc('harga')->first()
+- Change: In applicablePakets, select $applicablePakets->sortBy('harga')->first() instead of sortByDesc('harga')->first()
+
+## Followup
+- Test the logic with the example: selling Top Ice Wafer Keju, Cokelat, Strawberry each qty 1 (total qty 3) should use paket price.

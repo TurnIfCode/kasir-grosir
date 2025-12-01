@@ -312,23 +312,15 @@ class PenjualanController extends Controller
         try {
             $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
                 $q->where('barang_id', $barangId);
-            })->with(['details.barang', 'details'])->get();
+            })->with(['details.barang', 'details'])->where('status', 'aktif')->get();
 
             $data = $pakets->map(function($paket) {
-                // Calculate harga_per_unit from harga and total_qty
-                $hargaPerUnit = 0;
-                $hargaPer3 = 0;
-                if ($paket->total_qty > 0) {
-                    $hargaPerUnit = round($paket->harga / $paket->total_qty, 2);
-                    $hargaPer3 = $hargaPerUnit * 3; // price for 3 units (no discount logic applied here)
-                }
-
                 return [
                     'id' => $paket->id,
                     'kode_paket' => $paket->kode_paket ?? null,
                     'nama_paket' => $paket->nama_paket,
-                    'harga_per_3' => $hargaPer3,
-                    'harga_per_unit' => $hargaPerUnit,
+                    'total_qty' => $paket->total_qty,
+                    'harga' => $paket->harga,
                     'barang_ids' => $paket->details->pluck('barang_id')->toArray(),
                     'barang_nama' => $paket->details->pluck('barang.nama_barang')->toArray(),
                 ];
