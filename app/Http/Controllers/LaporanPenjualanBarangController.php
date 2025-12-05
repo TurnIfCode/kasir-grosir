@@ -30,14 +30,15 @@ class LaporanPenjualanBarangController extends Controller
                 'barang.kode_barang',
                 'barang.nama_barang',
                 'kategori.nama_kategori',
-                DB::raw('SUM(penjualan_detail.qty) as jumlah_terjual'),
-                DB::raw('SUM(penjualan_detail.subtotal) as total_nilai_penjualan'),
-                'barang.harga_beli',
-                'barang.harga_jual',
-                DB::raw('(SUM(penjualan_detail.subtotal) - (SUM(penjualan_detail.qty) * barang.harga_beli)) as margin_keuntungan')
+                DB::raw('SUM(penjualan_detail.qty_konversi) as jumlah_terjual'),
+                DB::raw('SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli) as total_modal'),
+                DB::raw('SUM(penjualan_detail.subtotal) as total_penjualan'),
+                DB::raw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_kotor'),
+                DB::raw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_bersih')
             ])
             ->where('penjualan.status', 'selesai')
-            ->groupBy('barang.id', 'barang.kode_barang', 'barang.nama_barang', 'kategori.nama_kategori', 'barang.harga_beli', 'barang.harga_jual');
+            ->groupBy('penjualan_detail.barang_id', 'barang.kode_barang', 'barang.nama_barang', 'kategori.nama_kategori')
+            ->orderBy('jumlah_terjual', 'desc');
 
         // Filter tanggal
         if ($request->filled('tanggal_dari')) {
@@ -52,36 +53,21 @@ class LaporanPenjualanBarangController extends Controller
             $query->where('barang.kategori_id', $request->kategori_id);
         }
 
-        // Urutan
-        $orderColumn = $request->get('order_column', 'jumlah_terjual');
-        $orderDirection = $request->get('order_direction', 'desc');
-
-        if ($orderColumn == 'jumlah_terjual') {
-            $query->orderBy('jumlah_terjual', $orderDirection);
-        } elseif ($orderColumn == 'margin_keuntungan') {
-            $query->orderBy('margin_keuntungan', $orderDirection);
-        } else {
-            $query->orderBy('jumlah_terjual', 'desc');
-        }
-
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('jumlah_terjual_formatted', function ($row) {
-                return number_format($row->jumlah_terjual, 2, ',', '.');
+                return number_format($row->jumlah_terjual, 0, ',', '.');
             })
-            ->addColumn('total_nilai_penjualan_formatted', function ($row) {
-                return 'Rp ' . number_format($row->total_nilai_penjualan, 0, ',', '.');
+            ->addColumn('total_modal_formatted', function ($row) {
+                return 'Rp ' . number_format($row->total_modal, 0, ',', '.');
             })
-            ->addColumn('harga_beli_formatted', function ($row) {
-                return 'Rp ' . number_format($row->harga_beli, 0, ',', '.');
+            ->addColumn('total_penjualan_formatted', function ($row) {
+                return 'Rp ' . number_format($row->total_penjualan, 0, ',', '.');
             })
-            ->addColumn('harga_jual_formatted', function ($row) {
-                return 'Rp ' . number_format($row->harga_jual, 0, ',', '.');
+            ->addColumn('laba_bersih_formatted', function ($row) {
+                return 'Rp ' . number_format($row->laba_bersih, 0, ',', '.');
             })
-            ->addColumn('margin_keuntungan_formatted', function ($row) {
-                return 'Rp ' . number_format($row->margin_keuntungan, 0, ',', '.');
-            })
-            ->rawColumns(['margin_keuntungan_formatted'])
+            ->rawColumns(['laba_kotor_formatted', 'laba_bersih_formatted'])
             ->make(true);
     }
 
@@ -104,17 +90,14 @@ class LaporanPenjualanBarangController extends Controller
             $query->where('barang.kategori_id', $request->kategori_id);
         }
 
-        $totalProdukTerjual = $query->sum('penjualan_detail.qty');
+        $totalProdukTerjual = $query->sum('penjualan_detail.qty_konversi');
         $totalNilaiPenjualan = $query->sum('penjualan_detail.subtotal');
-        $totalLabaKotor = $query->selectRaw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty * barang.harga_beli)) as laba_kotor')->first()->laba_kotor ?? 0;
-
-        $rataRataMargin = $totalNilaiPenjualan > 0 ? ($totalLabaKotor / $totalNilaiPenjualan) * 100 : 0;
+        $totalLabaBersih = $query->selectRaw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_bersih')->first()->laba_bersih ?? 0;
 
         return response()->json([
-            'total_produk_terjual' => number_format($totalProdukTerjual, 2),
+            'total_produk_terjual' => number_format($totalProdukTerjual, 0),
             'total_nilai_penjualan' => 'Rp ' . number_format($totalNilaiPenjualan, 0, ',', '.'),
-            'total_laba_kotor' => 'Rp ' . number_format($totalLabaKotor, 0, ',', '.'),
-            'rata_rata_margin' => number_format($rataRataMargin, 2) . '%'
+            'total_laba_bersih' => 'Rp ' . number_format($totalLabaBersih, 0, ',', '.')
         ]);
     }
 
@@ -125,7 +108,7 @@ class LaporanPenjualanBarangController extends Controller
             ->join('barang', 'penjualan_detail.barang_id', '=', 'barang.id')
             ->select([
                 'barang.nama_barang',
-                DB::raw('SUM(penjualan_detail.qty) as jumlah_terjual'),
+                DB::raw('SUM(penjualan_detail.qty_konversi) as jumlah_terjual'),
                 DB::raw('SUM(penjualan_detail.subtotal) as total_nilai')
             ])
             ->where('penjualan.status', 'selesai')
@@ -165,11 +148,11 @@ class LaporanPenjualanBarangController extends Controller
                 'barang.kode_barang',
                 'barang.nama_barang',
                 'kategori.nama_kategori',
-                DB::raw('SUM(penjualan_detail.qty) as jumlah_terjual'),
+                DB::raw('ROUND(SUM(penjualan_detail.qty_konversi)) as jumlah_terjual'),
                 DB::raw('SUM(penjualan_detail.subtotal) as total_nilai_penjualan'),
                 'barang.harga_beli',
                 'barang.harga_jual',
-                DB::raw('(SUM(penjualan_detail.subtotal) - (SUM(penjualan_detail.qty) * barang.harga_beli)) as margin_keuntungan')
+                DB::raw('(SUM(penjualan_detail.subtotal) - (ROUND(SUM(penjualan_detail.qty_konversi)) * barang.harga_beli)) as margin_keuntungan')
             ])
             ->where('penjualan.status', 'selesai')
             ->groupBy('barang.id', 'barang.kode_barang', 'barang.nama_barang', 'kategori.nama_kategori', 'barang.harga_beli', 'barang.harga_jual');

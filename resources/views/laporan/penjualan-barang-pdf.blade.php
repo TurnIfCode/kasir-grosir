@@ -75,7 +75,7 @@
                 <td>{{ $item->kode_barang }}</td>
                 <td>{{ $item->nama_barang }}</td>
                 <td>{{ $item->nama_kategori ?? '-' }}</td>
-                <td class="text-right">{{ number_format($item->jumlah_terjual, 2, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($item->jumlah_terjual, 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($item->total_nilai_penjualan, 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($item->harga_beli, 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($item->harga_jual, 0, ',', '.') }}</td>

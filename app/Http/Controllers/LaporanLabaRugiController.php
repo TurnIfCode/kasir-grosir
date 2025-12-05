@@ -21,10 +21,9 @@ class LaporanLabaRugiController extends Controller
         $tanggalSampai = $request->tanggal_sampai;
 
         $query = DB::table('penjualan')
-            ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
             ->selectRaw('
                 DATE(penjualan.tanggal_penjualan) as tanggal,
-                SUM(penjualan_detail.subtotal) as total_penjualan,
+                SUM(penjualan.grand_total) as total_penjualan,
                 SUM(penjualan.ppn) as ppn_penjualan,
                 SUM(penjualan.diskon) as diskon_penjualan
             ')
@@ -109,7 +108,7 @@ class LaporanLabaRugiController extends Controller
             $pembelian = $pembelianData->get($item->tanggal);
             $item->total_pembelian = $pembelian ? $pembelian->total_pembelian : 0;
             $item->ppn_pembelian = $pembelian ? $pembelian->ppn_pembelian : 0;
-            $item->laba_kotor = $item->total_penjualan - $item->total_pembelian;
+            $item->laba_kotor = $item->total_penjualan;
             $item->laba_bersih = $item->laba_kotor - $item->ppn_pembelian + $item->ppn_penjualan;
             return $item;
         });
@@ -142,10 +141,9 @@ class LaporanLabaRugiController extends Controller
 
         // Reuse the data logic
         $query = DB::table('penjualan')
-            ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
             ->selectRaw('
                 DATE(penjualan.tanggal_penjualan) as tanggal,
-                SUM(penjualan_detail.subtotal) as total_penjualan,
+                SUM(penjualan.grand_total) as total_penjualan,
                 SUM(penjualan.ppn) as ppn_penjualan,
                 SUM(penjualan.diskon) as diskon_penjualan
             ')
@@ -190,8 +188,8 @@ class LaporanLabaRugiController extends Controller
                 'total_pembelian' => $pembelian ? $pembelian->total_pembelian : 0,
                 'ppn_penjualan' => $penjualan ? $penjualan->ppn_penjualan : 0,
                 'ppn_pembelian' => $pembelian ? $pembelian->ppn_pembelian : 0,
-                'laba_kotor' => ($penjualan ? $penjualan->total_penjualan : 0) - ($pembelian ? $pembelian->total_pembelian : 0),
-                'laba_bersih' => (($penjualan ? $penjualan->total_penjualan : 0) - ($pembelian ? $pembelian->total_pembelian : 0)) - ($pembelian ? $pembelian->ppn_pembelian : 0) + ($penjualan ? $penjualan->ppn_penjualan : 0),
+                'laba_kotor' => ($penjualan ? $penjualan->total_penjualan : 0),
+                'laba_bersih' => (($penjualan ? $penjualan->total_penjualan : 0)) - ($pembelian ? $pembelian->ppn_pembelian : 0) + ($penjualan ? $penjualan->ppn_penjualan : 0),
             ];
         });
 

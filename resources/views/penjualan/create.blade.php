@@ -1,3 +1,5 @@
+@section('title', 'Penjualan')
+
 @include('layout.header')
 
 <div class="container-fluid py-2 py-md-4">
@@ -190,7 +192,7 @@
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
                                 <input type="text" class="form-control fw-bold fs-3 text-primary" id="paymentGrandTotal" value="0" readonly>
-                                <input type="hidden" id="grandTotalValue" name="grand_total">
+                                <input type="hidden" id="paymentGrandTotalValue" name="grand_total">
                             </div>
                         </div>
                     </div>

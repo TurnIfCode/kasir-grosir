@@ -11,7 +11,8 @@ class Log extends Model
 
     protected $fillable = [
         'keterangan',
-        'created_by'
+        'created_by',
+        'created_at'
     ];
 
     public function user()

@@ -15,7 +15,9 @@ class PenjualanDetail extends Model
         'barang_id',
         'satuan_id',
         'qty',
+        'qty_konversi',
         'harga_jual',
+        'harga_beli',
         'subtotal',
         'keterangan',
         'created_by',
@@ -24,7 +26,9 @@ class PenjualanDetail extends Model
 
     protected $casts = [
         'qty' => 'decimal:2',
+        'qty_konversi' => 'decimal:2',
         'harga_jual' => 'decimal:2',
+        'harga_beli' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s'

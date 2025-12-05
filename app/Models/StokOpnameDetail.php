@@ -12,6 +12,7 @@ class StokOpnameDetail extends Model
     protected $fillable = [
         'stok_opname_id',
         'barang_id',
+        'satuan_id',
         'stok_sistem',
         'stok_fisik',
         'selisih',
@@ -32,5 +33,10 @@ class StokOpnameDetail extends Model
     public function barang(): BelongsTo
     {
         return $this->belongsTo(Barang::class, 'barang_id');
+    }
+
+    public function satuan(): BelongsTo
+    {
+        return $this->belongsTo(Satuan::class, 'satuan_id');
     }
 }

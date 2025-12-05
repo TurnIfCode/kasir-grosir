@@ -6,6 +6,10 @@
     <title>Laporan Penjualan per Barang</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -35,16 +39,8 @@
             <div class="col-md-3">
                 <div class="card text-white bg-warning">
                     <div class="card-body">
-                        <h5 class="card-title">Total Laba Kotor</h5>
-                        <h3 id="totalLabaKotor">Rp 0</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-white bg-info">
-                    <div class="card-body">
-                        <h5 class="card-title">Rata-rata Margin</h5>
-                        <h3 id="rataRataMargin">0%</h3>
+                        <h5 class="card-title">Total Laba Bersih</h5>
+                        <h3 id="totalLabaBersih">Rp 0</h3>
                     </div>
                 </div>
             </div>
@@ -81,7 +77,7 @@
                     <div class="col-12">
                         <button type="button" class="btn btn-primary" id="btnFilter">Filter</button>
                         <button type="button" class="btn btn-secondary" id="btnReset">Reset</button>
-                        <button type="button" class="btn btn-success" id="btnExportPDF">Export PDF</button>
+                        <!-- <button type="button" class="btn btn-success" id="btnExportPDF">Export PDF</button> -->
                         <button type="button" class="btn btn-success" id="btnExportExcel">Export Excel</button>
                     </div>
                 </form>
@@ -107,13 +103,15 @@
                             <th>Nama Barang</th>
                             <th>Kategori</th>
                             <th>Jumlah Terjual</th>
-                            <th>Total Nilai Penjualan</th>
-                            <th>Harga Beli</th>
-                            <th>Harga Jual</th>
-                            <th>Margin Keuntungan</th>
+                            <th>Total Modal (HPP)</th>
+                            <th>Total Penjualan</th>
+                            <th>Laba Bersih</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <tr>
+                            <td colspan="8" class="text-center">Memuat data...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -121,11 +119,6 @@
     </div>
 
     @include('layout.footer')
-
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -148,10 +141,9 @@
                     { data: 'nama_barang' },
                     { data: 'nama_kategori' },
                     { data: 'jumlah_terjual_formatted' },
-                    { data: 'total_nilai_penjualan_formatted' },
-                    { data: 'harga_beli_formatted' },
-                    { data: 'harga_jual_formatted' },
-                    { data: 'margin_keuntungan_formatted' }
+                    { data: 'total_modal_formatted' },
+                    { data: 'total_penjualan_formatted' },
+                    { data: 'laba_bersih_formatted' }
                 ],
                 language: {
                     emptyTable: "Tidak ada data penjualan pada periode ini."
@@ -208,8 +200,7 @@
                     .done(function(data) {
                         $('#totalProdukTerjual').text(data.total_produk_terjual);
                         $('#totalNilaiPenjualan').text(data.total_nilai_penjualan);
-                        $('#totalLabaKotor').text(data.total_laba_kotor);
-                        $('#rataRataMargin').text(data.rata_rata_margin);
+                        $('#totalLabaBersih').text(data.total_laba_bersih);
                     });
             }
 

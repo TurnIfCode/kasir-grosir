@@ -500,6 +500,7 @@ function updateTotals(data) {
     $('#grandSubtotal').val(subtotal.toLocaleString('id-ID'));
     $('#grandPembulatan').val(pembulatan.toLocaleString('id-ID'));
     $('#paymentGrandTotal').val(grandTotal.toLocaleString('id-ID'));
+    $('#paymentGrandTotalValue').val(grandTotal);
 
     calculateKembalian();
 }
@@ -529,7 +530,7 @@ function togglePaymentFields() {
 function calculateKembalian() {
     const jenis = $('#jenis_pembayaran').val();
     if (jenis === 'tunai') {
-        const grandTotal = parseFloat($('#grandTotalValue').val()) || 0;
+        const grandTotal = parseFloat($('#paymentGrandTotalValue').val()) || 0;
         const dibayar = parseFloat($('#dibayar').val()) || 0;
         const kembalian = dibayar - grandTotal;
         $('#kembalian').val(Math.max(0, kembalian).toLocaleString('id-ID'));
@@ -700,7 +701,10 @@ function submitForm(printAfterSave = false) {
                     timer: 2000
                 }).then(function() {
                     if (printAfterSave) {
-                        window.location.href = '/penjualan/' + response.data.id + '/print';
+                        // Open print page in new tab
+                        window.open('/penjualan/' + response.data.id + '/print', '_blank');
+                        // Reload the current create page
+                        window.location.reload();
                     } else {
                         window.location.href = '/penjualan/' + response.data.id;
                     }

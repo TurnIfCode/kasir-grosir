@@ -62,7 +62,7 @@ class LaporanPenjualanHarianController extends Controller
                 return 1; // Setiap row adalah 1 transaksi
             })
             ->addColumn('total_barang', function ($row) {
-                return $row->details->sum('qty');
+                return $row->details->sum('qty_konversi');
             })
             ->addColumn('total_omzet', function ($row) {
                 return $row->total;
@@ -71,7 +71,7 @@ class LaporanPenjualanHarianController extends Controller
                 return $row->diskon;
             })
             ->addColumn('total_barang_formatted', function ($row) {
-                return number_format($row->details->sum('qty'), 2, ',', '.');
+                return number_format($row->details->sum('qty_konversi'), 0, ',', '.');
             })
             ->addColumn('total_omzet_formatted', function ($row) {
                 return 'Rp ' . number_format($row->total, 0, ',', '.');
@@ -110,14 +110,14 @@ class LaporanPenjualanHarianController extends Controller
         $totalTransaksi = $query->count();
         $totalOmzet = $query->sum('total');
         $totalBarangTerjual = $query->with('details')->get()->sum(function($penjualan) {
-            return $penjualan->details->sum('qty');
+            return $penjualan->details->sum('qty_konversi');
         });
         $totalDiskon = $query->sum('diskon');
 
         return response()->json([
             'total_transaksi' => $totalTransaksi,
             'total_omzet' => 'Rp ' . number_format($totalOmzet, 0, ',', '.'),
-            'total_barang_terjual' => number_format($totalBarangTerjual, 2, ',', '.'),
+            'total_barang_terjual' => number_format($totalBarangTerjual, 0, ',', '.'),
             'total_diskon' => 'Rp ' . number_format($totalDiskon, 0, ',', '.'),
         ]);
     }
@@ -218,7 +218,7 @@ class LaporanPenjualanHarianController extends Controller
         $totalTransaksi = $ringkasanQuery->count();
         $totalOmzet = $ringkasanQuery->sum('total');
         $totalBarangTerjual = $ringkasanQuery->with('details')->get()->sum(function($penjualan) {
-            return $penjualan->details->sum('qty');
+            return $penjualan->details->sum('qty_konversi');
         });
         $totalDiskon = $ringkasanQuery->sum('diskon');
 

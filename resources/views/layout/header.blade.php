@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Dashboard - GrosirIndo</title>
+  <title>@yield('title', 'GrosirIndo')</title>
   <link rel="icon" href="{{ asset('assets/icon/icon.ico') }}">
 
   <!-- Bootstrap CSS -->
@@ -439,7 +439,7 @@
             </a>
             <ul class="collapse nav flex-column ms-3" id="menuLaporanPenjualan" data-bs-parent="#menuLaporan">
               <li><a class="nav-link" href="{{ route('laporan.penjualan') }}">Laporan Penjualan</a></li>
-              <li><a class="nav-link" href="{{ route('laporan.penjualan-harian') }}">Laporan Penjualan Harian / Periodik</a></li>
+              <!-- <li><a class="nav-link" href="{{ route('laporan.penjualan-harian') }}">Laporan Penjualan Harian / Periodik</a></li> -->
               <li><a class="nav-link" href="{{ route('laporan.penjualan-barang') }}">Laporan Penjualan per Barang</a></li>            </ul>
           </li>
           <!-- Dropdown: Pembelian -->
@@ -586,6 +586,28 @@
         $('a[href="#menuTransaksi"]').addClass('active');
         $('#menuTransfer').addClass('show');
         $('a[href="#menuTransfer"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/laporan/penjualan')) {
+        $('#menuLaporan').addClass('show');
+        $('a[href="#menuLaporan"]').addClass('active');
+        $('#menuLaporanPenjualan').addClass('show');
+        $('a[href="#menuLaporanPenjualan"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/laporan/pembelian')) {
+        $('#menuLaporan').addClass('show');
+        $('a[href="#menuLaporan"]').addClass('active');
+        $('#menuLaporanPembelian').addClass('show');
+        $('a[href="#menuLaporanPembelian"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname.startsWith('/laporan')) {
+        $('#menuLaporan').addClass('show');
+        $('a[href="#menuLaporan"]').addClass('active');
+        $('a[href="' + pathname + '"]').addClass('active');
+      } else if (pathname === '/penjualan-barang') {
+        $('#menuLaporan').addClass('show');
+        $('a[href="#menuLaporan"]').addClass('active');
+        $('#menuLaporanPenjualan').addClass('show');
+        $('a[href="#menuLaporanPenjualan"]').addClass('active');
         $('a[href="' + pathname + '"]').addClass('active');
       }
 

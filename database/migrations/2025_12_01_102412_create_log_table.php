@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('log', function (Blueprint $table) {
-            $table->id();
-            $table->text('keterangan');
-            $table->unsignedBigInteger('created_by');
-            $table->timestamps();
+        if (!Schema::hasTable('log')) {
+            Schema::create('log', function (Blueprint $table) {
+                $table->id();
+                $table->text('keterangan');
+                $table->unsignedBigInteger('created_by');
+                $table->timestamps();
 
-            $table->foreign('created_by')->references('id')->on('users');
-        });
+                $table->foreign('created_by')->references('id')->on('users');
+            });
+        }
     }
 
     /**

@@ -61,12 +61,26 @@ class PenjualanService
             foreach ($details as $detail) {
                 $subtotalDetail = $detail['qty'] * $detail['harga_jual'];
 
+                // Get harga_beli from barang table
+                $barang = \App\Models\Barang::find($detail['barang_id']);
+                $hargaBeli = $barang ? $barang->harga_beli : 0;
+
+                // Calculate qty_konversi
+                $konversi = \App\Models\KonversiSatuan::where('barang_id', $detail['barang_id'])
+                    ->where('satuan_konversi_id', $detail['satuan_id'])
+                    ->where('status', 'aktif')
+                    ->first();
+
+                $qtyKonversi = $konversi ? $detail['qty'] * $konversi->nilai_konversi : $detail['qty'];
+
                 PenjualanDetail::create([
                     'penjualan_id' => $penjualan->id,
                     'barang_id' => $detail['barang_id'],
                     'satuan_id' => $detail['satuan_id'],
                     'qty' => $detail['qty'],
+                    'qty_konversi' => $qtyKonversi,
                     'harga_jual' => $detail['harga_jual'],
+                    'harga_beli' => $hargaBeli,
                     'subtotal' => $subtotalDetail,
                     'created_by' => auth()->id(),
                     'updated_by' => auth()->id()

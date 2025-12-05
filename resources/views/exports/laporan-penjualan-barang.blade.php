@@ -6,10 +6,9 @@
             <th>Nama Barang</th>
             <th>Kategori</th>
             <th>Jumlah Terjual</th>
-            <th>Total Nilai Penjualan</th>
-            <th>Harga Beli</th>
-            <th>Harga Jual</th>
-            <th>Margin Keuntungan</th>
+            <th>Total Modal (HPP)</th>
+            <th>Total Penjualan</th>
+            <th>Laba Bersih</th>
         </tr>
     </thead>
     <tbody>
@@ -20,10 +19,9 @@
             <td>{{ $item->nama_barang }}</td>
             <td>{{ $item->nama_kategori ?? '-' }}</td>
             <td>{{ number_format($item->jumlah_terjual, 2, ',', '.') }}</td>
-            <td>Rp {{ number_format($item->total_nilai_penjualan, 0, ',', '.') }}</td>
-            <td>Rp {{ number_format($item->harga_beli, 0, ',', '.') }}</td>
-            <td>Rp {{ number_format($item->harga_jual, 0, ',', '.') }}</td>
-            <td>Rp {{ number_format($item->margin_keuntungan, 0, ',', '.') }}</td>
+            <td>Rp {{ number_format($item->total_modal, 0, ',', '.') }}</td>
+            <td>Rp {{ number_format($item->total_penjualan, 0, ',', '.') }}</td>
+            <td>Rp {{ number_format($item->laba_bersih, 0, ',', '.') }}</td>
         </tr>
         @endforeach
     </tbody>

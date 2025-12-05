@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('paket_detail', function (Blueprint $table) {
+        if (!Schema::hasTable('paket_detail')) {
+            Schema::create('paket_detail', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('paket_id');
-            $table->unsignedInteger('barang_id');
+            $table->unsignedBigInteger('paket_id');
+            $table->unsignedBigInteger('barang_id');
 
             // audit fields
-            $table->unsignedInteger('created_by')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamp('created_at')->default(DB::raw('CURRENT_TIMESTAMP'));
-            $table->unsignedInteger('updated_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamp('updated_at')->nullable()->default(null)->useCurrentOnUpdate();
 
             $table->foreign('paket_id')->references('id')->on('paket')->onDelete('cascade');
             $table->foreign('barang_id')->references('id')->on('barang');
             $table->foreign('created_by')->references('id')->on('users');
             $table->foreign('updated_by')->references('id')->on('users');
-        });
+            });
+        }
     }
 
     /**
