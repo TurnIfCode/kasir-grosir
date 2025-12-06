@@ -61,7 +61,7 @@ class BarangController extends Controller
                     'harga_beli' => 'Rp ' . number_format($barang->harga_beli, 0, ',', '.'),
                     'harga_jual' => 'Rp ' . number_format($barang->harga_jual, 0, ',', '.'),
                     'deskripsi' => $barang->deskripsi ?: '-',
-                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $barang->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $barang->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" id="btnTambahBarcode" data-id="' . $barang->id . '" class="btn btn-sm btn-success"><i class="fas fa-barcode"></i></a> <a href="#" id="btnStokMinimum" data-id="' . $barang->id . '" class="btn btn-sm btn-secondary"><i class="fas fa-exclamation-triangle"></i></a> <a href="#" data-id="' . $barang->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $barang->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $barang->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" id="btnTambahBarcode" data-id="' . $barang->id . '" class="btn btn-sm btn-success"><i class="fas fa-barcode"></i></a> <a href="#" id="btnStokMinimum" data-id="' . $barang->id . '" class="btn btn-sm btn-secondary"><i class="fas fa-exclamation-triangle"></i></a>' . (auth()->user()->role == 'ADMIN' ? ' <a href="#" data-id="' . $barang->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>' : '')
                 ];
             }
 

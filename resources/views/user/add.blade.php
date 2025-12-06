@@ -22,6 +22,7 @@
           <option value="ADMIN">ADMIN</option>
           <option value="KASIR">KASIR</option>
           <option value="GUDANG">GUDANG</option>
+          <option value="KASIR_KHUSUS">KHUSUS</option>
         </select>
       </div>
       <div class="mb-3">

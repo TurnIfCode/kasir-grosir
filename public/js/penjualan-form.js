@@ -398,21 +398,19 @@ function updateRowDisplay(index) {
     let subtotalText = '';
     let keteranganText = '';
 
-    if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok' && tipeHarga === 'grosir' && satuanId == 2) {
-        // Logic for ROKOK category
+    if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal' && tipeHarga === 'grosir') {
+        // Logic for LEGAL jenis with grosir tipe_harga
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const baseSubtotal = qty * hargaJual;
         let surcharge = 0;
 
-        if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal') {
-            if (qty >= 1 && qty <= 4) {
-                surcharge = 500;
-            } else if (qty >= 5) {
-                surcharge = 1000;
-            }
+        if (qty >= 1 && qty <= 4) {
+            surcharge = 500;
+        } else if (qty >= 5) {
+            surcharge = 1000;
         }
 
-        keteranganText = 'Rokok Grosir';
+        keteranganText = 'Rokok Legal Grosir';
 
         if (surcharge > 0) {
             const total = baseSubtotal + surcharge;

@@ -58,7 +58,7 @@ class SupplierController extends Controller
                     'kota' => $supplier->kota ?: '-',
                     'provinsi' => $supplier->provinsi ?: '-',
                     'status' => $supplier->status,
-                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $supplier->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $supplier->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $supplier->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $supplier->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $supplier->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>' . (auth()->user()->role == 'ADMIN' ? ' <a href="#" data-id="' . $supplier->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>' : '')
                 ];
             }
 

@@ -59,11 +59,11 @@ class PenjualanService
 
             // Create details and update stock
             foreach ($details as $detail) {
-                $subtotalDetail = $detail['qty'] * $detail['harga_jual'];
-
                 // Get harga_beli from barang table
                 $barang = \App\Models\Barang::find($detail['barang_id']);
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
+
+                $subtotalDetail = $this->calculateNormalPrice($detail);
 
                 // Calculate qty_konversi
                 $konversi = \App\Models\KonversiSatuan::where('barang_id', $detail['barang_id'])
@@ -212,16 +212,21 @@ class PenjualanService
         $harga = $detail['harga_jual'];
         $tipeHarga = $detail['tipe_harga'];
 
+        $subtotal = $harga * $qty;
+
+        // Add surcharge for 'legal' jenis only if tipe_harga is 'grosir' and satuan is 'bungkus' (satuan_id == 2)
         $barang = \App\Models\Barang::find($barangId);
-        if ($barang && $barang->kategori_id == 1 && $barang->jenis === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
-            if ($qty <= 4) {
-                return ($harga * $qty) + 500;
-            } elseif ($qty >= 5) {
-                return ($harga * $qty) + 1000;
+        if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
+            $surcharge = 0;
+            if ($qty >= 1 && $qty <= 4) {
+                $surcharge = 500;
+            } else if ($qty >= 5) {
+                $surcharge = 1000;
             }
+            $subtotal += $surcharge;
         }
 
-        return $harga * $qty;
+        return $subtotal;
     }
 
     /**

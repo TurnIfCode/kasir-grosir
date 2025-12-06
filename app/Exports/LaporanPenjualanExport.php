@@ -59,7 +59,7 @@ class LaporanPenjualanExport implements FromView
             $query->where('pelanggan_id', $this->request->pelanggan_id);
         }
         if ($this->request->filled('status') && $this->request->status != 'all') {
-            $query->where('status', $this->request->status);
+            $query->where('penjualan.status', $this->request->status);
         }
         if ($this->request->filled('metode_pembayaran') && $this->request->metode_pembayaran != 'all') {
             if ($this->request->metode_pembayaran == 'tunai') {

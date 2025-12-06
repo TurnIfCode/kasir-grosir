@@ -52,7 +52,7 @@ class HargaBarangController extends Controller
                     'tipe_harga' => $h->tipe_harga,
                     'harga' => 'Rp ' . number_format($h->harga, 0, ',', '.'),
                     'status' => $h->status,
-                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $h->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $h->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $h->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $h->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $h->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>' . (auth()->user()->role == 'ADMIN' ? ' <a href="#" data-id="' . $h->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>' : '')
                 ];
             }
 

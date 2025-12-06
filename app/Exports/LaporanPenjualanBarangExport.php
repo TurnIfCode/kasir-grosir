@@ -27,11 +27,11 @@ class LaporanPenjualanBarangExport implements FromView
                 'barang.kode_barang',
                 'barang.nama_barang',
                 'kategori.nama_kategori',
-                DB::raw('SUM(penjualan_detail.qty_konversi) as jumlah_terjual'),
-                DB::raw('SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli) as total_modal'),
-                DB::raw('SUM(penjualan_detail.subtotal) as total_penjualan'),
-                DB::raw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_kotor'),
-                DB::raw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_bersih')
+                DB::raw('ROUND(SUM(penjualan_detail.qty_konversi)) as jumlah_terjual'),
+                DB::raw('ROUND(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as total_modal'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal)) as total_penjualan'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_kotor'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_bersih')
             ])
             ->where('penjualan.status', 'selesai')
             ->groupBy(['penjualan_detail.barang_id', 'barang.kode_barang', 'barang.nama_barang', 'kategori.nama_kategori']);

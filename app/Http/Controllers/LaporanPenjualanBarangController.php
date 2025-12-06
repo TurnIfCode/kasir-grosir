@@ -30,11 +30,11 @@ class LaporanPenjualanBarangController extends Controller
                 'barang.kode_barang',
                 'barang.nama_barang',
                 'kategori.nama_kategori',
-                DB::raw('SUM(penjualan_detail.qty_konversi) as jumlah_terjual'),
-                DB::raw('SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli) as total_modal'),
-                DB::raw('SUM(penjualan_detail.subtotal) as total_penjualan'),
-                DB::raw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_kotor'),
-                DB::raw('(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_bersih')
+                DB::raw('ROUND(SUM(penjualan_detail.qty_konversi)) as jumlah_terjual'),
+                DB::raw('ROUND(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as total_modal'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal)) as total_penjualan'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_kotor'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal) - SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli)) as laba_bersih')
             ])
             ->where('penjualan.status', 'selesai')
             ->groupBy('penjualan_detail.barang_id', 'barang.kode_barang', 'barang.nama_barang', 'kategori.nama_kategori')
@@ -51,6 +51,16 @@ class LaporanPenjualanBarangController extends Controller
         // Filter kategori
         if ($request->filled('kategori_id') && $request->kategori_id != 'all') {
             $query->where('barang.kategori_id', $request->kategori_id);
+        }
+
+        // Handle global search
+        if ($request->has('search') && !empty($request->search['value'])) {
+            $search = strtolower($request->search['value']);
+            $query->havingRaw("LOWER(barang.kode_barang) LIKE ? OR LOWER(barang.nama_barang) LIKE ? OR LOWER(kategori.nama_kategori) LIKE ?", [
+                "%{$search}%",
+                "%{$search}%",
+                "%{$search}%"
+            ]);
         }
 
         return DataTables::of($query)
@@ -149,10 +159,10 @@ class LaporanPenjualanBarangController extends Controller
                 'barang.nama_barang',
                 'kategori.nama_kategori',
                 DB::raw('ROUND(SUM(penjualan_detail.qty_konversi)) as jumlah_terjual'),
-                DB::raw('SUM(penjualan_detail.subtotal) as total_nilai_penjualan'),
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal)) as total_nilai_penjualan'),
                 'barang.harga_beli',
                 'barang.harga_jual',
-                DB::raw('(SUM(penjualan_detail.subtotal) - (ROUND(SUM(penjualan_detail.qty_konversi)) * barang.harga_beli)) as margin_keuntungan')
+                DB::raw('ROUND(SUM(penjualan_detail.subtotal) - (ROUND(SUM(penjualan_detail.qty_konversi)) * barang.harga_beli)) as margin_keuntungan')
             ])
             ->where('penjualan.status', 'selesai')
             ->groupBy('barang.id', 'barang.kode_barang', 'barang.nama_barang', 'kategori.nama_kategori', 'barang.harga_beli', 'barang.harga_jual');

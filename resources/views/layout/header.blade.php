@@ -360,7 +360,100 @@
       </li>
       @endif
 
-      @if(auth()->user()->role == 'ADMIN' || auth()->user()->role == 'KASIR')
+      @if(auth()->user()->role == 'KASIR_KHUSUS')
+      <!-- Dropdown: Master Data -->
+      <li class="nav-item">
+        <a href="#menuMasterData" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuMasterData" role="button" aria-expanded="false">
+          <i class="fa fa-database me-2"></i> Master Data
+        </a>
+        <ul class="collapse nav flex-column ms-3" id="menuMasterData" data-bs-parent="#sidebarMenu">
+
+          <!-- Kategori -->
+          <li class="nav-item">
+            <a href="#menuKategori" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuKategori" role="button" aria-expanded="false">
+              Kategori
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuKategori" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('kategori.add') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('kategori.data') }}">Data</a></li>
+            </ul>
+          </li>
+          <!-- Satuan -->
+          <li class="nav-item">
+            <a href="#menuSatuan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuSatuan" role="button" aria-expanded="false">
+              Satuan
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuSatuan" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('satuan.add') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('satuan.data') }}">Data</a></li>
+            </ul>
+          </li>
+          <!-- Barang -->
+          <li class="nav-item">
+            <a href="#menuBarang" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuBarang" role="button" aria-expanded="false">
+              Barang
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuBarang" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('barang.add') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('barang.data') }}">Data</a></li>
+            </ul>
+          </li>
+          <!-- Konversi Satuan -->
+          <li class="nav-item">
+            <a href="#menuKonversiSatuan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuKonversiSatuan" role="button" aria-expanded="false">
+              Konversi Satuan
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuKonversiSatuan" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('konversi-satuan.add') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('konversi-satuan.data') }}">Data</a></li>
+            </ul>
+          </li>
+          <!-- Harga Barang -->
+          <li class="nav-item">
+            <a href="#menuHargaBarang" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuHargaBarang" role="button" aria-expanded="false">
+              Harga Barang
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuHargaBarang" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('harga-barang.create') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('harga-barang.index') }}">Data</a></li>
+            </ul>
+          </li>
+          <!-- Paket -->
+          <li class="nav-item">
+            <a href="#menuPaket" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPaket" role="button" aria-expanded="false">
+              Paket
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuPaket" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('master.paket.create') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('master.paket.index') }}">Data</a></li>
+            </ul>
+          </li>
+          <!-- Jenis Barang -->
+          <li class="nav-item">
+            <a href="#menuJenisBarang" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuJenisBarang" role="button" aria-expanded="false">
+              Jenis Barang
+            </a>
+            <ul class="collapse nav flex-column ms-3" id="menuJenisBarang" data-bs-parent="#menuMasterData">
+              <li><a class="nav-link" href="{{ route('jenis_barang.add') }}">Tambah</a></li>
+              <li><a class="nav-link" href="{{ route('jenis_barang.data') }}">Data</a></li>
+            </ul>
+          </li>
+
+        </ul>
+      </li>
+          <!-- Pelanggan -->
+          <li class="nav-item">
+            <a href="#menuPelanggan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPelanggan" role="button" aria-expanded="false">
+              <i class="fas fa-users"></i> Pelanggan
+            </a>
+        <ul class="collapse nav flex-column ms-3" id="menuPelanggan" data-bs-parent="#menuMasterData">
+          <li><a class="nav-link" href="{{ route('pelanggan.add') }}">Tambah</a></li>
+          <li><a class="nav-link" href="{{ route('pelanggan.index') }}">Data</a></li>
+        </ul>
+      </li>
+      @endif
+
+      @if(auth()->user()->role == 'ADMIN' || auth()->user()->role == 'KASIR' || auth()->user()->role == 'KASIR_KHUSUS')
           <!-- Penjualan -->
           <li class="nav-item">
             <a href="#menuPenjualan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPenjualan" role="button" aria-expanded="false">
@@ -394,7 +487,7 @@
       </li>
       @endif
 
-      @if(auth()->user()->role == 'ADMIN' || auth()->user()->role == 'GUDANG')
+      @if(auth()->user()->role == 'ADMIN' || auth()->user()->role == 'GUDANG' || auth()->user()->role == 'KASIR_KHUSUS')
       <!-- Stok Opname -->
       <li class="nav-item">
         <a class="nav-link" href="{{ route('stok-opname.index') }}">

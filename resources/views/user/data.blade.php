@@ -69,10 +69,10 @@
           <div class="mb-3">
             <label for="role" class="form-label">Role</label>
             <select class="form-control" id="role" name="role" required>
-              <option value="OWNER">OWNER</option>
               <option value="ADMIN">ADMIN</option>
               <option value="KASIR">KASIR</option>
               <option value="GUDANG">GUDANG</option>
+              <option value="KASIR_KHUSUS">KHUSUS</option>
             </select>
           </div>
           <div class="mb-3">

@@ -46,8 +46,8 @@ class LaporanPenjualanController extends Controller
                 'penjualan.updated_at',
                 'users.name as kasir_name',
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi), 0)) as jumlah_item'),
-                DB::raw('COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0) as total_hpp'),
-                DB::raw('(penjualan.total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
+                DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as total_hpp'),
+                DB::raw('ROUND(penjualan.grand_total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
             ])
             ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
             ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
@@ -63,7 +63,7 @@ class LaporanPenjualanController extends Controller
             $query->where('pelanggan_id', $request->pelanggan_id);
         }
         if ($request->filled('status') && $request->status != 'all') {
-            $query->where('status', $request->status);
+            $query->where('penjualan.status', $request->status);
         }
         if ($request->filled('metode_pembayaran') && $request->metode_pembayaran != 'all') {
             if ($request->metode_pembayaran == 'tunai') {
@@ -144,8 +144,8 @@ class LaporanPenjualanController extends Controller
                 'penjualan.updated_at',
                 'users.name as kasir_name',
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi), 0)) as jumlah_item'),
-                DB::raw('COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0) as total_hpp'),
-                DB::raw('(penjualan.total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
+                DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as total_hpp'),
+                DB::raw('ROUND(penjualan.grand_total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
             ])
             ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
             ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
@@ -161,7 +161,7 @@ class LaporanPenjualanController extends Controller
             $query->where('pelanggan_id', $request->pelanggan_id);
         }
         if ($request->filled('status') && $request->status != 'all') {
-            $query->where('status', $request->status);
+            $query->where('penjualan.status', $request->status);
         }
         if ($request->filled('metode_pembayaran') && $request->metode_pembayaran != 'all') {
             if ($request->metode_pembayaran == 'tunai') {

@@ -36,13 +36,14 @@ class SatuanController extends Controller
 
             $data = [];
             foreach ($satuans as $satuan) {
+                $deleteBtn = auth()->user()->role == 'ADMIN' ? ' <a data-id="' . $satuan->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>' : '';
                 $data[] = [
                     'id' => $satuan->id,
                     'kode_satuan' => $satuan->kode_satuan,
                     'nama_satuan' => $satuan->nama_satuan,
                     'deskripsi' => $satuan->deskripsi,
                     'status' => $satuan->status,
-                    'aksi' => '<a id="btnDetail" data-id="' . $satuan->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a id="btnEdit" data-id="' . $satuan->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a data-id="' . $satuan->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'aksi' => '<a id="btnDetail" data-id="' . $satuan->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a id="btnEdit" data-id="' . $satuan->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>' . $deleteBtn
                 ];
             }
 

@@ -31,13 +31,14 @@ class KategoriController extends Controller
 
             $data = [];
             foreach ($kategoris as $kategori) {
+                $deleteBtn = auth()->user()->role == 'ADMIN' ? ' <a href="#" data-id="' . $kategori->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>' : '';
                 $data[] = [
                     'id' => $kategori->id,
                     'kode_kategori' => $kategori->kode_kategori,
                     'nama_kategori' => $kategori->nama_kategori,
                     'deskripsi' => $kategori->deskripsi,
                     'status' => $kategori->status,
-                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $kategori->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $kategori->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $kategori->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
+                    'aksi' => '<a href="#" id="btnDetail" data-id="' . $kategori->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $kategori->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>' . $deleteBtn
                 ];
             }
 

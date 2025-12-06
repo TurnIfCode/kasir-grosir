@@ -137,13 +137,13 @@
                 },
                 columns: [
                     { data: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'kode_barang' },
-                    { data: 'nama_barang' },
-                    { data: 'nama_kategori' },
-                    { data: 'jumlah_terjual_formatted' },
-                    { data: 'total_modal_formatted' },
-                    { data: 'total_penjualan_formatted' },
-                    { data: 'laba_bersih_formatted' }
+                    { data: 'kode_barang', searchable: false },
+                    { data: 'nama_barang', searchable: false },
+                    { data: 'nama_kategori', searchable: false },
+                    { data: 'jumlah_terjual_formatted', searchable: false },
+                    { data: 'total_modal_formatted', searchable: false },
+                    { data: 'total_penjualan_formatted', searchable: false },
+                    { data: 'laba_bersih_formatted', searchable: false }
                 ],
                 language: {
                     emptyTable: "Tidak ada data penjualan pada periode ini."
