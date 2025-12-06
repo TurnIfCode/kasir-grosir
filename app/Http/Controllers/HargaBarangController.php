@@ -211,7 +211,7 @@ class HargaBarangController extends Controller
         return redirect()->route('harga-barang.index')->with('success', 'Harga barang berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $hargaBarang = HargaBarang::findOrFail($id);
         $namaBarang = $hargaBarang->barang->nama_barang;
@@ -226,7 +226,11 @@ class HargaBarangController extends Controller
         $newLog->created_at = now();
         $newLog->save();
 
-        return redirect()->route('harga-barang.index')->with('success', 'Harga barang berhasil dihapus');
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Harga barang berhasil dihapus']);
+        } else {
+            return redirect()->route('harga-barang.index')->with('success', 'Harga barang berhasil dihapus');
+        }
     }
 
     public function getHarga(Request $request)
