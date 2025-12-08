@@ -433,7 +433,11 @@ function updateRowDisplay(index) {
         }
     } else {
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-        const subtotal = qty * hargaJual;
+        let subtotal = qty * hargaJual;
+        if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'barang timbangan' && barangInfo.satuan_id == satuanId) {
+            const hasilDasar = qty * hargaJual;
+            subtotal = Math.ceil(hasilDasar / 1000) * 1000 + 1000;
+        }
         const roundedTotal = pembulatanSubtotal(subtotal);
         subtotalText = roundedTotal.toLocaleString('id-ID');
         keteranganText = barangInfo.kategori || '-';

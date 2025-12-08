@@ -359,6 +359,7 @@ class BarangController extends Controller
                 'kategori' => $barang->kategori ? $barang->kategori->nama_kategori : null,
                 'jenis' => $barang->jenis,
                 'harga' => round($barang->harga_jual, 0),
+                'satuan_id' => $barang->satuan_id,
                 'is_paket' => $isPaket,
                 'nama_paket' => $paketInfo ? $paketInfo['nama_paket'] : null,
                 'paket' => $paketInfo ? [$paketInfo] : []

@@ -30,7 +30,7 @@ class PenjualanService
             $details = $this->updateHargaJualForPaket($details);
 
             // Calculate totals with paket logic
-            $subtotal = round($this->calculateSubtotalWithPaket($details));
+            $subtotal = $this->calculateSubtotalWithPaket($details);
             $pembulatan = $this->calculatePembulatan($subtotal);
 
             $diskon = $header['diskon'] ?? 0;
@@ -54,16 +54,31 @@ class PenjualanService
                 'catatan' => $header['catatan'] ?? null,
                 'status' => 'selesai',
                 'created_by' => auth()->id(),
+                'created_at' => now(),
                 'updated_by' => auth()->id()
             ]);
+
+            $subtotalDtl = 0;
 
             // Create details and update stock
             foreach ($details as $detail) {
                 // Get harga_beli from barang table
-                $barang = \App\Models\Barang::find($detail['barang_id']);
+                $barang = \App\Models\Barang::with('kategori')->find($detail['barang_id']);
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
+                
 
-                $subtotalDetail = $this->calculateNormalPrice($detail);
+                if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'barang timbangan' && $barang->satuan_id == $detail['satuan_id']) {
+                    $hasilDasar = $detail['qty'] * $detail['harga_jual']; 
+                    $subtotalDetail = ceil($hasilDasar / 1000) * 1000; // ROUNDUP ke 1000-an
+                    $subtotalDetail += 1000; // tambah 1000 sesuai rumus Excel
+                    // $subtotalDetail = $this->calculatePembulatan($hargaJualDetailTimbangan);
+                } else {
+                    $subtotalDetail = $this->calculateNormalPrice($detail);
+                }
+
+
+                $hargaJualDetail = $subtotalDetail / $detail['qty'];
+                $hargaJualDetail = round($hargaJualDetail, 2);
 
                 // Calculate qty_konversi
                 $konversi = \App\Models\KonversiSatuan::where('barang_id', $detail['barang_id'])
@@ -73,13 +88,13 @@ class PenjualanService
 
                 $qtyKonversi = $konversi ? $detail['qty'] * $konversi->nilai_konversi : $detail['qty'];
 
-                PenjualanDetail::create([
+                $penjualanDetail = PenjualanDetail::create([
                     'penjualan_id' => $penjualan->id,
                     'barang_id' => $detail['barang_id'],
                     'satuan_id' => $detail['satuan_id'],
                     'qty' => $detail['qty'],
                     'qty_konversi' => $qtyKonversi,
-                    'harga_jual' => $detail['harga_jual'],
+                    'harga_jual' => $hargaJualDetail,
                     'harga_beli' => $hargaBeli,
                     'subtotal' => $subtotalDetail,
                     'created_by' => auth()->id(),
@@ -102,6 +117,8 @@ class PenjualanService
                         'detail_id' => $detail['barang_id']
                     ]
                 );
+
+                $subtotalDtl += round($penjualanDetail['subtotal'],2);
             }
 
             // Handle payments
@@ -126,6 +143,23 @@ class PenjualanService
                     ]);
                 }
             }
+
+            //hitung pembulatan.
+            $pembulatanAkhir = $this->calculatePembulatan($subtotalDetail);
+            $grandTotalAkhir = $subtotalDetail+$pembulatanAkhir;
+            $grandTotalAkhir = round($grandTotalAkhir,2);
+            $kembalianAkhir = $this->calculateKembalian($header['jenis_pembayaran'], $header['dibayar'] ?? 0, $grandTotalAkhir);
+
+
+            //disini update penjualan
+            $penjualan = Penjualan::find($penjualan->id);
+            $penjualan->total = $subtotalDetail;
+            $penjualan->pembulatan = $pembulatanAkhir;
+            $penjualan->grand_total = $grandTotalAkhir;
+            $penjualan->kembalian = $kembalianAkhir;
+            $penjualan->updated_by = auth()->id();
+            $penjualan->updated_at = now();
+            $penjualan->save();
 
             return $penjualan;
         });
@@ -214,28 +248,34 @@ class PenjualanService
 
         $subtotal = $harga * $qty;
 
-        // Add surcharge for 'legal' jenis only if tipe_harga is 'grosir' and satuan is 'bungkus' (satuan_id == 2)
         $barang = \App\Models\Barang::find($barangId);
+
+        // Check if 'legal' jenis with grosir tipe_harga and satuan 'bungkus' (satuan_id == 2)
         if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
+            
+            // Calculate legal surcharge
             $surcharge = 0;
             if ($qty >= 1 && $qty <= 4) {
                 $surcharge = 500;
             } else if ($qty >= 5) {
                 $surcharge = 1000;
             }
-            $subtotal = $subtotal + $surcharge;
-        }
+            $subtotal += $surcharge;
 
-        // Apply pembulatan to all subtotals (matching JS pembulatanSubtotal)
-        $remainder = $subtotal % 1000;
-        if ($remainder == 0) {
-            $pembulatan = 0;
-        } elseif ($remainder >= 1 && $remainder <= 699) {
-            $pembulatan = 500 - $remainder;
-        } else if ($remainder >= 700 && $remainder <= 999) {
-            $pembulatan = 1000 - $remainder;
+            // Apply pembulatan only if surcharge > 0
+            if ($surcharge > 0) {
+                $subtotal += $this->calculatePembulatan($subtotal);
+            }
+            // If surcharge == 0, no pembulatan applied
+        } else {
+            // For other items, add surcharge for 'barang timbangan' kategori
+            if ($barang && $barang->kategori && strtolower($barang->kategori) === 'barang timbangan' && $barang->satuan_id == $satuanId) {
+                $subtotal += 1000;
+            }
+
+            // Always apply pembulatan for non-legal grosir satuan 2 items
+            $subtotal += $this->calculatePembulatan($subtotal);
         }
-        $subtotal = $subtotal + $pembulatan;
 
         return $subtotal;
     }
