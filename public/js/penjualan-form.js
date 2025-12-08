@@ -384,6 +384,16 @@ function performCalculation() {
 
 
 
+function roundTotal(total) {
+    if (total >= 1 && total <= 499) {
+        return 500;
+    } else if (total >= 501 && total <= 999) {
+        return 1000;
+    } else {
+        return total;
+    }
+}
+
 function updateRowDisplay(index) {
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
     if (!barangId || !barangInfoCache[barangId]) {
@@ -398,8 +408,8 @@ function updateRowDisplay(index) {
     let subtotalText = '';
     let keteranganText = '';
 
-    if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal' && tipeHarga === 'grosir') {
-        // Logic for LEGAL jenis with grosir tipe_harga
+    if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal' && tipeHarga === 'grosir' && satuanId == 2) {
+        // Logic for LEGAL jenis with grosir tipe_harga and satuan Bungkus (satuan_id = 2)
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const baseSubtotal = qty * hargaJual;
         let surcharge = 0;
@@ -414,7 +424,8 @@ function updateRowDisplay(index) {
 
         if (surcharge > 0) {
             const total = baseSubtotal + surcharge;
-            subtotalText = `${baseSubtotal.toLocaleString('id-ID')} + ${surcharge.toLocaleString('id-ID')} = ${total.toLocaleString('id-ID')}`;
+            const roundedTotal = pembulatanSubtotal(total);
+            subtotalText = `${roundedTotal.toLocaleString('id-ID')}`;
         } else {
             subtotalText = baseSubtotal.toLocaleString('id-ID');
         }
@@ -428,6 +439,25 @@ function updateRowDisplay(index) {
     // Update displays for both desktop and mobile
     $(`.subtotal-text[data-index="${index}"]`).text(subtotalText);
     $(`.keterangan-text[data-index="${index}"]`).text(keteranganText);
+}
+
+function pembulatanSubtotal(subtotal) {
+    const remainder = subtotal % 1000;
+    let pembulatan = 0;
+    let grand_total = subtotal;
+
+    if (remainder === 0) {
+        pembulatan = 0;
+        grand_total = subtotal;
+    } else if (remainder >= 1 && remainder <= 499) {
+        pembulatan = 500 - remainder;
+        grand_total = subtotal + (500 - remainder);
+    } else {
+        pembulatan = 1000 - remainder;
+        grand_total = subtotal + (1000 - remainder);
+    }
+
+    return grand_total;
 }
 
 function getAllDetails() {
@@ -484,21 +514,46 @@ function calculateRounding(subtotal) {
 // console.log(calculateRounding(18103));  // { pembulatan: 397, grand_total: 18500 }
 // console.log(calculateRounding(293101)); // { pembulatan: 399, grand_total: 293500 }
 
+function parseIndonesianNumber(str) {
+    // Remove dots (thousands separators) and replace comma with dot for decimal
+    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function sumSubtotalTexts() {
+    let total = 0;
+    $('.subtotal-text').each(function() {
+        const text = $(this).text().trim();
+        if (text && text !== '-') {
+            total += parseIndonesianNumber(text);
+        }
+    });
+    return total;
+}
+
 function updateTotals(data) {
     // Round values to integers before formatting
     const subtotal = Math.round(data.subtotal);
     const pembulatan = Math.round(data.pembulatan);
     const grandTotal = Math.round(data.grand_total);
 
-    $('#subtotal').val(subtotal.toLocaleString('id-ID'));
-    $('#pembulatan').val(pembulatan.toLocaleString('id-ID'));
-    $('#summaryGrandTotal').val(grandTotal.toLocaleString('id-ID'));
-    $('#grandTotalValue').val(grandTotal);
+    // Calculate grandSubtotal as sum of subtotal-text values
+    const grandSubtotal = sumSubtotalTexts();
 
-    $('#grandSubtotal').val(subtotal.toLocaleString('id-ID'));
-    $('#grandPembulatan').val(pembulatan.toLocaleString('id-ID'));
-    $('#paymentGrandTotal').val(grandTotal.toLocaleString('id-ID'));
-    $('#paymentGrandTotalValue').val(grandTotal);
+    // Calculate grandPembulatan based on grandSubtotal value
+    const grandPembulatanData = calculateRounding(grandSubtotal);
+    const grandPembulatan = grandPembulatanData.pembulatan;
+    const paymentGrandTotal = grandPembulatanData.grand_total;
+
+    // Update Ringkasan card to match Total Pembayaran card
+    $('#subtotal').val(grandSubtotal.toLocaleString('id-ID'));
+    $('#pembulatan').val(grandPembulatan.toLocaleString('id-ID'));
+    $('#summaryGrandTotal').val(paymentGrandTotal.toLocaleString('id-ID'));
+    $('#grandTotalValue').val(paymentGrandTotal);
+
+    $('#grandSubtotal').val(grandSubtotal.toLocaleString('id-ID'));
+    $('#grandPembulatan').val(grandPembulatan.toLocaleString('id-ID'));
+    $('#paymentGrandTotal').val(paymentGrandTotal.toLocaleString('id-ID'));
+    $('#paymentGrandTotalValue').val(paymentGrandTotal);
 
     calculateKembalian();
 }

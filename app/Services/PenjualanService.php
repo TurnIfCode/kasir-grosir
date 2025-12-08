@@ -223,7 +223,18 @@ class PenjualanService
             } else if ($qty >= 5) {
                 $surcharge = 1000;
             }
-            $subtotal += $surcharge;
+            $total = $subtotal + $surcharge;
+
+            // Apply pembulatan sesuai aturan
+            $remainder = $total % 1000;
+            if ($remainder == 0) {
+                $pembulatan = 0;
+            } elseif ($remainder >= 1 && $remainder <= 499) {
+                $pembulatan = 500 - $remainder;
+            } else {
+                $pembulatan = 1000 - $remainder;
+            }
+            $subtotal = $total + $pembulatan;
         }
 
         return $subtotal;
@@ -231,20 +242,20 @@ class PenjualanService
 
     /**
      * Calculate pembulatan sesuai aturan:
-     * remainder = subtotal % 500
+     * remainder = subtotal % 1000
      * if remainder == 0: pembulatan = 0
-     * else if remainder <= 100: pembulatan = -remainder  // turun ke kelipatan 500 sebelumnya
-     * else: pembulatan = (500 - remainder)  // naik ke kelipatan 500 berikutnya
+     * else if remainder >= 1 && remainder <= 499: pembulatan = 500 - remainder  // naik ke 500
+     * else: pembulatan = 1000 - remainder  // naik ke 1000
      */
     public function calculatePembulatan(float $subtotal): float
     {
-        $remainder = $subtotal % 500;
+        $remainder = $subtotal % 1000;
         if ($remainder == 0) {
             return 0;
-        } elseif ($remainder <= 100) {
-            return -$remainder;
-        } else {
+        } elseif ($remainder >= 1 && $remainder <= 499) {
             return 500 - $remainder;
+        } else {
+            return 1000 - $remainder;
         }
     }
 
