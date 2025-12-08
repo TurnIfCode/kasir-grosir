@@ -424,6 +424,8 @@ function updateRowDisplay(index) {
 
         if (surcharge > 0) {
             const total = baseSubtotal + surcharge;
+            console.log("Total before rounding:", total);
+            
             const roundedTotal = pembulatanSubtotal(total);
             subtotalText = `${roundedTotal.toLocaleString('id-ID')}`;
         } else {
@@ -452,7 +454,7 @@ function pembulatanSubtotal(subtotal) {
     } else if (remainder >= 1 && remainder <= 499) {
         pembulatan = 500 - remainder;
         grand_total = subtotal + (500 - remainder);
-    } else {
+    } else if (remainder >= 501 && remainder <= 999) {
         pembulatan = 1000 - remainder;
         grand_total = subtotal + (1000 - remainder);
     }
