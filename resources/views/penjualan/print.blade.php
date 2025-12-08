@@ -51,7 +51,7 @@
 
     <div class="line"></div>
 
-    <div>Tanggal : {{ $penjualan->tanggal_penjualan->format('d/m/Y') }}</div>
+    <div>Tanggal : {{ $penjualan->tanggal_penjualan->format('d/m/Y') }} {{ date('H:i:s') }}</div>
     <div>No. Str : {{ $penjualan->kode_penjualan }}</div>
     <div>Kasir   : {{ $penjualan->creator->name ?? 'Kasir' }}</div>
     <div>Pembayaran : {{ ucfirst($penjualan->jenis_pembayaran) }}</div>

@@ -230,12 +230,10 @@ class PenjualanService
         $remainder = $subtotal % 1000;
         if ($remainder == 0) {
             $pembulatan = 0;
-        } elseif ($remainder >= 1 && $remainder <= 499) {
+        } elseif ($remainder >= 1 && $remainder <= 699) {
             $pembulatan = 500 - $remainder;
-        } else if ($remainder >= 501 && $remainder <= 999) {
+        } else if ($remainder >= 700 && $remainder <= 999) {
             $pembulatan = 1000 - $remainder;
-        } else {
-            $pembulatan = 0;
         }
         $subtotal = $subtotal + $pembulatan;
 
@@ -244,21 +242,22 @@ class PenjualanService
 
     /**
      * Calculate pembulatan sesuai aturan:
-     * remainder = subtotal % 500
+     * remainder = subtotal % 1000
      * if remainder == 0: pembulatan = 0
-     * else if remainder <= 100: pembulatan = -remainder  // turun ke kelipatan 500 sebelumnya
-     * else: pembulatan = (500 - remainder)  // naik ke kelipatan 500 berikutnya
+     * else if remainder >= 1 && remainder <= 699: pembulatan = 500 - remainder
+     * else if remainder >= 700 && remainder <= 999: pembulatan = 1000 - remainder
      */
     public function calculatePembulatan(float $subtotal): float
     {
-        $remainder = $subtotal % 500;
+        $remainder = $subtotal % 1000;
         if ($remainder == 0) {
             return 0;
-        } elseif ($remainder <= 100) {
-            return - $remainder;
-        } else {
+        } elseif ($remainder >= 1 && $remainder <= 699) {
             return 500 - $remainder;
+        } else if ($remainder >= 700 && $remainder <= 999) {
+            return 1000 - $remainder;
         }
+        return 0;
     }
 
     /**

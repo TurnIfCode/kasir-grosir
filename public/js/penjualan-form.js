@@ -452,10 +452,10 @@ function pembulatanSubtotal(subtotal) {
     if (remainder === 0) {
         pembulatan = 0;
         grand_total = subtotal;
-    } else if (remainder >= 1 && remainder <= 499) {
+    } else if (remainder >= 1 && remainder <= 699) {
         pembulatan = 500 - remainder;
         grand_total = subtotal + (500 - remainder);
-    } else if (remainder >= 501 && remainder <= 999) {
+    } else if (remainder >= 700 && remainder <= 999) {
         pembulatan = 1000 - remainder;
         grand_total = subtotal + (1000 - remainder);
     }
@@ -488,25 +488,25 @@ function getAllDetails() {
 
 /**
  * Fungsi pembulatan harga sesuai aturan:
- * remainder = subtotal % 500
+ * remainder = subtotal % 1000
  * if remainder == 0: pembulatan = 0
- * else if remainder <= 100: pembulatan = -remainder  // turun ke kelipatan 500 sebelumnya
- * else: pembulatan = (500 - remainder)  // naik ke kelipatan 500 berikutnya
+ * else if remainder >= 1 && remainder <= 699: pembulatan = 500 - remainder
+ * else if remainder >= 700 && remainder <= 999: pembulatan = 1000 - remainder
  */
 function calculateRounding(subtotal) {
-    const remainder = subtotal % 500;
+    const remainder = subtotal % 1000;
     let pembulatan = 0;
     let grand_total = subtotal;
 
     if (remainder === 0) {
         pembulatan = 0;
         grand_total = subtotal;
-    } else if (remainder <= 100) {
-        pembulatan = -remainder;
-        grand_total = subtotal - remainder;
-    } else {
-        pembulatan = (500 - remainder);
+    } else if (remainder >= 1 && remainder <= 699) {
+        pembulatan = 500 - remainder;
         grand_total = subtotal + (500 - remainder);
+    } else if (remainder >= 700 && remainder <= 999) {
+        pembulatan = 1000 - remainder;
+        grand_total = subtotal + (1000 - remainder);
     }
 
     return { pembulatan, grand_total };
