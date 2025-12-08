@@ -434,7 +434,8 @@ function updateRowDisplay(index) {
     } else {
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
         const subtotal = qty * hargaJual;
-        subtotalText = subtotal.toLocaleString('id-ID');
+        const roundedTotal = pembulatanSubtotal(subtotal);
+        subtotalText = roundedTotal.toLocaleString('id-ID');
         keteranganText = barangInfo.kategori || '-';
     }
 

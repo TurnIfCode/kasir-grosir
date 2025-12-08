@@ -223,21 +223,21 @@ class PenjualanService
             } else if ($qty >= 5) {
                 $surcharge = 1000;
             }
-            $total = $subtotal + $surcharge;
-
-            // Apply pembulatan sesuai aturan
-            $remainder = $total % 1000;
-            if ($remainder == 0) {
-                $pembulatan = 0;
-            } elseif ($remainder >= 1 && $remainder <= 499) {
-                $pembulatan = 500 - $remainder;
-            } else if ($remainder >= 501 && $remainder <= 999) {
-                $pembulatan = 1000 - $remainder;
-            } else {
-                $pembulatan = 0;
-            }
-            $subtotal = $total + $pembulatan;
+            $subtotal = $subtotal + $surcharge;
         }
+
+        // Apply pembulatan to all subtotals (matching JS pembulatanSubtotal)
+        $remainder = $subtotal % 1000;
+        if ($remainder == 0) {
+            $pembulatan = 0;
+        } elseif ($remainder >= 1 && $remainder <= 499) {
+            $pembulatan = 500 - $remainder;
+        } else if ($remainder >= 501 && $remainder <= 999) {
+            $pembulatan = 1000 - $remainder;
+        } else {
+            $pembulatan = 0;
+        }
+        $subtotal = $subtotal + $pembulatan;
 
         return $subtotal;
     }
