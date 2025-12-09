@@ -40,6 +40,14 @@
         </select>
       </div>
 
+      <div class="form-group mb-3">
+        <label for="status">Status *</label>
+        <select class="form-control" id="status" name="status">
+          <option value="aktif">Aktif</option>
+          <option value="non_aktif">Non Aktif</option>
+        </select>
+      </div>
+
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
       <a href="{{ route('pelanggan.index') }}" class="btn btn-secondary">Batal</a>
     </form>
