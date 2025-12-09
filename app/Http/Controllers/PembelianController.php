@@ -384,8 +384,7 @@ class PembelianController extends Controller
             })
             ->addColumn('aksi', function ($row) {
                 return '<a href="' . route('pembelian.show', $row->id) . '" class="btn btn-info btn-sm" title="Lihat"><i class="fas fa-eye"></i></a> ' .
-                       ($row->status === 'draft' ? '<a href="' . route('pembelian.edit', $row->id) . '" class="btn btn-warning btn-sm" title="Edit"><i class="fas fa-edit"></i></a> ' .
-                       '<button class="btn btn-danger btn-sm btn-delete" data-id="' . $row->id . '" title="Hapus"><i class="fas fa-trash"></i></button>' : '');
+                       ($row->status === 'draft' ? '<button class="btn btn-danger btn-sm btn-delete" data-id="' . $row->id . '" title="Hapus"><i class="fas fa-trash"></i></button>' : '');
             })
             ->rawColumns(['aksi'])
             ->make(true);
@@ -400,11 +399,9 @@ class PembelianController extends Controller
             return redirect()->route('pembelian.index')->with('error', 'Pembelian yang sudah selesai tidak dapat diedit');
         }
 
-        $suppliers = Supplier::where('status', 'AKTIF')->get();
-        $barangs = Barang::where('status', 'AKTIF')->get();
-        $satuans = Satuan::where('status', 'AKTIF')->get();
+        $kasSaldo = \App\Models\KasSaldo::all();
 
-        return view('transaksi.pembelian.edit', compact('pembelian', 'suppliers', 'barangs', 'satuans'));
+        return view('transaksi.pembelian.edit', compact('pembelian', 'kasSaldo'));
     }
 
     public function show($id)
