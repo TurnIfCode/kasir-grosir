@@ -13,7 +13,7 @@
       </div>
 
       <div class="form-group mb-3">
-        <label for="nama_pelanggan">Nama Pelanggan *</label>
+        <label for="nama_pelanggan">Nama Pelanggan*</label>
         <input type="text" class="form-control" id="nama_pelanggan" name="nama_pelanggan">
       </div>
 
@@ -33,15 +33,21 @@
       </div>
 
       <div class="form-group mb-3">
-        <label for="status">Status *</label>
-        <select class="form-control" id="status" name="status">
-          <option value="aktif">Aktif</option>
-          <option value="non_aktif">Non Aktif</option>
+        <label for="jenis">Jenis*</label>
+        <select class="form-control" id="jenis" name="jenis">
+          <option value="normal">Normal</option>
+          <option value="modal">Modal</option>
+          <option value="antar">Antar</option>
         </select>
       </div>
 
+      <div class="form-group mb-3" style="display: none;">
+        <label for="ongkos">Harga Tambah*</label>
+        <input type="number" class="form-control" id="ongkos" name="ongkos" value="0">
+      </div>
+
       <div class="form-group mb-3">
-        <label for="status">Status *</label>
+        <label for="status">Status*</label>
         <select class="form-control" id="status" name="status">
           <option value="aktif">Aktif</option>
           <option value="non_aktif">Non Aktif</option>
@@ -56,6 +62,7 @@
 
 <script>
 $(document).ready(function() {
+  $('[name=nama_pelanggan]').focus().select();
   // Generate kode pelanggan otomatis saat halaman load
   $.ajax({
     url: "{{ route('pelanggan.generate-kode') }}",
@@ -90,15 +97,27 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              setTimeout(() => {
-                window.location.href = "{{ route('pelanggan.add') }}";
-              }, 500);
-            });
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  window.location.href = "{{ route('pelanggan.add') }}";
+                }, 500);
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  $(`#${response.form}`).focus().select();
+                }, 500);
+              });
+            }
           },
           error: function(xhr) {
             var errors = xhr.responseJSON.errors;
@@ -123,6 +142,15 @@ $(document).ready(function() {
         });
       }
     });
+  });
+
+  // Show/Hide Harga Tambah based on jenis selection
+  $('#jenis').change(function() {
+    if ($(this).val() === 'antar') {
+      $('div.form-group:has(#ongkos)').show();
+    } else {
+      $('div.form-group:has(#ongkos)').hide();
+    }
   });
 });
 </script>

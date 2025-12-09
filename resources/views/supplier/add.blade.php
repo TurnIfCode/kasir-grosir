@@ -48,7 +48,7 @@
       </div>
 
       <div class="form-group mb-3">
-        <label for="status">Status *</label>
+        <label for="status">Status</label>
         <select class="form-control" id="status" name="status">
           <option value="aktif">Aktif</option>
           <option value="nonaktif">Nonaktif</option>
@@ -61,8 +61,13 @@
   </div>
 </div>
 
+@include('layout.footer')
+
 <script>
 $(document).ready(function() {
+
+  $("[name=nama_supplier]").focus().select();
+
   // Generate kode supplier otomatis saat halaman load
   $.ajax({
     url: "{{ route('supplier.generate-kode') }}",
@@ -71,6 +76,7 @@ $(document).ready(function() {
       $('#kode_supplier').val(response.kode_supplier);
     }
   });
+
   $("#btnSave").click(function() {
     if ($('[name="kontak_person"]').val() == '') {
       $('[name="kontak_person"]').val('-');
@@ -112,15 +118,27 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              setTimeout(() => {
-                window.location.href = "{{ route('supplier.add') }}";
-              }, 500);
-            });
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  window.location.href = "{{ route('supplier.add') }}";
+                }, 500);
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  $(`#${response.form}`).focus().select();
+                }, 500);
+              });
+            }
           },
           error: function(xhr) {
             var errors = xhr.responseJSON.errors;
@@ -149,5 +167,5 @@ $(document).ready(function() {
 });
 </script>
 
-
-@include('layout.footer')
+</body>
+</html>

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Log;
+use App\Models\Pembelian;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use function PHPUnit\Framework\returnArgument;
 
 class SupplierController extends Controller
 {
@@ -42,13 +44,22 @@ class SupplierController extends Controller
             $totalRecords = Supplier::count();
             $filteredRecords = $query->count();
 
+            // Handle ordering
+            if ($request->has('order')) {
+                $orderColumnIndex = $request->get('order')[0]['column'];
+                $orderDirection = $request->get('order')[0]['dir'];
+                $columns = ['kode_supplier', 'nama_supplier', 'kontak_person', 'telepon', 'email', 'alamat', 'kota', 'provinsi', 'status'];
+                if (isset($columns[$orderColumnIndex])) {
+                    $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+                }
+            }
+
             $suppliers = $query->skip($start)->take($length)->get();
 
             $data = [];
             $no = $start + 1;
             foreach ($suppliers as $supplier) {
                 $data[] = [
-                    'DT_RowIndex' => $no++,
                     'kode_supplier' => $supplier->kode_supplier,
                     'nama_supplier' => $supplier->nama_supplier,
                     'kontak_person' => $supplier->kontak_person ?: '-',
@@ -75,38 +86,44 @@ class SupplierController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_supplier' => 'required|string|max:150',
-            'kontak_person' => 'nullable|string|max:100',
-            'telepon' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:100',
-            'alamat' => 'nullable|string',
-            'kota' => 'nullable|string|max:100',
-            'provinsi' => 'nullable|string|max:100',
-            'status' => 'required|in:aktif,nonaktif'
-        ], [
-            'nama_supplier.required' => 'Nama Supplier wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'status.required' => 'Status wajib dipilih'
-        ]);
-
         // Generate kode_supplier otomatis
         $kodeSupplier = $this->generateKodeSupplier();
 
-        $supplier = Supplier::create([
-            'kode_supplier' => $kodeSupplier,
-            'nama_supplier' => $request->nama_supplier,
-            'kontak_person' => $request->kontak_person,
-            'telepon' => $request->telepon,
-            'email' => $request->email,
-            'alamat' => $request->alamat,
-            'kota' => $request->kota,
-            'provinsi' => $request->provinsi,
-            'status' => $request->status,
-            'created_by' => auth()->check() ? auth()->user()->id : null,
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+        //disini ambil dulu semua variablenya
+        $nama_supplier  = trim($request->nama_supplier);
+        $kontak_person  = trim($request->kontak_person);
+        $telepon        = trim($request->telepon);
+        $email          = trim($request->email);
+        $alamat         = trim($request->alamat);
+        $kota           = trim($request->kota);
+        $provinsi       = trim($request->provinsi);
+        $status         = trim($request->status);
+
+        // cek nama supplier sudah ada atau belum
+        $cekNama = Supplier::where('nama_supplier', $nama_supplier)->first();
+        if ($cekNama) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Nama supplier sudah terdaftar',
+                'form'      => 'nama_supplier'
+            ]);
+        }
+
+        $supplier                   = new Supplier();
+        $supplier->kode_supplier    = $kodeSupplier;
+        $supplier->nama_supplier    = $nama_supplier;
+        $supplier->kontak_person    = $kontak_person;
+        $supplier->telepon          = $telepon;
+        $supplier->email            = $email;
+        $supplier->alamat           = $alamat;
+        $supplier->kota             = $kota;
+        $supplier->provinsi         = $provinsi;
+        $supplier->status           = $status;
+        $supplier->created_by       = auth()->id();
+        $supplier->created_at       = now();
+        $supplier->updated_by       = auth()->id();
+        $supplier->updated_at       = now();
+        $supplier->save();
 
         $newLog = new Log();
         $newLog->keterangan = 'Menambahkan supplier baru: ' . $supplier->nama_supplier . ' (Kode Supplier: ' . $supplier->kode_supplier . ')';
@@ -115,55 +132,65 @@ class SupplierController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Supplier berhasil ditambahkan'
         ]);
     }
 
     public function find($id)
     {
-        $supplier = Supplier::with(['creator', 'updater'])->findOrFail($id);
+        $supplier = Supplier::with(['creator', 'updater'])->find($id);
+        //cek ada datanya atau tidak
+        if (!$supplier) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Data tidak ditemukan'
+            ]);
+        }
         $data = $supplier->toArray();
         $data['created_by'] = $supplier->creator ? $supplier->creator->name : '-';
         $data['updated_by'] = $supplier->updater ? $supplier->updater->name : '-';
-        return response()->json($data);
+        return response()->json([
+            'success'   => true,
+            'data'      => $data
+        ]);
     }
 
     public function update(Request $request, $id)
     {
         $supplier = Supplier::findOrFail($id);
 
-        $request->validate([
-            'kode_supplier' => 'required|string|max:50|unique:supplier,kode_supplier,' . $id,
-            'nama_supplier' => 'required|string|max:150',
-            'kontak_person' => 'nullable|string|max:100',
-            'telepon' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:100',
-            'alamat' => 'nullable|string',
-            'kota' => 'nullable|string|max:100',
-            'provinsi' => 'nullable|string|max:100',
-            'status' => 'required|in:aktif,nonaktif'
-        ], [
-            'kode_supplier.required' => 'Kode Supplier wajib diisi',
-            'kode_supplier.unique' => 'Kode Supplier sudah terdaftar',
-            'nama_supplier.required' => 'Nama Supplier wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'status.required' => 'Status wajib dipilih'
-        ]);
+        $nama_supplier  = trim($request->nama_supplier);
+        $kontak_person  = trim($request->kontak_person);
+        $telepon        = trim($request->telepon);
+        $email          = trim($request->email);
+        $alamat         = trim($request->alamat);
+        $kota           = trim($request->kota);
+        $provinsi       = trim($request->provinsi);
+        $status         = trim($request->status);
 
-        $supplier->update([
-            'kode_supplier' => $request->kode_supplier,
-            'nama_supplier' => $request->nama_supplier,
-            'kontak_person' => $request->kontak_person,
-            'telepon' => $request->telepon,
-            'email' => $request->email,
-            'alamat' => $request->alamat,
-            'kota' => $request->kota,
-            'provinsi' => $request->provinsi,
-            'status' => $request->status,
-            'updated_by' => auth()->check() ? auth()->user()->id : null,
-            'updated_at' => now()
-        ]);
+        // cek nama sudah terdaftar atau belum
+        $cekNama = Supplier::where('nama_supplier', $nama_supplier)->where('id','!=', $id)->count();
+        if ($cekNama > 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Nama supplier sudah terdaftar',
+                'form'      => 'nama_supplier'
+            ]);
+        }
+
+        $supplier->nama_supplier = $nama_supplier;
+        $supplier->kontak_person = $kontak_person;
+        $supplier->kontak_person = $kontak_person;
+        $supplier->telepon = $telepon;
+        $supplier->email = $email;
+        $supplier->alamat = $alamat;
+        $supplier->kota = $kota;
+        $supplier->provinsi = $provinsi;
+        $supplier->status = $status;
+        $supplier->updated_by = auth()->id();
+        $supplier->updated_at = now();
+        $supplier->save();
 
         $newLog = new Log();
         $newLog->keterangan = 'Memperbarui supplier: ' . $supplier->nama_supplier . ' (Kode Supplier: ' . $supplier->kode_supplier . ')';
@@ -172,7 +199,7 @@ class SupplierController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Supplier berhasil diperbarui'
         ]);
     }
@@ -183,6 +210,15 @@ class SupplierController extends Controller
         $namaSupplier = $supplier->nama_supplier;
         $kodeSupplier = $supplier->kode_supplier;
 
+        //cek sudah ada supplier di pembelian atau belum
+        $cekPembelian = Pembelian::where('supplier_id',$id)->count();
+        if ($cekPembelian > 0) {
+            return response()->json([
+                'success' => false,
+                'message'   => 'Supplier sudah ada di pembelian, tidak dapat dihapus.'
+            ]);
+        }
+
         $supplier->delete();
 
         $newLog = new Log();
@@ -192,7 +228,7 @@ class SupplierController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Supplier berhasil dihapus'
         ]);
     }

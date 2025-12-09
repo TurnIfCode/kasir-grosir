@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Pelanggan;
 use App\Models\Log;
+use App\Models\Penjualan;
 use Illuminate\Http\Request;
 
 class PelangganController extends Controller
@@ -33,25 +34,63 @@ class PelangganController extends Controller
                       ->orWhere('nama_pelanggan', 'like', '%' . $search . '%')
                       ->orWhere('telepon', 'like', '%' . $search . '%')
                       ->orWhere('email', 'like', '%' . $search . '%')
+                      ->orWhere('jenis', 'like', '%' . $search . '%')
+                      ->orWhere('ongkos', 'like', '%' . $search . '%')
                       ->orWhere('status', 'like', '%' . $search . '%');
+            }
+
+            // Handle ordering
+            $order = $request->get('order');
+            $columns = [
+                'kode_pelanggan',
+                'nama_pelanggan',
+                'telepon',
+                'email',
+                'alamat',
+                'jenis',
+                'ongkos',
+                'status',
+                'created_by',
+                'created_at',
+                'updated_by',
+                'updated_at'
+            ];
+
+            if ($order) {
+                foreach ($order as $orderItem) {
+                    $columnIndex = $orderItem['column'];
+                    $direction = $orderItem['dir'];
+                    if (isset($columns[$columnIndex])) {
+                        $column = $columns[$columnIndex];
+                        $query->orderBy($column, $direction);
+                    }
+                }
+            } else {
+                // Default order by kode_pelanggan asc
+                $query->orderBy('kode_pelanggan', 'asc');
             }
 
             $totalRecords = Pelanggan::count();
             $filteredRecords = $query->count();
 
-            $pelanggans = $query->skip($start)->take($length)->get();
+            $pelanggans = $query->with(['creator', 'updater'])->skip($start)->take($length)->get();
 
             $data = [];
             $no = $start + 1;
             foreach ($pelanggans as $pelanggan) {
                 $data[] = [
-                    'DT_RowIndex' => $no++,
                     'kode_pelanggan' => $pelanggan->kode_pelanggan,
                     'nama_pelanggan' => $pelanggan->nama_pelanggan,
                     'telepon' => $pelanggan->telepon ?: '-',
                     'email' => $pelanggan->email ?: '-',
                     'alamat' => $pelanggan->alamat ?: '-',
+                    'jenis' => $pelanggan->jenis ?: '-',
+                    'ongkos' => 'Rp. '.number_format($pelanggan->ongkos,0, ',','.') ?: '0',
                     'status' => $pelanggan->status,
+                    'created_by' => $pelanggan->creator ? $pelanggan->creator->name : '-',
+                    'created_at' => $pelanggan->created_at ? date('Y-m-d H:i:s', $pelanggan->created_at->timestamp) : '-',
+                    'updated_by' => $pelanggan->updater ? $pelanggan->updater->name : '-',
+                    'updated_at' => $pelanggan->updated_at ? date('Y-m-d H:i:s', $pelanggan->updated_at->timestamp) : '-',
                     'aksi' => '<a href="#" id="btnDetail" data-id="' . $pelanggan->id . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a> <a href="#" id="btnEdit" data-id="' . $pelanggan->id . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a> <a href="#" data-id="' . $pelanggan->id . '" id="btnDelete" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>'
                 ];
             }
@@ -69,32 +108,79 @@ class PelangganController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_pelanggan' => 'required|string|max:150',
-            'telepon' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:100',
-            'alamat' => 'nullable|string',
-            'status' => 'required|in:aktif,non_aktif'
-        ], [
-            'nama_pelanggan.required' => 'Nama Pelanggan wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'status.required' => 'Status wajib dipilih'
-        ]);
-
         // Generate kode_pelanggan otomatis
         $kodePelanggan = $this->generateKodePelanggan();
 
-        $pelanggan = Pelanggan::create([
-            'kode_pelanggan' => $kodePelanggan,
-            'nama_pelanggan' => $request->nama_pelanggan,
-            'telepon' => $request->telepon,
-            'email' => $request->email,
-            'alamat' => $request->alamat,
-            'status' => $request->status,
-            'created_by' => auth()->check() ? auth()->user()->id : null,
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+        //cek dulu
+
+        $namaPelanggan  = trim($request->nama_pelanggan);
+        $telepon        = trim($request->telepon);
+        $email          = trim($request->email);
+        $alamat         = trim($request->alalamat);
+        $jenis          = trim($request->jenis);
+        $ongkos         = trim($request->ongkos);
+        $status         = trim($request->status);
+
+        if (empty($namaPelanggan)) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Nama pelanggan harus diisi.',
+                'form'      => 'nama_pelanggan'
+            ]);
+        }
+
+        // cek jika nama pelanggan sudah ada
+        $cekPelanggan = Pelanggan::where('nama_pelanggan', $namaPelanggan)->first();
+        if ($cekPelanggan) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Nama pelanggan sudah terdaftar.',
+                'form'      => 'nama_pelanggan'
+            ]);
+        }
+
+        if (empty($telepon)) {
+            $telepon = '-';
+        }
+
+        if (empty($email)) {
+            $email = '-';
+        }
+
+        if (empty($alamat)) {
+            $alamat = '-';
+        }
+
+        if ($jenis != 'antar') {
+            $ongkos = 0;
+        }
+
+        $ongkos = round($ongkos);
+
+        if ($jenis == 'antar') {
+            if ($ongkos <= 0) {
+                return response()->json([
+                    'success'   => false,
+                    'message'   => 'Harga tambah harus lebih besar dari 0',
+                    'form'      => 'ongkos'
+                ]);
+            }
+        }
+
+        $pelanggan = new Pelanggan();
+        $pelanggan->kode_pelanggan = $kodePelanggan;
+        $pelanggan->nama_pelanggan = $namaPelanggan;
+        $pelanggan->telepon = $telepon;
+        $pelanggan->email = $email;
+        $pelanggan->alamat = $alamat;
+        $pelanggan->jenis = $jenis;
+        $pelanggan->ongkos = $ongkos;
+        $pelanggan->status = $status;
+        $pelanggan->created_by = auth()->id();
+        $pelanggan->created_at = now();
+        $pelanggan->updated_by = auth()->id();
+        $pelanggan->updated_at = now();
+        $pelanggan->save();
 
         $newLog = new Log();
         $newLog->keterangan = 'Menambahkan pelanggan baru: ' . $pelanggan->nama_pelanggan . ' (Kode Pelanggan: ' . $pelanggan->kode_pelanggan . ')';
@@ -103,50 +189,106 @@ class PelangganController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
-            'message' => 'Pelanggan berhasil ditambahkan'
+            'success' => true,
+            'message' => 'Berhasil tambah data.'
         ]);
     }
 
     public function find($id)
     {
-        $pelanggan = Pelanggan::with(['creator', 'updater'])->findOrFail($id);
+        $pelanggan = Pelanggan::with(['creator', 'updater'])->find($id);
+        if (!$pelanggan) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Data tidak ditemukan'
+            ]);
+        }
         $data = $pelanggan->toArray();
         $data['created_by'] = $pelanggan->creator ? $pelanggan->creator->name : '-';
         $data['updated_by'] = $pelanggan->updater ? $pelanggan->updater->name : '-';
-        return response()->json($data);
+        $data['ongkos']     = round($pelanggan->ongkos);
+
+        return response()->json([
+            'success'   => true,
+            'data'      => $data
+        ]);
     }
 
     public function update(Request $request, $id)
     {
-        $pelanggan = Pelanggan::findOrFail($id);
+        $pelanggan = Pelanggan::find($id);
 
-        $request->validate([
-            'kode_pelanggan' => 'required|string|max:50|unique:pelanggan,kode_pelanggan,' . $id,
-            'nama_pelanggan' => 'required|string|max:150',
-            'telepon' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:100',
-            'alamat' => 'nullable|string',
-            'status' => 'required|in:aktif,non_aktif'
-        ], [
-            'kode_pelanggan.required' => 'Kode Pelanggan wajib diisi',
-            'kode_pelanggan.unique' => 'Kode Pelanggan sudah terdaftar',
-            'nama_pelanggan.required' => 'Nama Pelanggan wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'status.required' => 'Status wajib dipilih'
-        ]);
+        //cek pelanggan terdaftar atau tidak
+        if (!$pelanggan) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Data pelanggan tidak ditemukan',
+                'form'      => false
+            ]);
+        }
 
-        $pelanggan->update([
-            'kode_pelanggan' => $request->kode_pelanggan,
-            'nama_pelanggan' => $request->nama_pelanggan,
-            'telepon' => $request->telepon,
-            'email' => $request->email,
-            'alamat' => $request->alamat,
-            'status' => $request->status,
-            'updated_by' => auth()->check() ? auth()->user()->id : null,
-            'updated_at' => now()
-        ]);
+        //disini ambil semua request kirimnya
+        $namaPelanggan  = trim($request->nama_pelanggan);
+        $telepon        = trim($request->telepon);
+        $email          = trim($request->email);
+        $alamat         = trim($request->alamat);
+        $jenis          = trim($request->jenis);
+        $ongkos         = trim($request->ongkos);
+        $status         = trim($request->status);
 
+        //disini cek dulu apakah ada
+        $cekNama = Pelanggan::where('nama_pelanggan', $namaPelanggan)->where('id','!=',$id)->first();
+        if ($cekNama) {
+            if ($ongkos <= 0) {
+                return response()->json([
+                    'success'   => false,
+                    'message'   => 'Harga tambah harus lebih besar dari 0',
+                    'form'      => true,
+                    'form-edit' => 'edit_nama_pelanggan'
+                ]);
+            }
+        }
+
+        if (empty($telepon)) {
+            $telepon = '-';
+        }
+
+        if (empty($email)) {
+            $email = '-';
+        }
+
+        if (empty($alamat)) {
+            $alamat = '-';
+        }
+
+        if ($jenis != 'antar') {
+            $ongkos = 0;
+        }
+
+        $ongkos = round($ongkos);
+
+        if ($jenis == 'antar') {
+            if ($ongkos <= 0) {
+                return response()->json([
+                    'success'   => false,
+                    'message'   => 'Harga tambah harus lebih besar dari 0',
+                    'form'      => true,
+                    'form-edit' => 'ongkos'
+                ]);
+            }
+        }
+
+        $pelanggan->nama_pelanggan = $namaPelanggan;
+        $pelanggan->telepon = $telepon;
+        $pelanggan->email = $email;
+        $pelanggan->alamat = $alamat;
+        $pelanggan->jenis = $jenis;
+        $pelanggan->ongkos = $ongkos;
+        $pelanggan->status = $status;
+        $pelanggan->updated_by = auth()->id();
+        $pelanggan->updated_at = now();
+        $pelanggan->save();
+        
         $newLog = new Log();
         $newLog->keterangan = 'Memperbarui pelanggan: ' . $pelanggan->nama_pelanggan . ' (Kode Pelanggan: ' . $pelanggan->kode_pelanggan . ')';
         $newLog->created_by = auth()->id();
@@ -154,7 +296,7 @@ class PelangganController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Pelanggan berhasil diperbarui'
         ]);
     }
@@ -162,8 +304,26 @@ class PelangganController extends Controller
     public function delete($id)
     {
         $pelanggan = Pelanggan::findOrFail($id);
+        //cek pelanggan ada atau tidak
+        if (!$pelanggan) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Data tidak ditemukan'
+            ]);
+        }
+
+        // cek sudah ada di penjualan atau belum
+        $cekPenjualan = Penjualan::where('pelanggan_id', $id)->count();
+        if ($cekPenjualan > 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Pelanggan sudah ada di transaksi penjualan. Tidak dapat dihapus.'
+            ]);
+        }
+
         $namaPelanggan = $pelanggan->nama_pelanggan;
         $kodePelanggan = $pelanggan->kode_pelanggan;
+        
 
         $pelanggan->delete();
 
@@ -174,7 +334,7 @@ class PelangganController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Pelanggan berhasil dihapus'
         ]);
     }

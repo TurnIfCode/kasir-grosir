@@ -16,6 +16,8 @@ class Pelanggan extends Model
         'alamat',
         'telepon',
         'email',
+        'jenis',
+        'ongkos',
         'status',
         'created_by',
         'updated_by'
