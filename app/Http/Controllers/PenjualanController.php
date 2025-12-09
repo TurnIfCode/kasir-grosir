@@ -237,8 +237,9 @@ class PenjualanController extends Controller
     public function getHargaByBarangSatuan($barangId, $satuanId, Request $request)
     {
         $tipe = $request->get('tipe', 'ecer');
+        $pelangganId = $request->get('pelanggan_id');
         try {
-            $harga = $this->hargaService->lookupHarga($barangId, $satuanId, $tipe);
+            $harga = $this->hargaService->lookupHarga($barangId, $satuanId, $tipe, $pelangganId);
             $harga['harga'] = round($harga['harga'], 2);
             return response()->json([
                 'status' => 'success',
@@ -350,6 +351,7 @@ class PenjualanController extends Controller
             'details.*.tipe_harga' => 'required|in:ecer,grosir,reseller',
             'details.*.qty' => 'required|numeric|min:0.01',
             'details.*.harga_jual' => 'required|numeric|min:0',
+            'pelanggan_id' => 'nullable|exists:pelanggan,id',
         ]);
 
         if ($validator->fails()) {
@@ -362,7 +364,8 @@ class PenjualanController extends Controller
 
         try {
             $details = $request->details ?? [];
-            $calculation = $this->penjualanService->calculateSubtotalAndPembulatan($details);
+            $pelangganId = $request->pelanggan_id;
+            $calculation = $this->penjualanService->calculateSubtotalAndPembulatan($details, $pelangganId);
 
             return response()->json([
                 'status' => 'success',

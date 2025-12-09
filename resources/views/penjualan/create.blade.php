@@ -42,6 +42,7 @@
                                 <label for="pelanggan_autocomplete" class="form-label fw-semibold fs-6">Pelanggan <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="pelanggan_autocomplete" placeholder="Cari pelanggan..." value="{{ $defaultPelanggan ? $defaultPelanggan->nama_pelanggan : '' }}" required>
                                 <input type="hidden" id="pelanggan_id" name="pelanggan_id" value="{{ $defaultPelanggan ? $defaultPelanggan->id : '' }}">
+                                <input type="hidden" id="is_special_customer" value="{{ $defaultPelanggan && in_array(strtolower($defaultPelanggan->nama_pelanggan), ['kedai kopi', 'hubuan']) ? '1' : '0' }}">
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="catatan" class="form-label fw-semibold fs-6">Catatan</label>

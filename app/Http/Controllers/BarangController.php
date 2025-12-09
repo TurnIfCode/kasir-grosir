@@ -259,17 +259,45 @@ class BarangController extends Controller
     public function search(Request $request)
     {
         $term = $request->get('q', $request->get('term', ''));
-        $barangs = Barang::with('barcodes', 'satuan')
-            ->where(function($q) use ($term) {
+        $pelangganId = $request->get('pelanggan_id');
+
+        $query = Barang::with('barcodes', 'satuan', 'kategori')
+            ->where('status', 'aktif');
+
+        // Check if customer is Hubuan and term is 'Rokok & Tembakau'
+        if ($pelangganId) {
+            $pelanggan = \App\Models\Pelanggan::find($pelangganId);
+            if ($pelanggan && strtolower($pelanggan->nama_pelanggan) === 'hubuan' && strtolower($term) === 'rokok & tembakau') {
+                // Filter to only show Rokok & Tembakau items with 'slop' unit
+                $query->whereHas('kategori', function($q) {
+                    $q->where('nama_kategori', 'Rokok & Tembakau');
+                })->whereHas('hargaBarang', function($q) {
+                    $q->whereHas('satuan', function($sq) {
+                        $sq->where('nama_satuan', 'slop');
+                    })->where('status', 'aktif');
+                });
+            } else {
+                // Normal search for other customers
+                $query->where(function($q) use ($term) {
+                    $q->where('nama_barang', 'LIKE', "%{$term}%")
+                      ->orWhere('kode_barang', 'LIKE', "%{$term}%")
+                      ->orWhereHas('barcodes', function($qb) use ($term) {
+                          $qb->where('barcode', 'LIKE', "%{$term}%");
+                      });
+                });
+            }
+        } else {
+            // Normal search if no pelanggan_id
+            $query->where(function($q) use ($term) {
                 $q->where('nama_barang', 'LIKE', "%{$term}%")
                   ->orWhere('kode_barang', 'LIKE', "%{$term}%")
                   ->orWhereHas('barcodes', function($qb) use ($term) {
                       $qb->where('barcode', 'LIKE', "%{$term}%");
                   });
-            })
-            ->where('status', 'aktif')
-            ->limit(20)
-            ->get(['id', 'nama_barang', 'kode_barang', 'satuan_id']);
+            });
+        }
+
+        $barangs = $query->limit(20)->get(['id', 'nama_barang', 'kode_barang', 'satuan_id']);
 
         // Format data untuk autocomplete
         $results = $barangs->map(function($barang) {

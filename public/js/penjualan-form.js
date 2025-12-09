@@ -86,7 +86,7 @@ function initializeAutocomplete(index) {
         source: function(request, response) {
             $.ajax({
                 url: '/barang/search',
-                data: { q: request.term },
+                data: { q: request.term, pelanggan_id: $('#pelanggan_id').val() },
                 success: function(data) {
                     if (data.status === 'success') {
                         response(data.data.map(item => ({
@@ -166,6 +166,7 @@ function loadHarga(index, skipCalculation = false) {
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
     const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
     const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+    const pelangganId = $('#pelanggan_id').val();
 
     if (!barangId || !satuanId || !tipeHarga) {
         return;
@@ -198,7 +199,7 @@ function loadHarga(index, skipCalculation = false) {
     // Fallback to normal harga
     $.ajax({
         url: `/penjualan/barang/${barangId}/harga/${satuanId}`,
-        data: { tipe: tipeHarga },
+        data: { tipe: tipeHarga, pelanggan_id: pelangganId },
         success: function(data) {
             if (data.status === 'success') {
                 $(`.harga-jual-input[data-index="${index}"]`).val(data.data.harga);
@@ -228,7 +229,7 @@ function loadSatuanOptions(index, barangId) {
 
             if (hargaData.status === 'success' && hargaData.data.length > 0) {
                 // Get unique satuan from harga_barang
-                const uniqueSatuan = [];
+                let uniqueSatuan = [];
                 const seen = new Set();
                 hargaData.data.forEach(function(harga) {
                     if (!seen.has(harga.satuan_id)) {
@@ -239,6 +240,16 @@ function loadSatuanOptions(index, barangId) {
                         });
                     }
                 });
+
+                // Check if customer is Hubuan and barang is Rokok & Tembakau
+                const isHubuan = $('#pelanggan_autocomplete').val().toLowerCase() === 'hubuan';
+                const barangInfo = barangInfoCache[barangId];
+                const isRokokTembakau = barangInfo && barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok & tembakau';
+
+                if (isHubuan && isRokokTembakau) {
+                    // Filter to only show 'slop' satuan
+                    uniqueSatuan = uniqueSatuan.filter(satuan => satuan.nama_satuan.toLowerCase() === 'slop');
+                }
 
                 uniqueSatuan.forEach(function(satuan) {
                     satuanSelect.append(`<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`);
@@ -367,6 +378,7 @@ function performCalculation() {
         method: 'POST',
         data: {
             details: details,
+            pelanggan_id: $('#pelanggan_id').val(),
             _token: $('input[name="_token"]').val()
         },
         success: function(response) {
@@ -404,43 +416,83 @@ function updateRowDisplay(index) {
     const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
     const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
     const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
+    const pelangganId = $('#pelanggan_id').val();
+
+    // Check if customer is special (Kedai Kopi or Hubuan)
+    const isSpecialCustomer = $('#is_special_customer').val() === '1';
+    const isKedaiKopi = $('#pelanggan_autocomplete').val().toLowerCase() === 'kedai kopi';
+    const isHubuan = $('#pelanggan_autocomplete').val().toLowerCase() === 'hubuan';
+    console.log('ini is kedai kopi dude==>', isKedaiKopi);
 
     let subtotalText = '';
     let keteranganText = '';
 
-    if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal' && tipeHarga === 'grosir' && satuanId == 2) {
-        // Logic for LEGAL jenis with grosir tipe_harga and satuan Bungkus (satuan_id = 2)
-        const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-        const baseSubtotal = qty * hargaJual;
-        let surcharge = 0;
+    if (!isKedaiKopi && !isHubuan) {
+        // Normal logic for regular customers
+        if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal' && tipeHarga === 'grosir' && satuanId == 2) {
+            // Logic for LEGAL jenis with grosir tipe_harga and satuan Bungkus (satuan_id = 2)
+            const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+            const baseSubtotal = qty * hargaJual;
+            let surcharge = 0;
 
-        if (qty >= 1 && qty <= 4) {
-            surcharge = 500;
-        } else if (qty >= 5) {
-            surcharge = 1000;
-        }
+            if (qty >= 1 && qty <= 4) {
+                surcharge = 500;
+            } else if (qty >= 5) {
+                surcharge = 1000;
+            }
 
-        keteranganText = 'Rokok Legal Grosir';
+            keteranganText = 'Rokok Legal Grosir';
 
-        if (surcharge > 0) {
-            const total = baseSubtotal + surcharge;
-            console.log("Total before rounding:", total);
-            
-            const roundedTotal = pembulatanSubtotal(total);
-            subtotalText = `${roundedTotal.toLocaleString('id-ID')}`;
+            if (surcharge > 0) {
+                const total = baseSubtotal + surcharge;
+                console.log("Total before rounding:", total);
+
+                const roundedTotal = pembulatanSubtotal(total);
+                subtotalText = `${roundedTotal.toLocaleString('id-ID')}`;
+            } else {
+                subtotalText = baseSubtotal.toLocaleString('id-ID');
+            }
         } else {
-            subtotalText = baseSubtotal.toLocaleString('id-ID');
+            const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+            let subtotal = qty * hargaJual;
+
+            // Apply markup for barang timbangan
+            if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'barang timbangan' && barangInfo.satuan_id == satuanId) {
+                const hasilDasar = qty * hargaJual;
+                subtotal = Math.ceil(hasilDasar / 1000) * 1000 + 1000;
+            }
+
+            const roundedTotal = pembulatanSubtotal(subtotal);
+            subtotalText = roundedTotal.toLocaleString('id-ID');
+            keteranganText = barangInfo.kategori || '-';
         }
     } else {
-        const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-        let subtotal = qty * hargaJual;
-        if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'barang timbangan' && barangInfo.satuan_id == satuanId) {
-            const hasilDasar = qty * hargaJual;
-            subtotal = Math.ceil(hasilDasar / 1000) * 1000 + 1000;
+        // Special logic for Kedai Kopi and Hubuan
+        if (isKedaiKopi) {
+            // For Kedai Kopi: just qty * harga_beli (already set by backend)
+            const hargaBeli = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+            const subtotal = qty * hargaBeli;
+            subtotalText = subtotal.toLocaleString('id-ID');
+            keteranganText = 'Kedai Kopi';
+        } else if (isHubuan) {
+            // For Hubuan: special pricing logic
+            const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+            let subtotal = qty * hargaJual;
+
+            // If Rokok with jenis legal, add 3000 to hargaJual
+            if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok & tembakau' && barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal') {
+                subtotal = qty * (hargaJual + 3000);
+            }
+
+            subtotalText = subtotal.toLocaleString('id-ID');
+            keteranganText = barangInfo.kategori || '-';
+        } else {
+            // For other special customers: normal pricing but skip surcharges and markups
+            const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
+            const subtotal = qty * hargaJual;
+            subtotalText = subtotal.toLocaleString('id-ID');
+            keteranganText = barangInfo.kategori || '-';
         }
-        const roundedTotal = pembulatanSubtotal(subtotal);
-        subtotalText = roundedTotal.toLocaleString('id-ID');
-        keteranganText = barangInfo.kategori || '-';
     }
 
     // Update displays for both desktop and mobile

@@ -59,22 +59,16 @@ class PenjualanService
             ]);
 
             $subtotalDtl = 0;
+            $pelangganId = $header['pelanggan_id'] ?? null;
 
             // Create details and update stock
             foreach ($details as $detail) {
                 // Get harga_beli from barang table
                 $barang = \App\Models\Barang::with('kategori')->find($detail['barang_id']);
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
-                
 
-                if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'barang timbangan' && $barang->satuan_id == $detail['satuan_id']) {
-                    $hasilDasar = $detail['qty'] * $detail['harga_jual']; 
-                    $subtotalDetail = ceil($hasilDasar / 1000) * 1000; // ROUNDUP ke 1000-an
-                    $subtotalDetail += 1000; // tambah 1000 sesuai rumus Excel
-                    // $subtotalDetail = $this->calculatePembulatan($hargaJualDetailTimbangan);
-                } else {
-                    $subtotalDetail = $this->calculateNormalPrice($detail);
-                }
+                // Use the updated calculateNormalPrice method with pelanggan_id
+                $subtotalDetail = $this->calculateNormalPrice($detail, $pelangganId);
 
 
                 $hargaJualDetail = $subtotalDetail / $detail['qty'];
@@ -224,12 +218,12 @@ class PenjualanService
         return $hargaBarang ? (float)$hargaBarang->harga : 0;
     }
 
-    public function calculateSubtotalWithPaket(array $details): float
+    public function calculateSubtotalWithPaket(array $details, ?int $pelangganId = null): float
     {
         $subtotal = 0;
 
         foreach ($details as $detail) {
-            $subtotal += $this->calculateNormalPrice($detail);
+            $subtotal += $this->calculateNormalPrice($detail, $pelangganId);
         }
 
         return $subtotal;
@@ -238,7 +232,7 @@ class PenjualanService
     /**
      * Calculate normal price for a detail item
      */
-    private function calculateNormalPrice(array $detail): float
+    private function calculateNormalPrice(array $detail, ?int $pelangganId = null): float
     {
         $barangId = $detail['barang_id'];
         $satuanId = $detail['satuan_id'];
@@ -246,38 +240,71 @@ class PenjualanService
         $harga = $detail['harga_jual'];
         $tipeHarga = $detail['tipe_harga'];
 
-        $subtotal = $harga * $qty;
+        $barang = \App\Models\Barang::with('kategori')->find($barangId);
 
-        $barang = \App\Models\Barang::find($barangId);
-
-        // Check if 'legal' jenis with grosir tipe_harga and satuan 'bungkus' (satuan_id == 2)
-        if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
-            
-            // Calculate legal surcharge
-            $surcharge = 0;
-            if ($qty >= 1 && $qty <= 4) {
-                $surcharge = 500;
-            } else if ($qty >= 5) {
-                $surcharge = 1000;
+        // Check if customer is special (Kedai Kopi or Hubuan)
+        $isKedaiKopi = false;
+        $isHubuan = false;
+        if ($pelangganId) {
+            $pelanggan = \App\Models\Pelanggan::find($pelangganId);
+            if ($pelanggan) {
+                $isKedaiKopi = strtolower($pelanggan->nama_pelanggan) === 'kedai kopi';
+                $isHubuan = strtolower($pelanggan->nama_pelanggan) === 'hubuan';
             }
-            $subtotal += $surcharge;
-
-            // Apply pembulatan only if surcharge > 0
-            if ($surcharge > 0) {
-                $subtotal += $this->calculatePembulatan($subtotal);
-            }
-            // If surcharge == 0, no pembulatan applied
-        } else {
-            // For other items, add surcharge for 'barang timbangan' kategori
-            if ($barang && $barang->kategori && strtolower($barang->kategori) === 'barang timbangan' && $barang->satuan_id == $satuanId) {
-                $subtotal += 1000;
-            }
-
-            // Always apply pembulatan for non-legal grosir satuan 2 items
-            $subtotal += $this->calculatePembulatan($subtotal);
         }
 
-        return $subtotal;
+        if ($isKedaiKopi || $isHubuan) {
+            if ($isKedaiKopi) {
+                // For Kedai Kopi: just qty * harga_beli (no surcharges, no markups, no pembulatan)
+                $hargaBeli = $barang ? $barang->harga_beli : 0;
+                return $qty * $hargaBeli;
+            } elseif ($isHubuan) {
+                // For Hubuan: special pricing logic
+                $subtotal = $harga * $qty;
+                // If Rokok with jenis legal, add 3000 to harga
+                if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'rokok & tembakau' && $barang->jenis && strtolower($barang->jenis) === 'legal') {
+                    $subtotal = $qty * ($harga + 3000);
+                }
+                return $subtotal;
+            } else {
+                // For other special customers: normal pricing but skip surcharges and markups
+                return $harga * $qty;
+            }
+        } else {
+            // Regular customers: apply all rules
+            $subtotal = $harga * $qty;
+
+            // Check if 'legal' jenis with grosir tipe_harga and satuan 'bungkus' (satuan_id == 2)
+            if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
+
+                // Calculate legal surcharge
+                $surcharge = 0;
+                if ($qty >= 1 && $qty <= 4) {
+                    $surcharge = 500;
+                } else if ($qty >= 5) {
+                    $surcharge = 1000;
+                }
+                $subtotal += $surcharge;
+
+                // Apply pembulatan only if surcharge > 0
+                if ($surcharge > 0) {
+                    $subtotal += $this->calculatePembulatan($subtotal);
+                }
+                // If surcharge == 0, no pembulatan applied
+            } else {
+                // For other items, add surcharge for 'barang timbangan' kategori
+                if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'barang timbangan' && $barang->satuan_id == $satuanId) {
+                    // Apply barang timbangan logic: ceil to nearest 1000 + 1000
+                    $hasilDasar = $qty * $harga;
+                    $subtotal = ceil($hasilDasar / 1000) * 1000 + 1000;
+                }
+
+                // Always apply pembulatan for non-legal grosir satuan 2 items
+                $subtotal += $this->calculatePembulatan($subtotal);
+            }
+
+            return $subtotal;
+        }
     }
 
     /**
@@ -303,7 +330,7 @@ class PenjualanService
     /**
      * Calculate subtotal and pembulatan together
      */
-    public function calculateSubtotalAndPembulatan(array $details): array
+    public function calculateSubtotalAndPembulatan(array $details, ?int $pelangganId = null): array
     {
         // If no details provided, return zeros
         if (empty($details)) {
@@ -314,7 +341,7 @@ class PenjualanService
             ];
         }
 
-        $subtotal = round($this->calculateSubtotalWithPaket($details));
+        $subtotal = round($this->calculateSubtotalWithPaket($details, $pelangganId));
         $pembulatan = $this->calculatePembulatan($subtotal);
         $grandTotal = $subtotal + $pembulatan;
 
