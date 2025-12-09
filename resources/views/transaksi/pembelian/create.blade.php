@@ -1,5 +1,6 @@
-@include('layout.header')
 
+@section('title', 'Pembelian')
+@include('layout.header')
 <div class="container-fluid py-4">
     <!-- Header Section -->
     <div class="row mb-4">
@@ -21,7 +22,6 @@
                 <div class="card-body p-4">
                     <form id="pembelianForm">
                         @csrf
-
                         <!-- Informasi Pembelian -->
                         <div class="mb-4">
                             <h5 class="card-title fw-semibold mb-3">Informasi Pembelian</h5>
@@ -37,72 +37,68 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label for="diskon" class="form-label fw-medium">Diskon</label>
-                                    <input type="number" class="form-control" id="diskon" name="diskon" value="0" min="0" step="0.01">
+                                    <input type="number" class="form-control" id="diskon" name="diskon" value="0" min="0">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="ppn" class="form-label fw-medium">PPN</label>
-                                    <input type="number" class="form-control" id="ppn" name="ppn" value="0" min="0" step="0.01">
+                                    <input type="number" class="form-control" id="ppn" name="ppn" value="0" min="0">
                                 </div>
-                                <div class="col-12">
+                                <div class="col-8">
                                     <label for="catatan" class="form-label fw-medium">Catatan</label>
                                     <textarea class="form-control" id="catatan" name="catatan" rows="3" placeholder="Tambahkan catatan jika diperlukan"></textarea>
                                 </div>
+                                <div class="col-4">
+                                    <button type="submit" class="btn btn-primary" id="btnSavePembelianMaster" style="margin-top: 32px;">
+                                        <i class="fas fa-save me-1"></i>Simpan
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Detail Barang -->
-                        <div class="mb-4">
-                            <!-- Default form row -->
-                            <div class="detail-row mb-3 border rounded p-3 bg-light" id="defaultRow">
-                                <div class="row g-3">
-                                    <div class="col-md-3">
-                                        <label class="form-label fw-medium">Barang <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control barang-autocomplete" name="details[0][barang_nama]" placeholder="Ketik nama atau kode barang">
-                                        <input type="hidden" class="barang-id" name="details[0][barang_id]">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label fw-medium">Satuan <span class="text-danger">*</span></label>
-                                        <select class="form-select satuan-select" name="details[0][satuan_id]" disabled>
-                                            <option value="">Pilih Satuan</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label fw-medium">Qty <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control qty-input" name="details[0][qty]" min="0.01" step="0.01">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label fw-medium">Harga Beli <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control harga-input" name="details[0][harga_beli]" min="0" step="1">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label fw-medium">Subtotal</label>
-                                        <input type="number" class="form-control subtotal-input fw-semibold" step="any" readonly>
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-end">
-                                        <button type="button" class="btn btn-outline-success btn-sm add-to-list-btn w-100">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
+                    </form>
+                    <!-- Detail Barang -->
+                    <div class="mb-4" style="display: none;" id="dtlPembelian">
+                        <div class="detail-row mb-3 border rounded p-3 bg-light" id="defaultRow">
+                            <input type="hidden" id="pembelian_id" name="pembelian_id">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium">Barang <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control barang-autocomplete" name="nama_barang" id="nama_barang[0]" data-id="0" placeholder="Ketik nama atau kode barang">
+                                    <input type="hidden" class="barang-id" name="barang_id">
                                 </div>
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <label class="form-label fw-medium">Pilih Kas</label>
-                                        <input type="text" class="form-control" name="details[0][keterangan]" placeholder="Tambahkan keterangan jika diperlukan">
-                                    </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-medium">Satuan <span class="text-danger">*</span></label>
+                                    <select class="form-select satuan-select" name="satuan_id" id="satuan_id[0]" data-id="0" disabled>
+                                        <option value="">Pilih Satuan</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-medium">Qty <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control qty-input" name="qty" id="qty[0]">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-medium">Harga Beli <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control harga-input" name="harga_beli" id="harga_beli[0]">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-medium">Subtotal</label>
+                                    <input type="number" class="form-control subtotal-input fw-semibold" name="subtotal" id="subtotal[0]" readonly>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="button" id="btnSaveDtl" class="btn btn-outline-success btn-sm add-to-list-btn w-100">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
                             </div>
-
                             <!-- List of added items -->
-                            <div id="addedItemsContainer" style="display: none;">
+                            <div id="addedItemsContainer" style="display: none; margin-top: 15px;">
                                 <h6 class="fw-semibold mb-3 text-primary">
                                     <i class="fas fa-list me-2"></i>Barang yang Ditambahkan
                                 </h6>
-                                <div id="addedItemsList">
+                                <div id="detailContainer">
                                     <!-- Added items will appear here -->
                                 </div>
                             </div>
                         </div>
-
                         <!-- Pembayaran -->
                         <div class="mb-4">
                             <h5 class="card-title fw-semibold mb-3">Pembayaran</h5>
@@ -117,7 +113,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label for="nominal_pembayaran" class="form-label fw-medium">Nominal <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="nominal_pembayaran" name="nominal_pembayaran" min="0" step="0.01">
+                                    <input type="number" class="form-control" id="nominal_pembayaran" name="nominal_pembayaran" value="0">
                                 </div>
                                 <div class="col-md-4" id="keterangan_pembayaran_container" style="display: none;">
                                     <label for="keterangan_pembayaran" class="form-label fw-medium">Keterangan</label>
@@ -129,33 +125,17 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="mt-3">
-                                <button type="button" class="btn btn-outline-success btn-sm" id="addPembayaranBtn">
-                                    <i class="fas fa-plus me-1"></i>Tambah Pembayaran
-                                </button>
-                            </div>
-                            <div id="pembayaranList" class="mt-3" style="display: none;">
-                                <h6 class="fw-semibold mb-3 text-primary">
-                                    <i class="fas fa-credit-card me-2"></i>Pembayaran yang Ditambahkan
-                                </h6>
-                                <div id="pembayaranItems"></div>
-                            </div>
                         </div>
-
                         <!-- Action Buttons -->
                         <div class="d-flex gap-2 justify-content-end">
-                            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
-                                <i class="fas fa-undo me-1"></i>Reset
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <button type="button" class="btn btn-primary" id="btnSaveAll">
                                 <i class="fas fa-save me-1"></i>Simpan
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
-
         <!-- Right Column: Ringkasan -->
         <div class="col-lg-4">
             <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
@@ -183,615 +163,583 @@
         </div>
     </div>
 </div>
+@include('layout.footer')
 
 <script>
-let rowIndex = 1;
-
-$(document).ready(function() {
-    // Supplier autocomplete
-    $('#supplier_autocomplete').autocomplete({
-        source: function(request, response) {
-            $.ajax({
-                url: '{{ route("supplier.search") }}',
-                dataType: 'json',
-                data: { q: request.term },
-                success: function(data) {
-                    if (data.status === 'success') {
-                        response($.map(data.data, function(item) {
-                            return {
-                                label: item.nama_supplier,
-                                value: item.nama_supplier,
-                                id: item.id
-                            };
-                        }));
-                    }
-                }
-            });
-        },
-        minLength: 2,
-        select: function(event, ui) {
-            $('#supplier_id').val(ui.item.id);
-            $('#supplier_autocomplete').val(ui.item.value);
-            return false;
-        }
-    });
-
-    // Add new row (disabled - now using individual + buttons)
-    $('#addRowBtn').click(function() {
-        // addNewRow();
-    });
-
-    // Add to list button
-    $(document).on('click', '.add-to-list-btn', function() {
-        var rowElement = $(this).closest('.detail-row');
-        addToList(rowElement);
-    });
-
-    // Remove from list
-    $(document).on('click', '.remove-from-list-btn', function() {
-        var itemElement = $(this).closest('.added-item');
-        removeFromList(itemElement);
-    });
-
-    // Update save button when barang or satuan changes
-    $(document).on('change', '.barang-autocomplete, .satuan-select', function() {
-        updateRemoveButtons();
-    });
-
-    // Calculate subtotal when qty or harga changes
-    $(document).on('input', '.qty-input, .harga-input', function() {
-        calculateSubtotal($(this).closest('.detail-row'));
-        calculateTotal();
-        updateRemoveButtons(); // Update save button state
-    });
-
-    // Prevent decimal input in harga-input fields
-    $(document).on('keypress', '.harga-input', function(e) {
-        // Allow only numbers, backspace, delete, tab, escape, enter, and arrow keys
-        if (e.which != 8 && e.which != 0 && e.which != 9 && e.which != 27 && e.which != 13 && e.which != 37 && e.which != 38 && e.which != 39 && e.which != 40 && (e.which < 48 || e.which > 57)) {
-            return false;
-        }
-    });
-
-    // Autocomplete barang
-    $(document).on('focus', '.barang-autocomplete', function() {
-        $(this).autocomplete({
+    $(document).ready(function() {
+        $('#supplier_autocomplete').autocomplete({
             source: function(request, response) {
                 $.ajax({
-                    url: '{{ route("barang.search") }}',
+                    url: '{{ route("supplier.search") }}',
                     dataType: 'json',
                     data: { q: request.term },
                     success: function(data) {
                         if (data.status === 'success') {
                             response($.map(data.data, function(item) {
                                 return {
-                                    label: item.kode_barang + ' - ' + item.nama_barang + (item.barcode ? ' (' + item.barcode + ')' : ''),
-                                    value: item.nama_barang,
-                                    id: item.id,
-                                    barcode: item.barcode
+                                    label: item.nama_supplier,
+                                    value: item.nama_supplier,
+                                    id: item.id
                                 };
                             }));
                         }
                     }
                 });
             },
-            minLength: 1, // Allow single character for barcode scanning
+            minLength: 2,
             select: function(event, ui) {
-                var row = $(this).closest('.detail-row');
-                row.find('.barang-id').val(ui.item.id);
-                row.find('.barang-autocomplete').val(ui.item.value);
-
-                // Load satuan untuk barang ini
-                loadSatuan(row, ui.item.id);
-
+                $('#supplier_id').val(ui.item.id);
+                $('#supplier_autocomplete').val(ui.item.value);
                 return false;
             }
         });
-    });
-
-    // Handle barcode scanning - auto trigger search on enter
-    $(document).on('keypress', '.barang-autocomplete', function(e) {
-        if (e.which === 13) { // Enter key
-            var input = $(this);
-            var term = input.val().trim();
-
-            if (term.length > 0) {
-                // Search for exact barcode match first
-                $.ajax({
-                    url: '{{ route("barang.search") }}',
-                    dataType: 'json',
-                    data: { q: term },
-                    success: function(data) {
-                        if (data.status === 'success' && data.data.length > 0) {
-                            // Find exact barcode match
-                            var exactMatch = data.data.find(function(item) {
-                                return item.barcode === term || item.kode_barang === term;
+        
+        $(document).on('click', '#btnSavePembelianMaster', function() {
+            if ($('[name=catatan]').val() === '') {
+                $('[name=catatan]').val('-');
+            }
+            $("#pembelianForm").validate({
+                rules: {
+                    supplier_id: {
+                        required: true
+                    },
+                    supplier_nama: {
+                        required: true,
+                    }
+                },
+                messages: {
+                    supplier_id: {
+                        required: 'Supplier harus diisi'
+                    },
+                    supplier_nama: {
+                        required: 'Supplier harus diisi',
+                    }
+                },
+                submitHandler: function(form) {
+                    $("#btnSavePembelianMaster").prop("disabled", true);
+                    $("#btnSavePembelianMaster").html('<i class="fas fa-spinner fa-spin me-1"></i> Loading...');
+                    $.ajax({
+                        url: "{{ route('pembelian.store') }}",
+                        type: "POST",
+                        data: $(form).serialize(),
+                        success: function(response) {
+                            if (response.success) {
+                                $("[name=supplier_nama]").prop("disabled", true);
+                                $("[name=tanggal_pembelian]").prop("disabled", true);
+                                $("[name=diskon]").prop("disabled", true);
+                                $("[name=ppn]").prop("disabled", true);
+                                $("[name=pembelian_id]").val(response.pembelian_id);
+                                $("[name=catatan]").prop("disabled", true);
+                                $("#btnSavePembelianMaster").hide();
+                                $('#dtlPembelian').show();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message
+                                }).then(function() {
+                                    setTimeout(() => {
+                                    $(`#${response.form}`).focus().select();
+                                    }, 500);
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            var errors = xhr.responseJSON.errors;
+                            if (errors) {
+                            var errorMessage = '';
+                            for (var key in errors) {
+                                errorMessage += errors[key][0] + '\n';
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Validation Error',
+                                text: errorMessage
                             });
-
-                            if (exactMatch) {
-                                var row = input.closest('.detail-row');
-                                row.find('.barang-id').val(exactMatch.id);
-                                row.find('.barang-autocomplete').val(exactMatch.nama_barang);
-
-                                // Load satuan untuk barang ini
-                                loadSatuan(row, exactMatch.id);
-                            } else if (data.data.length === 1) {
-                                // If only one result, auto-select it
-                                var row = input.closest('.detail-row');
-                                row.find('.barang-id').val(data.data[0].id);
-                                row.find('.barang-autocomplete').val(data.data[0].nama_barang);
-
-                                // Load satuan untuk barang ini
-                                loadSatuan(row, data.data[0].id);
+                            } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: 'Terjadi kesalahan'
+                            });
                             }
                         }
-                    }
-                });
-            }
-        }
-    });
-
-    // Load satuan berdasarkan barang
-    function loadSatuan(row, barangId) {
-        $.ajax({
-            url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
-            type: 'GET',
-            success: function(data) {
-                if (data.status === 'success') {
-                    var satuanSelect = row.find('.satuan-select');
-                    satuanSelect.empty().append('<option value="">Pilih Satuan</option>');
-
-                    $.each(data.data, function(index, satuan) {
-                        satuanSelect.append('<option value="' + satuan.satuan_id + '" data-harga="' + satuan.harga_beli + '">' + satuan.nama_satuan + '</option>');
                     });
+                }
+            });
+        });
 
-                    satuanSelect.prop('disabled', false);
+        $(document).on('focus', '.barang-autocomplete', function () {
+            var dataId = $(this).attr('data-id');
+            var element = this; // simpan element autocomplete
+            $(this).autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '{{ route("barang.search") }}',
+                        dataType: 'json',
+                        data: { q: request.term },
+                        success: function (data) {
+                            if (data.status === 'success') {
 
-                    // Auto-select first satuan if available
-                    if (data.data.length > 0) {
-                        satuanSelect.val(data.data[0].satuan_id);
-                        // Auto-fill harga if available
-                        if (data.data[0].harga_beli > 0) {
-                            row.find('.harga-input').val(data.data[0].harga_beli);
-                            calculateSubtotal(row);
-                            calculateTotal();
+                                // -------------------------------------------------------
+                                // AUTO SELECT BARCODE
+                                // -------------------------------------------------------
+                                let exactBarcodeItem = data.data.find(function (item) {
+                                    return item.barcode && item.barcode.toString() === request.term.toString();
+                                });
+
+                                // Jika input dari scanner EXACT sama dengan barcode item
+                                if (exactBarcodeItem) {
+
+                                    var ui = {
+                                        item: {
+                                            id: exactBarcodeItem.id,
+                                            value: exactBarcodeItem.nama_barang,
+                                            barcode: exactBarcodeItem.barcode
+                                        }
+                                    };
+
+                                    // Trigger autocomplete "select"
+                                    $(element).autocomplete("instance")._trigger("select", null, ui);
+
+                                    return; // Stop autocomplete dropdown
+                                }
+
+                                // -------------------------------------------------------
+                                // AUTOCOMPLETE NORMAL
+                                // -------------------------------------------------------
+                                response($.map(data.data, function (item) {
+                                    return {
+                                        label: item.kode_barang + ' - ' + item.nama_barang + (item.barcode ? ' (' + item.barcode + ')' : ''),
+                                        value: item.nama_barang,
+                                        id: item.id,
+                                        barcode: item.barcode
+                                    };
+                                }));
+                            }
+                        }
+                    });
+                },
+                minLength: 3,
+                select: function (event, ui) {
+                    $("[name=nama_barang]").val(ui.item.value);
+                    $("[name=barang_id]").val(ui.item.id);
+                    // Load satuan untuk barang ini
+                    loadSatuan(ui.item.id);
+
+                    return false;
+                }
+            });
+        });
+
+        function loadSatuan(barangId) {
+            $.ajax({
+                url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
+                type: 'GET',
+                success: function(data) {
+                    if (data.status === 'success') {
+                        
+                        // PERBAIKAN PENTING DI SINI
+                        var satuanSelect = $('[name="satuan_id"]');
+
+                        satuanSelect.empty().append('<option value="">Pilih Satuan</option>');
+
+                        $.each(data.data, function(index, satuan) {
+                            satuanSelect.append(
+                                '<option value="' + satuan.satuan_id + '" data-harga="' + satuan.harga_beli + '">' 
+                                + satuan.nama_satuan + 
+                                '</option>'
+                            );
+                        });
+
+                        satuanSelect.prop('disabled', false);
+
+                        if (data.data.length > 0) {
+                            satuanSelect.val(data.data[0].satuan_id);
+                            $('[name="qty"]').val(1);
+                            $('[name="harga_beli"]').val(data.data[0].harga_beli);
+
+                            $('[name="subtotal"]').val(data.data[0].harga_beli);
                         }
                     }
                 }
-            }
-        });
-    }
-
-    // Update harga when satuan changes
-    $(document).on('change', '.satuan-select', function() {
-        var row = $(this).closest('.detail-row');
-        var selectedOption = $(this).find('option:selected');
-        var harga = selectedOption.data('harga');
-
-        if (harga !== undefined && harga > 0) {
-            row.find('.harga-input').val(harga);
-        } else {
-            // Jika tidak ada harga default, kosongkan field harga
-            row.find('.harga-input').val('');
+            });
         }
 
-        calculateSubtotal(row);
-        calculateTotal();
-    });
 
-    // Update diskon and ppn
-    $('#diskon, #ppn').on('input', function() {
-        calculateTotal();
-    });
-
-    // Show/hide keterangan_pembayaran based on metode_pembayaran
-    $('#metode_pembayaran').on('change', function() {
-        var metode = $(this).val();
-        if (metode === 'transfer') {
-            $('#keterangan_pembayaran_container').show();
-        } else {
-            $('#keterangan_pembayaran_container').hide();
-            $('#keterangan_pembayaran').val(''); // Clear the value when hidden
+        function calculateSubtotal(qty,harga_beli) {
+            var subtotal = qty*harga_beli;
+            $('[name="subtotal"]').val(subtotal);
         }
-    });
 
-    // Add pembayaran to list
-    $('#addPembayaranBtn').click(function() {
-        addPembayaranToList();
-    });
+        // update harga by satuan
+        $(document).on('change', 'select[name="satuan_id"]', function() {
+            var row = $(this).closest('.detail-row');
+            var selectedOption = $(this).find('option:selected');
+            var harga = selectedOption.data('harga');
 
-    // Remove pembayaran from list
-    $(document).on('click', '.remove-pembayaran-btn', function() {
-        removePembayaranFromList($(this).closest('.pembayaran-item'));
-    });
+            var hargaInput = row.find('.harga-input');
 
-    // Form validation and submit
-    $('#pembelianForm').validate({
-        rules: {
-            supplier_id: 'required',
-            tanggal_pembelian: 'required'
-        },
-        messages: {
-            supplier_id: 'Supplier harus dipilih',
-            tanggal_pembelian: 'Tanggal pembelian harus diisi'
-        },
-        submitHandler: function(form) {
-            // Check if there are items in the list
-            var hasItems = $('.added-item').length > 0;
-
-            if (hasItems) {
-                // If there are items in the list, save directly without validation
-                submitForm();
+            if (harga !== undefined && harga > 0) {
+                hargaInput.val(harga);
             } else {
-                // If no items in list, validate the form fields
-                var isValid = true;
-                var errorMessages = [];
+                hargaInput.val(0);
+            }
 
-                // Check supplier
-                if (!$('#supplier_id').val()) {
-                    isValid = false;
-                    errorMessages.push('Supplier harus dipilih');
-                }
+            var qty = $("[name=qty]").val();
+            calculateSubtotal(qty,harga);
+        });
 
-                // Check tanggal
-                if (!$('#tanggal_pembelian').val()) {
-                    isValid = false;
-                    errorMessages.push('Tanggal pembelian harus diisi');
-                }
+        $(document).on('keyup', '[name="qty"]', function() {
 
-                // Check if there's at least one item in the form
-                var hasFormItem = false;
-                $('.detail-row').each(function(index) {
-                    var row = $(this);
-                    var barangId = row.find('.barang-id').val();
-                    var satuanId = row.find('.satuan-select').val();
-                    var qty = parseFloat(row.find('.qty-input').val());
-                    var harga = parseFloat(row.find('.harga-input').val());
+            var qty = parseFloat($(this).val()) || 0;
+            var harga_beli = parseFloat($("[name=harga_beli]").val()) || 0;
+            calculateSubtotal(qty,harga_beli);
+        });
 
-                    if (barangId && satuanId && qty > 0 && harga >= 0) {
-                        hasFormItem = true;
-                        return false; // break loop
+        $(document).on('keyup', '[name="harga_beli"]', function() {
+
+            var harga_beli = parseFloat($(this).val()) || 0;
+            var qty = parseFloat($("[name=qty]").val()) || 0;
+            calculateSubtotal(qty,harga_beli);
+        });
+
+        $(document).on('click', '#btnSaveDtl', function() {
+            var pembelian_id = $("[name=pembelian_id]").val();
+            var barang_id = $("[name=barang_id]").val();
+            var satuan_id = $("[name=satuan_id]").val();
+            var qty = $("[name=qty]").val();
+            var harga_beli = $("[name=harga_beli]").val();
+
+            $.ajax({
+                url: "{{ route('pembelian.save-dtl') }}",
+                type: "POST",
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    pembelian_id: pembelian_id,
+                    barang_id: barang_id,
+                    satuan_id: satuan_id,
+                    qty: qty,
+                    harga_beli: harga_beli
+                },
+
+                success: function(response) {
+                    if (response.success) {
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message,
+                            timer: 1200,
+                            showConfirmButton: false
+                        }).then(function() {
+
+                            setTimeout(() => {
+
+                                // ===============================
+                                // 🔥 UPDATE TOTAL
+                                // ===============================
+                                let totalSubtotal = parseFloat(response.data.subtotal) || 0;
+                                let totalDiskon   = parseFloat(response.data.diskon) || 0;
+                                let totalPpn      = parseFloat(response.data.ppn) || 0;
+                                let totalAkhir    = parseFloat(response.data.total) || 0;
+
+                                $('#totalSubtotal').text('Rp ' + totalSubtotal.toLocaleString('id-ID'));
+                                $('#totalDiskon').text('Rp ' + totalDiskon.toLocaleString('id-ID'));
+                                $('#totalPpn').text('Rp ' + totalPpn.toLocaleString('id-ID'));
+                                $('#totalAkhir').text('Rp ' + totalAkhir.toLocaleString('id-ID'));
+
+                                // 🔄 Refresh detail list
+                                getDetail(response.data.id);
+
+
+                                // =====================================================
+                                // 🔥 RESET FORM INPUT DETAIL (sesuai permintaan kamu)
+                                // =====================================================
+
+                                $("[name=barang_id]").val('');
+                                $("[name=barang_nama]").val(''); // kalau pakai autocomplete
+
+                                // Reset select satuan
+                                let satuanSelect = $("[name=satuan_id]");
+                                satuanSelect.empty()
+                                    .append('<option value="">Pilih Satuan</option>')
+                                    .prop("disabled", true);
+
+                                $("[name=qty]").val('');
+                                $("[name=harga_beli]").val('');
+                                $("[name=keterangan]").val('');
+                                $("[name=nama_barang]").val('');
+
+                            }, 300);
+
+                        });
                     }
-                });
+                },
 
-                if (!hasFormItem) {
-                    isValid = false;
-                    errorMessages.push('Minimal harus ada satu barang yang diisi lengkap');
+                // ❌ Error handler pakai Swal
+                error: function(xhr) {
+                    let msg = "Terjadi kesalahan saat memproses data.";
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: msg
+                    });
+                }
+            });
+
+        });
+
+
+
+        $(document).on('click', '#btnDltDtl', function() {
+            var pembelianId = $(this).attr("data-mst-id");
+            var pembelianDetailId = $(this).attr("data-id");
+
+            let url = "{{ route('pembelian.delete-dtl', ['pembelian_id' => ':pid', 'pembelian_detail_id' => ':did']) }}"
+                .replace(':pid', pembelianId)
+                .replace(':did', pembelianDetailId);
+
+            $.ajax({
+                url: url,
+                type: "DELETE",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message
+                        }).then(function() {
+                            setTimeout(() => {
+                                var totalSubtotal = response.data.subtotal;
+                                totalSubtotal = parseFloat(totalSubtotal) || 0;
+                                var totalDiskon = response.data.diskon;
+                                totalDiskon = parseFloat(totalDiskon) || 0;
+                                var totalPpn = response.data.ppn;
+                                totalPpn = parseFloat(totalPpn) || 0;
+                                var totalAkhir = response.data.total;
+                                totalAkhir = parseFloat(totalAkhir) || 0;
+
+                                $('#totalSubtotal').text('Rp ' + totalSubtotal.toLocaleString('id-ID', {maximumFractionDigits: 2}));
+                                $('#totalDiskon').text('Rp ' + totalDiskon.toLocaleString('id-ID', {maximumFractionDigits: 2}));
+                                $('#totalPpn').text('Rp ' + totalPpn.toLocaleString('id-ID', {maximumFractionDigits: 2}));
+                                $('#totalAkhir').text('Rp ' + totalAkhir.toLocaleString('id-ID', {maximumFractionDigits: 2}));
+
+                                getDetail(response.data.id);
+                            }, 500);
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = "Terjadi kesalahan saat menghapus data.";
+
+                    // Jika Laravel mengirim response JSON
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: errorMessage
+                    });
                 }
 
-                if (!isValid) {
-                    Swal.fire('Validasi Error!', errorMessages.join('<br>'), 'error');
-                    return false;
-                }
+            });
+            
+        });
 
-                submitForm();
-            }
-        }
-    });
-});
+        function getDetail(pembelian_id) {
+            let url = "{{ route('pembelian.get-dtl', ':id') }}".replace(':id', pembelian_id);
 
-function addNewRow() {
-    var newRow = `
-        <div class="detail-row mb-3 border rounded p-3 bg-light">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label fw-medium">Barang <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control barang-autocomplete" name="details[${rowIndex}][barang_nama]" placeholder="Ketik nama atau kode barang" required>
-                    <input type="hidden" class="barang-id" name="details[${rowIndex}][barang_id]" required>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-medium">Satuan <span class="text-danger">*</span></label>
-                    <select class="form-select satuan-select" name="details[${rowIndex}][satuan_id]" required disabled>
-                        <option value="">Pilih Satuan</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-medium">Qty <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control qty-input" name="details[${rowIndex}][qty]" min="0.01" step="0.01" required>
-                </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label fw-medium">Harga Beli <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control harga-input" name="details[${rowIndex}][harga_beli]" min="0" step="1" required>
+            $.ajax({
+                url: url,
+                type: "GET",
+                success: function(result) {
+
+                    // Focus kembali ke input barang
+                    $("[name=nama_barang]").focus().select();
+
+                    $("#addedItemsContainer").show();
+
+                    let container = $("#detailContainer");
+                    container.empty(); // Kosongkan dulu
+
+                    result.datas.forEach(function(item) {
+                        let html = `
+                        <div class="added-item card mb-2 border-left-primary"
+                            data-barang-id="${item.barang_id}"
+                            data-satuan-id="${item.satuan_id}"
+                            data-qty="${item.qty}"
+                            data-harga-beli="${item.harga_beli}"
+                            data-keterangan="${item.keterangan ?? ''}"
+                            data-subtotal="${item.subtotal}">
+                            
+                            <div class="card-body p-3">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3">
+                                        <strong class="text-primary">${item.barang.nama_barang}</strong>
                                     </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-medium">Subtotal</label>
-                    <input type="number" class="form-control subtotal-input fw-semibold" step="any" readonly>
-                </div>
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="button" class="btn btn-outline-success btn-sm add-to-list-btn w-100">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-12">
-                    <label class="form-label fw-medium">Keterangan</label>
-                    <input type="text" class="form-control" name="details[${rowIndex}][keterangan]" placeholder="Tambahkan keterangan jika diperlukan">
-                </div>
-            </div>
-        </div>
-    `;
-    // Insert new row after the default row (at the top)
-    $('#defaultRow').after(newRow);
-    rowIndex++;
-    updateRemoveButtons();
-}
+                                    <div class="col-md-2">
+                                        <small class="text-muted">${item.satuan.nama_satuan}</small>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <span class="badge bg-secondary">${parseFloat(item.qty)}</span>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="fw-medium">Rp ${parseFloat(item.harga_beli).toLocaleString('id-ID')}</span>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="fw-bold text-success">Rp ${parseFloat(item.subtotal).toLocaleString('id-ID')}</span>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <button type="button" id="btnDltDtl" data-id="${item.id}" data-mst-id="${item.pembelian_id}}" class="btn btn-sm btn-outline-danger remove-from-list-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
 
-function addToList(rowElement) {
-    var barangNama = rowElement.find('.barang-autocomplete').val();
-    var barangId = rowElement.find('.barang-id').val();
-    var satuanText = rowElement.find('.satuan-select option:selected').text();
-    var satuanId = rowElement.find('.satuan-select').val();
-    var qty = rowElement.find('.qty-input').val();
-    var harga = rowElement.find('.harga-input').val();
-    var subtotal = rowElement.find('.subtotal-input').val();
-    var keterangan = rowElement.find('input[name*="[keterangan]"]').val();
+                                ${item.keterangan ? `
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <small class="text-muted">
+                                        <i class="fas fa-sticky-note me-1"></i>${item.keterangan}
+                                        </small>
+                                    </div>
+                                </div>
+                                ` : ""}
+                            </div>
+                        </div>
+                        `;
 
-    // Validate required fields
-    if (!barangId || !satuanId || !qty || harga === '') {
-        Swal.fire('Error!', 'Harap lengkapi semua field yang diperlukan sebelum menambah ke daftar.', 'error');
-        return;
-    }
+                        container.append(html);
 
-    // Create list item with data attributes for saving
-    var listItem = `
-        <div class="added-item card mb-2 border-left-primary"
-             data-barang-id="${barangId}"
-             data-satuan-id="${satuanId}"
-             data-qty="${qty}"
-             data-harga-beli="${harga}"
-             data-keterangan="${keterangan || ''}"
-             data-subtotal="${subtotal}">
-            <div class="card-body p-3">
-                <div class="row align-items-center">
-                    <div class="col-md-3">
-                        <strong class="text-primary">${barangNama}</strong>
-                    </div>
-                    <div class="col-md-2">
-                        <small class="text-muted">${satuanText}</small>
-                    </div>
-                    <div class="col-md-1">
-                        <span class="badge bg-secondary">${qty}</span>
-                    </div>
-                    <div class="col-md-2">
-                        <span class="fw-medium">Rp ${parseFloat(harga).toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="col-md-2">
-                        <span class="fw-bold text-success">Rp ${parseFloat(subtotal).toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="col-md-2 text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger remove-from-list-btn">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                ${keterangan ? `<div class="row mt-2"><div class="col-12"><small class="text-muted"><i class="fas fa-sticky-note me-1"></i>${keterangan}</small></div></div>` : ''}
-            </div>
-        </div>
-    `;
+                        
+                    });
 
-    // Add to list
-    $('#addedItemsList').append(listItem);
-    $('#addedItemsContainer').show();
-
-    // Clear the form row
-    rowElement.find('.barang-autocomplete').val('');
-    rowElement.find('.barang-id').val('');
-    rowElement.find('.satuan-select').html('<option value="">Pilih Satuan</option>').prop('disabled', true);
-    rowElement.find('.qty-input').val('');
-    rowElement.find('.harga-input').val('');
-    rowElement.find('.subtotal-input').val('');
-    rowElement.find('input[name*="[keterangan]"]').val('');
-
-    // Update calculations
-    calculateTotal();
-    updateRemoveButtons();
-}
-
-function removeFromList(itemElement) {
-    itemElement.remove();
-
-    // Hide container if no items left
-    if ($('#addedItemsList').children().length === 0) {
-        $('#addedItemsContainer').hide();
-    }
-
-    // Update calculations
-    calculateTotal();
-    updateRemoveButtons();
-}
-
-function calculateSubtotal(row) {
-    var qty = parseFloat(row.find('.qty-input').val()) || 0;
-    var harga = parseFloat(row.find('.harga-input').val()) || 0;
-    var subtotal = qty * harga;
-    row.find('.subtotal-input').val(Math.round(subtotal));
-}
-
-function calculateTotal() {
-    var totalSubtotal = 0;
-    // Calculate from added items list using data-subtotal attribute
-    $('.added-item').each(function() {
-        var subtotal = parseFloat($(this).data('subtotal')) || 0;
-        totalSubtotal += subtotal;
-    });
-
-    var diskon = parseFloat($('#diskon').val()) || 0;
-    var ppn = parseFloat($('#ppn').val()) || 0;
-    var totalAkhir = totalSubtotal - diskon + ppn;
-
-    $('#totalSubtotal').text('Rp ' + totalSubtotal.toLocaleString('id-ID', {maximumFractionDigits: 2}));
-    $('#totalDiskon').text('Rp ' + diskon.toLocaleString('id-ID', {maximumFractionDigits: 2}));
-    $('#totalPpn').text('Rp ' + ppn.toLocaleString('id-ID', {maximumFractionDigits: 2}));
-    $('#totalAkhir').text('Rp ' + totalAkhir.toLocaleString('id-ID', {maximumFractionDigits: 2}));
-}
-
-function updateRemoveButtons() {
-    // Save button is always enabled - validation happens on submit
-    $('#submitBtn').prop('disabled', false);
-}
-
-function addPembayaranToList() {
-    var metode = $('#metode_pembayaran').val();
-    var nominal = parseFloat($('#nominal_pembayaran').val());
-    var keterangan = $('#keterangan_pembayaran').val();
-
-    // Validate
-    if (!metode || !nominal || nominal <= 0) {
-        Swal.fire('Error!', 'Harap lengkapi metode dan nominal pembayaran.', 'error');
-        return;
-    }
-
-    // Create list item
-    var metodeText = metode === 'tunai' ? 'Tunai' : 'Transfer';
-    var listItem = `
-        <div class="pembayaran-item card mb-2 border-left-info"
-             data-metode="${metode}"
-             data-nominal="${nominal}"
-             data-keterangan="${keterangan || ''}">
-            <div class="card-body p-3">
-                <div class="row align-items-center">
-                    <div class="col-md-3">
-                        <strong class="text-info">${metodeText}</strong>
-                    </div>
-                    <div class="col-md-3">
-                        <span class="fw-medium">Rp ${nominal.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="col-md-5">
-                        <small class="text-muted">${keterangan || '-'}</small>
-                    </div>
-                    <div class="col-md-1 text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger remove-pembayaran-btn">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Add to list
-    $('#pembayaranItems').append(listItem);
-    $('#pembayaranList').show();
-
-    // Clear form
-    $('#metode_pembayaran').val('');
-    $('#nominal_pembayaran').val('');
-    $('#keterangan_pembayaran').val('');
-}
-
-function removePembayaranFromList(itemElement) {
-    itemElement.remove();
-
-    // Hide container if no items left
-    if ($('#pembayaranItems').children().length === 0) {
-        $('#pembayaranList').hide();
-    }
-}
-
-function submitForm() {
-    var formData = new FormData(document.getElementById('pembelianForm'));
-
-    // If there are items in the list, collect data from the list instead of form
-    var hasItems = $('.added-item').length > 0;
-    if (hasItems) {
-        var details = [];
-        $('.added-item').each(function(index) {
-            var item = $(this);
-            details.push({
-                barang_id: item.data('barang-id'),
-                satuan_id: item.data('satuan-id'),
-                qty: item.data('qty'),
-                harga_beli: item.data('harga-beli'),
-                keterangan: item.data('keterangan') || ''
-            });
-        });
-
-        // Add details to formData
-        formData.append('details', JSON.stringify(details));
-    }
-
-    // Collect pembayaran data
-    var pembayaran = [];
-    $('.pembayaran-item').each(function(index) {
-        var item = $(this);
-        pembayaran.push({
-            metode: item.data('metode'),
-            nominal: item.data('nominal'),
-            keterangan: item.data('keterangan') || ''
-        });
-    });
-
-    // If no items in list, collect from form fields
-    if (pembayaran.length === 0) {
-        var metode = $('#metode_pembayaran').val();
-        var nominal = parseFloat($('#nominal_pembayaran').val());
-        var keterangan = $('#keterangan_pembayaran').val();
-
-        if (metode && nominal > 0) {
-            pembayaran.push({
-                metode: metode,
-                nominal: nominal,
-                keterangan: keterangan || ''
-            });
-        }
-    }
-
-    if (pembayaran.length > 0) {
-        formData.append('pembayaran', JSON.stringify(pembayaran));
-    }
-
-    $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
-
-    $.ajax({
-        url: '{{ route("pembelian.store") }}',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            if (response.status) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: response.message,
-                    showConfirmButton: false,
-                    timer: 2000
-                }).then(function() {
-                    window.location.href = '{{ route("pembelian.show", ":id") }}'.replace(':id', response.data.id);
-                });
-            } else {
-                Swal.fire('Gagal!', response.message, 'error');
-            }
-        },
-        error: function(xhr) {
-            var errors = xhr.responseJSON.errors;
-            var errorMessage = 'Terjadi kesalahan:';
-            if (errors) {
-                for (var key in errors) {
-                    errorMessage += '\n- ' + errors[key][0];
                 }
-            }
-            Swal.fire('Error!', errorMessage, 'error');
-        },
-        complete: function() {
-            $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Simpan');
+            });
         }
+
+        // Show/hide keterangan_pembayaran based on metode_pembayaran
+        $('#metode_pembayaran').on('change', function() {
+            var metode = $(this).val();
+            if (metode === 'transfer') {
+                $('#keterangan_pembayaran_container').show();
+            } else {
+                $('#keterangan_pembayaran_container').hide();
+                $('#keterangan_pembayaran').val(''); // Clear the value when hidden
+            }
+        });
+
+        $(document).on('click', '#btnSaveAll', function() {
+            var pembelian_id = $("[name=pembelian_id]").val();
+
+            cekDtl(pembelian_id);
+
+            var metode_pembayaran = $("[name=metode_pembayaran]").val();
+            var nominal_pembayaran = parseFloat($("[name=nominal_pembayaran]").val());
+            var keterangan_pembayaran = $("[name=keterangan_pembayaran]").val();
+            let totalText = $("#totalAkhir").text();
+            let totalValue = totalText.replace(/[Rp\s\.]/g, '').replace(',', '.');
+            totalValue = parseFloat(totalValue) || 0;
+
+
+            if (metode_pembayaran == '') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Metode pembayaran belum dipilih'
+                }).then(function() {
+                    setTimeout(() => {
+                        $("[name=metode_pembayaran]").focus().select();
+                    }, 500);
+                });
+                return false;
+            }
+            
+            if (nominal_pembayaran < totalValue) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Nominal pembayaran masih kurang dari total pembelian'
+                }).then(function() {
+                    setTimeout(() => {
+                        $("[name=nominal_pembayaran]").focus().select();
+                    }, 500);
+                });
+                return false;
+            }
+            let url = "{{ route('pembelian.save-all', ':id') }}".replace(':id', pembelian_id);
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    metode_pembayaran: metode_pembayaran,
+                    nominal_pembayaran: nominal_pembayaran,
+                    keterangan_pembayaran: keterangan_pembayaran
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message
+                        }).then(function() {
+                            setTimeout(() => {
+                                window.location.href = "{{ route('pembelian.index') }}";
+                            }, 500);
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message
+                        }).then(function() {
+                            setTimeout(() => {
+                                $(`#${response.form}`).focus().select();
+                            }, 500);
+                        });
+                    }
+                }
+            });
+        });
+
+        function cekDtl(pembelian_id) {
+            let url = "{{ route('pembelian.cek-dtl', ':id') }}".replace(':id', pembelian_id);
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(result) {
+                    if (!result.success) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: result.message
+                        }).then(function() {
+                            setTimeout(() => {
+                                getDetail(pembelian_id);
+                            }, 500);
+                        });
+                    } else {
+                        return true;
+                    }
+                }
+            });
+        }
+
     });
-}
-
-function resetForm() {
-    $('#pembelianForm')[0].reset();
-    $('#supplier_autocomplete').val('');
-    $('#supplier_id').val('');
-    $('#addedItemsList').html('');
-    $('#addedItemsContainer').hide();
-    $('#pembayaranItems').html('');
-    $('#pembayaranList').hide();
-    $('#keterangan_pembayaran_container').hide(); // Hide keterangan field on reset
-    calculateTotal();
-    updateRemoveButtons();
-}
 </script>
-
-@include('layout.footer')
+</body>
+</html>

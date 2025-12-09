@@ -1,5 +1,6 @@
 <?php
 
+use FontLib\Table\Type\name;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LaporanStokController;
 use App\Http\Controllers\Master\PaketController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\PembelianController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -177,21 +179,37 @@ Route::middleware('auth')->group(function () {
         Route::get('/search', [PelangganController::class, 'search'])->name('pelanggan.search');
     });
 
-    Route::prefix('pembelian')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Transaksi\PembelianController::class, 'index'])->name('pembelian.index');
-        Route::get('/data', [\App\Http\Controllers\Transaksi\PembelianController::class, 'data'])->name('pembelian.data');
-        Route::get('/create', [\App\Http\Controllers\Transaksi\PembelianController::class, 'create'])->name('pembelian.create');
-        Route::post('/', [\App\Http\Controllers\Transaksi\PembelianController::class, 'store'])->name('pembelian.store');
-
-        // AJAX endpoints menggunakan API dari master-barang
-        Route::get('/autocomplete-barang', [\App\Http\Controllers\Transaksi\PembelianController::class, 'autocompleteBarang'])->name('pembelian.autocomplete-barang');
-
-        Route::get('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'show'])->name('pembelian.show');
-        Route::get('/{id}/edit', [\App\Http\Controllers\Transaksi\PembelianController::class, 'edit'])->name('pembelian.edit');
-        Route::put('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'update'])->name('pembelian.update');
-        Route::delete('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'destroy'])->name('pembelian.destroy');
-        Route::patch('/{id}/status', [\App\Http\Controllers\Transaksi\PembelianController::class, 'updateStatus'])->name('pembelian.update-status');
+    Route::prefix('pembelian')->group(function() {
+        Route::get('/create', [PembelianController::class, 'create'])->name('pembelian.create');
+        Route::post('/store', [PembelianController::class, 'store'])->name('pembelian.store');
+        Route::post('/save-dtl', [PembelianController::class, 'savedtl'])->name('pembelian.save-dtl');
+        Route::get('/{pembelian_dtll}/get-dtl', [PembelianController::class, 'getDtl'])->name('pembelian.get-dtl');
+        Route::delete('/{pembelian_id}/{pembelian_detail_id}/delete-dtl', [PembelianController::class, 'deleteDtl'])->name('pembelian.delete-dtl');
+        Route::get('/{pembelian_id}/cek-dtl', [PembelianController::class, 'cekDtl'])->name('pembelian.cek-dtl');
+        Route::post('/{pembelian_id}/save-all', [PembelianController::class, 'saveAll'])->name('pembelian.save-all');
+        Route::get('/', [PembelianController::class, 'index'])->name('pembelian.index');
+        Route::get('/data', [PembelianController::class, 'data'])->name('pembelian.data');
+        Route::get('/{id}', [PembelianController::class, 'show'])->name('pembelian.show');
+        Route::get('/{id}/edit', [PembelianController::class, 'edit'])->name('pembelian.edit');
+        Route::patch('/{id}/status', [PembelianController::class, 'updateStatus'])->name('pembelian.update-status');
+        Route::put('/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
     });
+
+    // Route::prefix('pembelian')->group(function () {
+    //     Route::get('/', [\App\Http\Controllers\Transaksi\PembelianController::class, 'index'])->name('pembelian.index');
+    //     Route::get('/data', [\App\Http\Controllers\Transaksi\PembelianController::class, 'data'])->name('pembelian.data');
+    //     Route::get('/create', [\App\Http\Controllers\Transaksi\PembelianController::class, 'create'])->name('pembelian.create');
+    //     Route::post('/', [\App\Http\Controllers\Transaksi\PembelianController::class, 'store'])->name('pembelian.store');
+
+    //     // AJAX endpoints menggunakan API dari master-barang
+    //     Route::get('/autocomplete-barang', [\App\Http\Controllers\Transaksi\PembelianController::class, 'autocompleteBarang'])->name('pembelian.autocomplete-barang');
+
+    //     Route::get('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'show'])->name('pembelian.show');
+    //     Route::get('/{id}/edit', [\App\Http\Controllers\Transaksi\PembelianController::class, 'edit'])->name('pembelian.edit');
+    //     Route::put('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'update'])->name('pembelian.update');
+    //     Route::delete('/{id}', [\App\Http\Controllers\Transaksi\PembelianController::class, 'destroy'])->name('pembelian.destroy');
+    //     Route::patch('/{id}/status', [\App\Http\Controllers\Transaksi\PembelianController::class, 'updateStatus'])->name('pembelian.update-status');
+    // });
 
     Route::prefix('penjualan')->group(function () {
         Route::get('/', [PenjualanController::class, 'index'])->name('penjualan.index');
