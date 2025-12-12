@@ -181,7 +181,6 @@ class SupplierController extends Controller
 
         $supplier->nama_supplier = $nama_supplier;
         $supplier->kontak_person = $kontak_person;
-        $supplier->kontak_person = $kontak_person;
         $supplier->telepon = $telepon;
         $supplier->email = $email;
         $supplier->alamat = $alamat;
@@ -236,7 +235,10 @@ class SupplierController extends Controller
     public function generateKode()
     {
         $kodeSupplier = $this->generateKodeSupplier();
-        return response()->json(['kode_supplier' => $kodeSupplier]);
+        return response()->json([
+            'success' => true,
+            'data' => ['kode_supplier' => $kodeSupplier]
+        ]);
     }
 
     public function search(Request $request)
@@ -249,7 +251,7 @@ class SupplierController extends Controller
                             ->get();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $suppliers
         ]);
     }

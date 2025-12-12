@@ -68,14 +68,14 @@ class UserController extends Controller
 
         if (empty($username)) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Username harus diisi'
             ]);
         }
 
         if (strlen($username) < 3) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Username minimal 3 karakter'
             ]);
         }
@@ -84,7 +84,7 @@ class UserController extends Controller
         $cekUser = User::where('username', $username)->first();
         if ($cekUser) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Username sudah terdaftar'
             ]);
         }
@@ -98,28 +98,28 @@ class UserController extends Controller
 
         if (empty($password)) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Password harus diisi'
             ]);
         }
 
         if (strlen($password) < 6) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Password minimal 6 karakter'
             ]);
         }
 
         if (empty($role)) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Role harus diisi'
             ]);
         }
 
         if (empty($status)) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Status harus diisi'
             ]);
         }
@@ -137,7 +137,7 @@ class UserController extends Controller
         $user->save();
 
         return response()->json([
-            'status'    => true,
+            'success'    => true,
             'message'   => 'User berhasil ditambahkan'
         ]);
     }
@@ -147,13 +147,13 @@ class UserController extends Controller
         $user = User::find($id);
         if (!$user) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'User tidak ditemukan'
             ]);
         }
 
         return response()->json([
-            'status'    => true,
+            'success'    => true,
             'data'      => $user
         ]);
     }
@@ -163,7 +163,7 @@ class UserController extends Controller
         $user = User::find($id);
         if (!$user) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'User tidak ditemukan'
             ]);
         }
@@ -182,7 +182,7 @@ class UserController extends Controller
 
         if (!empty($password) && strlen($password) < 6) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'Password minimal 6 karakter'
             ]);
         }
@@ -212,7 +212,7 @@ class UserController extends Controller
         $user->save();
 
         return response()->json([
-            'status'    => true,
+            'success'    => true,
             'message'   => 'User berhasil diperbarui'
         ]);
     }
@@ -222,7 +222,7 @@ class UserController extends Controller
         $user = User::find($id);
         if (!$user) {
             return response()->json([
-                'status'    => false,
+                'success'    => false,
                 'message'   => 'User tidak ditemukan'
             ]);
         }
@@ -230,7 +230,7 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json([
-            'status'    => true,
+            'success'    => true,
             'message'   => 'User berhasil dihapus'
         ]);
     }

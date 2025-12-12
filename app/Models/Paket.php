@@ -18,6 +18,7 @@ class Paket extends Model
         'total_qty',
         'harga',
         'status',
+        'jenis',
         'created_by',
         'updated_by',
     ];

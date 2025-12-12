@@ -149,7 +149,7 @@ function initializeAutocomplete(index) {
         success: function(data) {
           if (data.status === 'success') {
             response(data.data.map(item => ({
-              label: `${item.kode_barang} - ${item.nama_barang}`,
+              label: item.text,
               value: item.nama_barang,
               id: item.id
             })));
@@ -171,7 +171,7 @@ function loadSatuanOptions(index, barangId) {
   $.ajax({
     url: '/barang/' + barangId + '/satuan',
     success: function(data) {
-      if (data.status === 'success') {
+      if (data.success === true) {
         const select = $(`#satuan_id_${index}`);
         select.empty().append('<option value="">Pilih Satuan</option>');
 

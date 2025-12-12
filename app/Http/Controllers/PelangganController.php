@@ -363,10 +363,10 @@ class PelangganController extends Controller
         })
         ->where('status', 'aktif')
         ->limit(10)
-        ->get(['id', 'kode_pelanggan', 'nama_pelanggan', 'telepon']);
+        ->get(['id', 'kode_pelanggan', 'nama_pelanggan', 'telepon', 'jenis', 'ongkos']);
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $pelanggans
         ]);
     }

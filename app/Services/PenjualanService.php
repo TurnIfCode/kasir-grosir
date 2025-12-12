@@ -16,6 +16,7 @@ class PenjualanService
         $this->stokService = $stokService;
     }
 
+
     /**
      * Create a new sale transaction
      * Handles header, details, payments, and stock updates
@@ -26,31 +27,19 @@ class PenjualanService
             // Generate kode penjualan
             $kodePenjualan = $this->generateKodePenjualan();
 
-            // Update harga_jual for paket if applicable
-            $details = $this->updateHargaJualForPaket($details);
-
-            // Calculate totals with paket logic
-            $subtotal = $this->calculateSubtotalWithPaket($details);
-            $pembulatan = $this->calculatePembulatan($subtotal);
-
-            $diskon = $header['diskon'] ?? 0;
-            $ppn = $header['ppn'] ?? 0;
-            $total = $subtotal - $diskon;
-            $grandTotal = $total + $ppn + $pembulatan;
-
-            // Create header
+            // Create header first (with initial values)
             $penjualan = Penjualan::create([
                 'kode_penjualan' => $kodePenjualan,
                 'tanggal_penjualan' => $header['tanggal_penjualan'],
                 'pelanggan_id' => $header['pelanggan_id'] ?? null,
-                'total' => $subtotal,
-                'diskon' => $diskon,
-                'ppn' => $ppn,
-                'pembulatan' => $pembulatan,
-                'grand_total' => $grandTotal,
+                'total' => 0, // Will be updated after calculation
+                'diskon' => $header['diskon'] ?? 0,
+                'ppn' => $header['ppn'] ?? 0,
+                'pembulatan' => 0, // Will be updated after calculation
+                'grand_total' => 0, // Will be updated after calculation
                 'jenis_pembayaran' => $header['jenis_pembayaran'],
                 'dibayar' => $header['dibayar'] ?? 0,
-                'kembalian' => $this->calculateKembalian($header['jenis_pembayaran'], $header['dibayar'] ?? 0, $grandTotal),
+                'kembalian' => 0, // Will be updated after calculation
                 'catatan' => $header['catatan'] ?? null,
                 'status' => 'selesai',
                 'created_by' => auth()->id(),
@@ -58,8 +47,8 @@ class PenjualanService
                 'updated_by' => auth()->id()
             ]);
 
-            $subtotalDtl = 0;
             $pelangganId = $header['pelanggan_id'] ?? null;
+            $subtotalDetails = 0;
 
             // Create details and update stock
             foreach ($details as $detail) {
@@ -67,9 +56,8 @@ class PenjualanService
                 $barang = \App\Models\Barang::with('kategori')->find($detail['barang_id']);
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
 
-                // Use the updated calculateNormalPrice method with pelanggan_id
+                // Calculate subtotal for this detail using the same logic as calculateNormalPrice
                 $subtotalDetail = $this->calculateNormalPrice($detail, $pelangganId);
-
 
                 $hargaJualDetail = $subtotalDetail / $detail['qty'];
                 $hargaJualDetail = round($hargaJualDetail, 2);
@@ -112,7 +100,7 @@ class PenjualanService
                     ]
                 );
 
-                $subtotalDtl += round($penjualanDetail['subtotal'],2);
+                $subtotalDetails += round($subtotalDetail, 2);
             }
 
             // Handle payments
@@ -138,19 +126,25 @@ class PenjualanService
                 }
             }
 
-            //hitung pembulatan.
-            $pembulatanAkhir = $this->calculatePembulatan($subtotalDetail);
-            $grandTotalAkhir = $subtotalDetail+$pembulatanAkhir;
-            $grandTotalAkhir = round($grandTotalAkhir,2);
-            $kembalianAkhir = $this->calculateKembalian($header['jenis_pembayaran'], $header['dibayar'] ?? 0, $grandTotalAkhir);
+            // Calculate final totals using the same logic as calculateSubtotalAndPembulatan
+            $diskon = $header['diskon'] ?? 0;
+            $ppn = $header['ppn'] ?? 0;
+            $subtotalAfterDiskon = $subtotalDetails - $diskon;
+            $subtotalAfterDiskon = round($subtotalAfterDiskon, 2);
+            $subtotalAfterPpn = $subtotalAfterDiskon + $ppn;
+            
+            // Calculate pembulatan based on subtotal after diskon and ppn
+            $pembulatan = $this->calculatePembulatan($subtotalAfterPpn);
+            $grandTotal = $subtotalAfterPpn + $pembulatan;
+            $grandTotal = round($grandTotal, 2);
+            
+            $kembalian = $this->calculateKembalian($header['jenis_pembayaran'], $header['dibayar'] ?? 0, $grandTotal);
 
-
-            //disini update penjualan
-            $penjualan = Penjualan::find($penjualan->id);
-            $penjualan->total = $subtotalDetail;
-            $penjualan->pembulatan = $pembulatanAkhir;
-            $penjualan->grand_total = $grandTotalAkhir;
-            $penjualan->kembalian = $kembalianAkhir;
+            // Update penjualan with calculated values
+            $penjualan->total = $subtotalAfterPpn; // Subtotal after diskon and ppn, before pembulatan
+            $penjualan->pembulatan = $pembulatan;
+            $penjualan->grand_total = $grandTotal;
+            $penjualan->kembalian = $kembalian;
             $penjualan->updated_by = auth()->id();
             $penjualan->updated_at = now();
             $penjualan->save();
@@ -253,26 +247,28 @@ class PenjualanService
             }
         }
 
+
         if ($isKedaiKopi || $isHubuan) {
             if ($isKedaiKopi) {
                 // For Kedai Kopi: just qty * harga_beli (no surcharges, no markups, no pembulatan)
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
-                return $qty * $hargaBeli;
+                return round($qty * $hargaBeli);
             } elseif ($isHubuan) {
                 // For Hubuan: special pricing logic
                 $subtotal = $harga * $qty;
                 // If Rokok with jenis legal, add 3000 to harga
                 if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'rokok & tembakau' && $barang->jenis && strtolower($barang->jenis) === 'legal') {
-                    $subtotal = $qty * ($harga + 3000);
+                    $subtotal = round($qty * ($harga + 3000));
                 }
-                return $subtotal;
+                return round($subtotal);
             } else {
                 // For other special customers: normal pricing but skip surcharges and markups
-                return $harga * $qty;
+                return round($harga * $qty);
             }
+
         } else {
             // Regular customers: apply all rules
-            $subtotal = $harga * $qty;
+            $subtotal = round($harga * $qty);
 
             // Check if 'legal' jenis with grosir tipe_harga and satuan 'bungkus' (satuan_id == 2)
             if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
@@ -303,29 +299,35 @@ class PenjualanService
                 $subtotal += $this->calculatePembulatan($subtotal);
             }
 
-            return $subtotal;
+            return round($subtotal);
         }
     }
+
+
 
     /**
      * Calculate pembulatan sesuai aturan:
      * remainder = subtotal % 1000
      * if remainder == 0: pembulatan = 0
-     * else if remainder >= 1 && remainder <= 699: pembulatan = 500 - remainder
-     * else if remainder >= 700 && remainder <= 999: pembulatan = 1000 - remainder
+     * else if remainder >= 1 && remainder <= 499: pembulatan = 500 - remainder
+     * else if remainder >= 500 && remainder <= 999: pembulatan = 1000 - remainder
      */
     public function calculatePembulatan(float $subtotal): float
     {
-        $remainder = $subtotal % 1000;
+        $remainder = fmod($subtotal, 1000); // Use fmod for float precision
+        $remainder = round($remainder); // Round to nearest integer
+        
         if ($remainder == 0) {
             return 0;
-        } elseif ($remainder >= 1 && $remainder <= 699) {
-            return 500 - $remainder;
-        } else if ($remainder >= 700 && $remainder <= 999) {
-            return 1000 - $remainder;
+        } elseif ($remainder >= 1 && $remainder <= 499) {
+            // Bulat ke 500
+            return (500 - $remainder);
+        } else {
+            // remainder >= 500, bulat ke 1000
+            return (1000 - $remainder);
         }
-        return 0;
     }
+
 
     /**
      * Calculate subtotal and pembulatan together
@@ -341,15 +343,60 @@ class PenjualanService
             ];
         }
 
-        $subtotal = round($this->calculateSubtotalWithPaket($details, $pelangganId));
+        // Calculate subtotal by summing each detail using calculateNormalPrice (same logic as createSale)
+        $subtotal = 0;
+        foreach ($details as $detail) {
+            $subtotal += $this->calculateNormalPrice($detail, $pelangganId);
+        }
+        $subtotal = round($subtotal, 2);
+
+        // Calculate pembulatan based on the subtotal
         $pembulatan = $this->calculatePembulatan($subtotal);
         $grandTotal = $subtotal + $pembulatan;
+        $grandTotal = round($grandTotal, 2);
 
         return [
             'subtotal' => $subtotal,
             'pembulatan' => $pembulatan,
             'grand_total' => $grandTotal
         ];
+    }
+
+
+    /**
+     * Get pakets with priority: 'tidak' first, then 'campur'
+     */
+    private function getPaketsByPriority(bool $orderByPrice = false): \Illuminate\Database\Eloquent\Collection
+    {
+        if ($orderByPrice) {
+            // For determinePaket: sort by harga ascending after prioritizing jenis
+            $paketsTidak = \App\Models\Paket::with('details')
+                ->where('status', 'aktif')
+                ->where('jenis', 'tidak')
+                ->orderBy('harga')
+                ->get();
+            
+            $paketsCampur = \App\Models\Paket::with('details')
+                ->where('status', 'aktif')
+                ->where('jenis', 'campur')
+                ->orderBy('harga')
+                ->get();
+            
+            return $paketsTidak->merge($paketsCampur);
+        } else {
+            // For updateHargaJualForPaket: prioritize 'tidak', then 'campur' without price sorting
+            $paketsTidak = \App\Models\Paket::with('details')
+                ->where('status', 'aktif')
+                ->where('jenis', 'tidak')
+                ->get();
+            
+            $paketsCampur = \App\Models\Paket::with('details')
+                ->where('status', 'aktif')
+                ->where('jenis', 'campur')
+                ->get();
+            
+            return $paketsTidak->merge($paketsCampur);
+        }
     }
 
     /**
@@ -363,13 +410,14 @@ class PenjualanService
         return 0;
     }
 
+
     /**
      * Update harga_jual in details based on paket pricing rules
      */
     private function updateHargaJualForPaket(array $details): array
     {
-        // Get all active pakets with details
-        $pakets = \App\Models\Paket::with('details')->where('status', 'aktif')->get();
+        // Get all active pakets with details, prioritizing jenis 'tidak' then 'campur'
+        $pakets = $this->getPaketsByPriority(false);
 
         // Group details by paket_id for applicable pakets
         $paketAssignments = [];
@@ -386,7 +434,7 @@ class PenjualanService
                         if (!isset($paketAssignments[$index]) || $paket->harga > $paketAssignments[$index]['paket']->harga) {
                             $paketAssignments[$index] = [
                                 'paket' => $paket,
-                                'harga_jual' => $paket->harga / $paket->total_qty
+                                'harga_jual' => round($paket->harga / $paket->total_qty)
                             ];
                         }
                     }
@@ -402,14 +450,15 @@ class PenjualanService
         return $details;
     }
 
+
     /**
      * Determine which paket applies based on purchased items
      * Returns paket details if applicable, null otherwise
      */
     public function determinePaket(array $details): ?array
     {
-        // Get active pakets with details, sorted by harga ascending (lowest harga first)
-        $pakets = \App\Models\Paket::with('details')->where('status', 'aktif')->orderBy('harga')->get();
+        // Get active pakets with details, prioritizing jenis 'tidak' then 'campur', sorted by harga ascending
+        $pakets = $this->getPaketsByPriority(true);
 
         if ($pakets->count() < 2) {
             return null; // Need at least two pakets

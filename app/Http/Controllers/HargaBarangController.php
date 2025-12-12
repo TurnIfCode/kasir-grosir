@@ -247,7 +247,7 @@ class HargaBarangController extends Controller
 
         if ($harga) {
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => [
                     'harga' => $harga->harga
                 ]
@@ -276,7 +276,7 @@ class HargaBarangController extends Controller
                                 ->toArray();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $tipeHargas
         ]);
     }

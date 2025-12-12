@@ -129,7 +129,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_kategori,
@@ -157,7 +157,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success === true) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_barang,
@@ -185,7 +185,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_supplier,
@@ -257,7 +257,7 @@ $(document).ready(function() {
         type: 'POST',
         data: $(form).serialize() + '&_method=PUT',
         success: function(response) {
-          if (response.status) {
+          if (response.success) {
             Swal.fire({
               icon: 'success',
               title: 'Berhasil',
@@ -288,7 +288,7 @@ $(document).ready(function() {
       url: '{{ route("jenis_barang.find", ":id") }}'.replace(':id', jenisBarangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var jenisBarang = response.data;
           var detailHtml = '';
 
@@ -326,7 +326,7 @@ $(document).ready(function() {
       url: '{{ route("jenis_barang.find", ":id") }}'.replace(':id', jenisBarangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var jenisBarang = response.data;
           $('#editKodeJenis').val(jenisBarang.kode_jenis);
           $('#editNamaJenis').val(jenisBarang.nama_jenis);
@@ -370,7 +370,7 @@ $(document).ready(function() {
           type: 'DELETE',
           data: { _token: '{{ csrf_token() }}' },
           success: function(response) {
-            if (response.status) {
+            if (response.success) {
               Swal.fire('Terhapus!', response.message, 'success');
               table.ajax.reload();
             } else {

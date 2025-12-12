@@ -347,7 +347,7 @@ $(document).ready(function() {
       processData: false,
       contentType: false,
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           Swal.fire({
             icon: 'success',
             title: 'Berhasil',

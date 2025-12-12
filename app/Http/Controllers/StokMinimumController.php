@@ -81,7 +81,7 @@ class StokMinimumController extends Controller
         $existing = StokMinimum::where('barang_id', $request->barang_id)->first();
         if ($existing) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Stok minimum untuk barang ini sudah ada'
             ]);
         }
@@ -102,7 +102,7 @@ class StokMinimumController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Stok minimum berhasil ditambahkan'
         ]);
     }
@@ -112,7 +112,7 @@ class StokMinimumController extends Controller
         $stokMinimum = StokMinimum::find($id);
         if (!$stokMinimum) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Stok minimum tidak ditemukan'
             ]);
         }
@@ -129,7 +129,7 @@ class StokMinimumController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Stok minimum berhasil dihapus'
         ]);
     }
@@ -152,7 +152,7 @@ class StokMinimumController extends Controller
         });
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $data
         ]);
     }

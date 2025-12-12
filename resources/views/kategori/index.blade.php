@@ -84,6 +84,8 @@
   </div>
 </div>
 
+@include('layout.footer')
+
 <script>
 $(document).ready(function() {
   // DataTable
@@ -146,7 +148,7 @@ $(document).ready(function() {
         type: 'POST',
         data: $(form).serialize() + '&_method=PUT',
         success: function(response) {
-          if (response.status) {
+          if (response.success) {
             Swal.fire({
               icon: 'success',
               title: 'Berhasil',
@@ -156,7 +158,19 @@ $(document).ready(function() {
               table.ajax.reload();
             });
           } else {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: response.message
+            }).then(function() {
+              setTimeout(() => {
+                if (response.form == 'reload') {
+                  table.ajax.reload();
+                } else {
+                  $(`[name=${response.form}]`).focus().select();
+                }
+              }, 500);
+            });
           }
         },
         error: function(xhr) {
@@ -177,7 +191,7 @@ $(document).ready(function() {
       url: '{{ route("kategori.find", ":id") }}'.replace(':id', kategoriId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var kategori = response.data;
           var detailHtml = '';
 
@@ -212,7 +226,7 @@ $(document).ready(function() {
       url: '{{ route("kategori.find", ":id") }}'.replace(':id', kategoriId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var kategori = response.data;
           $('#editKodeKategori').val(kategori.kode_kategori);
           $('#editNamaKategori').val(kategori.nama_kategori);
@@ -221,6 +235,9 @@ $(document).ready(function() {
           validator.resetForm();
           $('#updateKategoriForm').find('.is-invalid').removeClass('is-invalid');
           $('#editKategoriModal').modal('show');
+          setTimeout(() => {
+            $("[name=kode_kategori]").focus().select();
+          }, 500);
         } else {
           Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
         }
@@ -250,11 +267,22 @@ $(document).ready(function() {
           type: 'DELETE',
           data: { _token: '{{ csrf_token() }}' },
           success: function(response) {
-            if (response.status) {
-              Swal.fire('Terhapus!', response.message, 'success');
-              table.ajax.reload();
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                table.ajax.reload();
+              });
             } else {
-              Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                table.ajax.reload();
+              });
             }
           },
           error: function() {
@@ -276,5 +304,5 @@ $(document).ready(function() {
   });
 });
 </script>
-
-@include('layout.footer')
+</body>
+</html>

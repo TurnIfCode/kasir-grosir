@@ -6,6 +6,7 @@ use App\Models\JenisBarang;
 use App\Models\Kategori;
 use App\Models\Barang;
 use App\Models\Supplier;
+use App\Models\Log;
 use Illuminate\Http\Request;
 
 class JenisBarangController extends Controller
@@ -89,28 +90,28 @@ class JenisBarangController extends Controller
 
         if (empty($kode_jenis)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kode jenis harus diisi'
             ]);
         }
 
         if (strlen($kode_jenis) < 3) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kode jenis minimal 3 karakter'
             ]);
         }
 
         if (empty($nama_jenis)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Nama jenis harus diisi'
             ]);
         }
 
         if (strlen($nama_jenis) < 3) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Nama jenis minimal 3 karakter'
             ]);
         }
@@ -119,14 +120,14 @@ class JenisBarangController extends Controller
         $cekJenisBarang = JenisBarang::where('kode_jenis', $kode_jenis)->first();
         if ($cekJenisBarang) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kode jenis sudah terdaftar'
             ]);
         }
 
         if (empty($status)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Status harus diisi'
             ]);
         }
@@ -152,7 +153,7 @@ class JenisBarangController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Jenis barang berhasil ditambahkan'
         ]);
     }
@@ -162,7 +163,7 @@ class JenisBarangController extends Controller
         $jenisBarang = JenisBarang::with(['creator', 'updater', 'kategori', 'barang', 'supplier'])->find($id);
         if (!$jenisBarang) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Jenis barang tidak ditemukan'
             ]);
         }
@@ -175,7 +176,7 @@ class JenisBarangController extends Controller
         $data['supplier_nama'] = $jenisBarang->supplier ? $jenisBarang->supplier->nama_supplier : '-';
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'data' => $data
         ]);
     }
@@ -185,7 +186,7 @@ class JenisBarangController extends Controller
         $jenisBarang = JenisBarang::find($id);
         if (!$jenisBarang) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Jenis barang tidak ditemukan'
             ]);
         }
@@ -200,7 +201,7 @@ class JenisBarangController extends Controller
 
         if (empty($kodeJenis)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kode Jenis harus diisi'
             ]);
         }
@@ -214,14 +215,14 @@ class JenisBarangController extends Controller
 
         if (empty($namaJenis)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Nama Jenis harus diisi'
             ]);
         }
 
         if (strlen($namaJenis) < 3) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Nama Jenis minimal 3 karakter'
             ]);
         }
@@ -230,14 +231,14 @@ class JenisBarangController extends Controller
         $cekJenisBarang = JenisBarang::where('kode_jenis', $kodeJenis)->where('id', '!=', $id)->first();
         if ($cekJenisBarang) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kode Jenis sudah terdaftar'
             ]);
         }
 
         if (empty($status)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Status harus diisi'
             ]);
         }
@@ -260,7 +261,7 @@ class JenisBarangController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Jenis barang berhasil diperbarui'
         ]);
     }
@@ -270,7 +271,7 @@ class JenisBarangController extends Controller
         $jenisBarang = JenisBarang::find($id);
         if (!$jenisBarang) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Jenis barang tidak ditemukan'
             ]);
         }
@@ -287,7 +288,7 @@ class JenisBarangController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Jenis barang berhasil dihapus'
         ]);
     }
@@ -303,7 +304,7 @@ class JenisBarangController extends Controller
                             ->get();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $kategoris
         ]);
     }
@@ -319,7 +320,7 @@ class JenisBarangController extends Controller
                         ->get();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $barangs
         ]);
     }
@@ -335,7 +336,7 @@ class JenisBarangController extends Controller
                             ->get();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $suppliers
         ]);
     }

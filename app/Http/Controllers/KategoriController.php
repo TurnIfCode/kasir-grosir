@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Barang;
+use App\Models\HargaBarang;
 use App\Models\Kategori;
+use App\Models\KonversiSatuan;
 use App\Models\Log;
 use Illuminate\Http\Request;
 
@@ -16,12 +19,27 @@ class KategoriController extends Controller
             $length = $request->get('length');
             $search = $request->get('search') ? $request->get('search')['value'] : '';
 
-            $query = Kategori::where('status', 'AKTIF')->orderBy('nama_kategori', 'asc');
+            $query = Kategori::where('status', 'AKTIF');
 
             if (!empty($search)) {
                 $query->where('kode_kategori', 'like', '%' . $search . '%')
                       ->orWhere('nama_kategori', 'like', '%' . $search . '%')
                       ->orWhere('deskripsi', 'like', '%' . $search . '%');
+            }
+
+            // Handle sorting
+            $order = $request->get('order');
+            if ($order && count($order) > 0) {
+                $columnIndex = $order[0]['column'];
+                $direction = $order[0]['dir'];
+
+                $columns = ['kode_kategori', 'nama_kategori', 'deskripsi', 'status'];
+                if (isset($columns[$columnIndex])) {
+                    $query->orderBy($columns[$columnIndex], $direction);
+                }
+            } else {
+                // Default sorting
+                $query->orderBy('nama_kategori', 'asc');
             }
 
             $totalRecords = Kategori::where('status', 'AKTIF')->count();
@@ -68,29 +86,33 @@ class KategoriController extends Controller
 
         if (empty($kode_kategori)) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kode kategori harus diisi'
+                'success'   => false,
+                'message'   => 'Kode kategori harus diisi',
+                'form'      => 'kode_kategori'
             ]);
         }
 
         if (strlen($kode_kategori) < 3) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kode kategori minimal 3 karakter'
+                'success'   => false,
+                'message'   => 'Kode kategori minimal 3 karakter',
+                'form'      => 'kode_kategori'
             ]);
         }
 
         if (empty($nama_kategori)) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kategori harus diisi'
+                'success'   => false,
+                'message'   => 'Kategori harus diisi',
+                'form'      => 'nama_kategori'
             ]);
         }
 
         if (strlen($nama_kategori) < 3) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kategori minimal 3 karakter'
+                'success'   => false,
+                'message'   => 'Kategori minimal 3 karakter',
+                'form'      => 'nama_kategori'
             ]);
         }
 
@@ -98,14 +120,15 @@ class KategoriController extends Controller
         $cekKategori = Kategori::where('kode_kategori', $kode_kategori)->first();
         if ($cekKategori) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kode kategori sudah terdaftar'
+                'success'    => false,
+                'message'   => 'Kode kategori sudah terdaftar',
+                'form'      => 'kode_kategori'
             ]);
         }
 
         if (empty($status)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Status harus diisi'
             ]);
         }
@@ -128,7 +151,7 @@ class KategoriController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Kategori berhasil ditambahkan'
         ]);
     }
@@ -138,7 +161,7 @@ class KategoriController extends Controller
         $kategori = Kategori::with(['creator', 'updater'])->find($id);
         if (!$kategori) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kategori tidak ditemukan'
             ]);
         }
@@ -148,7 +171,7 @@ class KategoriController extends Controller
         $data['updated_by'] = $kategori->updater ? $kategori->updater->name : '-';
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'data' => $data
         ]);
     }
@@ -158,8 +181,9 @@ class KategoriController extends Controller
         $kategori = Kategori::find($id);
         if (!$kategori) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kategori tidak ditemukan'
+                'success'   => false,
+                'message'   => 'Kategori tidak ditemukan',
+                'form'      => 'reload'
             ]);
         }
 
@@ -170,29 +194,33 @@ class KategoriController extends Controller
 
         if (empty($kodeKategori)) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kode Kategori harus diisi'
+                'success'   => false,
+                'message'   => 'Kode Kategori harus diisi',
+                'form'      => 'kode_kategori'
             ]);
         }
 
         if (strlen($kodeKategori) < 3) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kode Kategori minimal 3 karakter'
+                'success'   => false,
+                'message'   => 'Kode Kategori minimal 3 karakter',
+                'form'      => 'kode_kategori'
             ]);
         }
 
         if (empty($namaKategori)) {
             return response()->json([
-                'status' => false,
-                'message' => 'Nama Kategori harus diisi'
+                'success'   => false,
+                'message'   => 'Nama Kategori harus diisi',
+                'form'      => 'nama_kategori'
             ]);
         }
 
         if (strlen($namaKategori) < 3) {
             return response()->json([
-                'status' => false,
-                'message' => 'Nama Kategori minimal 3 karakter'
+                'success'   => false,
+                'message'   => 'Nama Kategori minimal 3 karakter',
+                'form'      => 'nama_kategori'
             ]);
         }
 
@@ -200,14 +228,15 @@ class KategoriController extends Controller
         $cekKategori = Kategori::where('kode_kategori', $kodeKategori)->where('id', '!=', $id)->first();
         if ($cekKategori) {
             return response()->json([
-                'status' => false,
-                'message' => 'Kode Kategori sudah terdaftar'
+                'success'   => false,
+                'message'   => 'Kode Kategori sudah terdaftar',
+                'form'      => 'kode_kategori'
             ]);
         }
 
         if (empty($status)) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Status harus diisi'
             ]);
         }
@@ -227,7 +256,7 @@ class KategoriController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Kategori berhasil diperbarui'
         ]);
     }
@@ -237,13 +266,22 @@ class KategoriController extends Controller
         $kategori = Kategori::find($id);
         if (!$kategori) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Kategori tidak ditemukan'
             ]);
         }
 
         $namaKategori = $kategori->nama_kategori;
         $kodeKategori = $kategori->kode_kategori;
+
+        //cek sudah ada di barang atau belum
+        $cekBarang = Barang::where('kategori_id', $id)->count();
+        if ($cekBarang > 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Sudah digunakan di barang. Tidak dapat dihapus'
+            ]);
+        }
 
         $kategori->delete();
 
@@ -254,7 +292,7 @@ class KategoriController extends Controller
         $newLog->save();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Kategori berhasil dihapus'
         ]);
     }

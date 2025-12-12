@@ -173,17 +173,17 @@
                     url: '{{ route("supplier.search") }}',
                     dataType: 'json',
                     data: { q: request.term },
-                    success: function(data) {
-                        if (data.status === 'success') {
-                            response($.map(data.data, function(item) {
-                                return {
-                                    label: item.nama_supplier,
-                                    value: item.nama_supplier,
-                                    id: item.id
-                                };
-                            }));
-                        }
-                    }
+            success: function(data) {
+                if (data.success === true) {
+                    response($.map(data.data, function(item) {
+                        return {
+                            label: item.nama_supplier,
+                            value: item.nama_supplier,
+                            id: item.id
+                        };
+                    }));
+                }
+            }
                 });
             },
             minLength: 2,
@@ -310,7 +310,7 @@
                                 // -------------------------------------------------------
                                 response($.map(data.data, function (item) {
                                     return {
-                                        label: item.kode_barang + ' - ' + item.nama_barang + (item.barcode ? ' (' + item.barcode + ')' : ''),
+                                        label: item.text,
                                         value: item.nama_barang,
                                         id: item.id,
                                         barcode: item.barcode
@@ -337,8 +337,8 @@
                 url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
                 type: 'GET',
                 success: function(data) {
-                    if (data.status === 'success') {
-                        
+                    if (data.success === true) {
+
                         // PERBAIKAN PENTING DI SINI
                         var satuanSelect = $('[name="satuan_id"]');
 
@@ -346,8 +346,8 @@
 
                         $.each(data.data, function(index, satuan) {
                             satuanSelect.append(
-                                '<option value="' + satuan.satuan_id + '" data-harga="' + satuan.harga_beli + '">' 
-                                + satuan.nama_satuan + 
+                                '<option value="' + satuan.satuan_id + '" data-harga="' + satuan.harga_beli + '">'
+                                + satuan.nama_satuan +
                                 '</option>'
                             );
                         });

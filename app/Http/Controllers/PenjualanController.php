@@ -78,7 +78,7 @@ class PenjualanController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
@@ -91,8 +91,10 @@ class PenjualanController extends Controller
                 $request->payments ?? []
             );
 
+
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'message' => 'Penjualan berhasil disimpan',
                 'data' => [
                     'id' => $penjualan->id,
@@ -104,7 +106,7 @@ class PenjualanController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
@@ -155,13 +157,14 @@ class PenjualanController extends Controller
             $this->penjualanService->rollbackStockOnDelete($penjualan);
             $penjualan->delete();
 
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'message' => 'Penjualan berhasil dihapus'
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
@@ -175,8 +178,9 @@ class PenjualanController extends Controller
         $term = $request->get('term', '');
         $barangs = $this->barangService->search($term);
 
+
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $barangs
         ]);
     }
@@ -188,13 +192,14 @@ class PenjualanController extends Controller
     {
         try {
             $satuans = $this->barangService->getSatuanByBarang($barangId);
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $satuans
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -219,13 +224,14 @@ class PenjualanController extends Controller
                 $tipeHargas = ['ecer'];
             }
 
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $tipeHargas
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -238,16 +244,18 @@ class PenjualanController extends Controller
     {
         $tipe = $request->get('tipe', 'ecer');
         $pelangganId = $request->get('pelanggan_id');
+
+
         try {
             $harga = $this->hargaService->lookupHarga($barangId, $satuanId, $tipe, $pelangganId);
-            $harga['harga'] = round($harga['harga'], 2);
+            $harga['harga'] = round($harga['harga']); // Round to integer
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $harga
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -256,17 +264,18 @@ class PenjualanController extends Controller
     /**
      * AJAX endpoint to get harga for barang + satuan (defaulting to ecer)
      */
+
     public function getHargaByBarangSatuanDefault($barangId, $satuanId)
     {
         try {
             $harga = $this->hargaService->lookupHarga($barangId, $satuanId, 'ecer');
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $harga
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -291,17 +300,19 @@ class PenjualanController extends Controller
                     ];
                 });
 
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $hargaBarang
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
     }
+
 
 
 
@@ -311,29 +322,53 @@ class PenjualanController extends Controller
     public function getPaketBarang($barangId)
     {
         try {
+            // First, try to get paket with jenis 'tidak'
             $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
                 $q->where('barang_id', $barangId);
-            })->with(['details.barang', 'details'])->where('status', 'aktif')->get();
+            })->with(['details.barang', 'details'])
+            ->where('status', 'aktif')
+            ->where('jenis', 'tidak')
+            ->get();
+
+            // If no results with jenis 'tidak', try with jenis 'campur'
+            if ($pakets->isEmpty()) {
+                $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
+                    $q->where('barang_id', $barangId);
+                })->with(['details.barang', 'details'])
+                ->where('status', 'aktif')
+                ->where('jenis', 'campur')
+                ->get();
+            }
+
+            // If still no results, get all paket without jenis filter
+            if ($pakets->isEmpty()) {
+                $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
+                    $q->where('barang_id', $barangId);
+                })->with(['details.barang', 'details'])
+                ->where('status', 'aktif')
+                ->get();
+            }
 
             $data = $pakets->map(function($paket) {
                 return [
                     'id' => $paket->id,
-                    'kode_paket' => $paket->kode_paket ?? null,
-                    'nama_paket' => $paket->nama_paket,
+                    'nama' => $paket->nama,
                     'total_qty' => $paket->total_qty,
                     'harga' => $paket->harga,
+                    'jenis' => $paket->jenis ?? 'tidak_diketahui',
                     'barang_ids' => $paket->details->pluck('barang_id')->toArray(),
                     'barang_nama' => $paket->details->pluck('barang.nama_barang')->toArray(),
                 ];
             });
 
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $data
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -356,7 +391,7 @@ class PenjualanController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
@@ -367,13 +402,14 @@ class PenjualanController extends Controller
             $pelangganId = $request->pelanggan_id;
             $calculation = $this->penjualanService->calculateSubtotalAndPembulatan($details, $pelangganId);
 
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'data' => $calculation
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }

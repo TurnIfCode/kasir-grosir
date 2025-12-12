@@ -13,14 +13,14 @@ class HargaService
      */
     public function lookupHarga(int $barangId, int $satuanId, string $tipe = 'ecer', ?int $pelangganId = null): array
     {
-        // Check if pelanggan is "Kedai Kopi"
-        $isKedaiKopi = false;
+        // Check if pelanggan is "Modal"
+        $isModal = false;
         if ($pelangganId) {
             $pelanggan = \App\Models\Pelanggan::find($pelangganId);
-            $isKedaiKopi = $pelanggan && strtolower($pelanggan->nama_pelanggan) === 'kedai kopi';
+            $isModal = $pelanggan && $pelanggan->jenis === 'modal';
         }
 
-        if ($isKedaiKopi) {
+        if ($isModal) {
             // For Kedai Kopi, use harga_beli instead of harga_jual
             $barang = Barang::findOrFail($barangId);
 

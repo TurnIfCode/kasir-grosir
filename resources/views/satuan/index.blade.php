@@ -67,11 +67,11 @@
             <label for="edit_deskripsi" class="form-label">Deskripsi</label>
             <input type="text" class="form-control" id="edit_deskripsi" name="deskripsi" placeholder="-">
           </div>
-          <div class="col-md-6">
+          <div class="mb-3">
             <label for="edit_status" class="form-label">Status Aktif</label>
             <select class="form-control" id="edit_status" name="status" required>
-              <option value="AKTIF">AKTIF</option>
-              <option value="NONAKTIF">NONAKTIF</option>
+              <option value="aktif">AKTIF</option>
+              <option value="nonaktif">NONAKTIF</option>
             </select>
           </div>
         </form>
@@ -83,6 +83,8 @@
     </div>
   </div>
 </div>
+
+@include('layout.footer')
 
 <script>
 $(document).ready(function() {
@@ -98,6 +100,71 @@ $(document).ready(function() {
       { data: 'status' },
       { data: 'aksi', orderable: false, searchable: false }
     ]
+  });
+
+  // Detail handler
+  $(document).on('click', '#btnDetail', function() {
+    var satuanId = $(this).data('id');
+
+    $.ajax({
+      url: '/satuan/' + satuanId + '/find',
+      type: 'GET',
+      success: function(response) {
+        if (response.success) {
+          var satuan = response.data;
+          var detailHtml = '';
+
+          // Format data untuk tabel detail
+          detailHtml += '<tr><td><strong>Kode Satuan</strong></td><td>' + (satuan.kode_satuan || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Nama Satuan</strong></td><td>' + (satuan.nama_satuan || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Deskripsi</strong></td><td>' + (satuan.deskripsi || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Status</strong></td><td>' + (satuan.status || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (satuan.created_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Dibuat Pada</strong></td><td>' + (satuan.created_at || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (satuan.updated_by || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Diubah Pada</strong></td><td>' + (satuan.updated_at || '-') + '</td></tr>';
+
+          $('#satuanDetailBody').html(detailHtml);
+          $('#detailSatuanModal').modal('show');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
+  });
+
+  // Klik Edit
+  $(document).on('click', '#btnEdit', function() {
+    var satuanId = $(this).data('id');
+    $('#satuanId').val(satuanId);
+
+    $.ajax({
+      url: '/satuan/' + satuanId + '/find',
+      type: 'GET',
+      success: function(response) {
+        if (response.success) {
+          var satuan = response.data;
+          $('#edit_kode_satuan').val(satuan.kode_satuan);
+          $('#edit_nama_satuan').val(satuan.nama_satuan);
+          $('#edit_deskripsi').val(satuan.deskripsi);
+          $('#edit_status').val(satuan.status);
+          validator.resetForm();
+          $('#editSatuanForm').find('.is-invalid').removeClass('is-invalid');
+          $('#editSatuanModal').modal('show');
+          setTimeout(() => {
+            $("[name=nama_satuan]").focus().select();
+          }, 500);
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+        }
+      },
+      error: function() {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
+      }
+    });
   });
 
   // Inisialisasi validator
@@ -142,7 +209,7 @@ $(document).ready(function() {
         type: 'POST',
         data: $(form).serialize() + '&_method=PUT',
         success: function(response) {
-          if (response.status) {
+          if (response.success) {
             Swal.fire({
               icon: 'success',
               title: 'Berhasil',
@@ -152,7 +219,19 @@ $(document).ready(function() {
               table.ajax.reload();
             });
           } else {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: response.message
+            }).then(function() {
+              setTimeout(() => {
+                if (response.form == 'reload') {
+                  table.ajax.reload();
+                } else {
+                  $(`[name=${response.form}]`).focus().select();
+                }
+              }, 500);
+            });
           }
         },
         error: function(xhr) {
@@ -166,67 +245,7 @@ $(document).ready(function() {
     }
   });
 
-  // Detail handler
-  $(document).on('click', '#btnDetail', function() {
-    var satuanId = $(this).data('id');
-
-    $.ajax({
-      url: '/satuan/' + satuanId + '/find',
-      type: 'GET',
-      success: function(response) {
-        if (response.status) {
-          var satuan = response.data;
-          var detailHtml = '';
-
-          // Format data untuk tabel detail
-          detailHtml += '<tr><td><strong>Kode Satuan</strong></td><td>' + (satuan.kode_satuan || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Nama Satuan</strong></td><td>' + (satuan.nama_satuan || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Deskripsi</strong></td><td>' + (satuan.deskripsi || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Status</strong></td><td>' + (satuan.status || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Dibuat Oleh</strong></td><td>' + (satuan.created_by || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Dibuat Pada</strong></td><td>' + (satuan.created_at || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Diubah Oleh</strong></td><td>' + (satuan.updated_by || '-') + '</td></tr>';
-          detailHtml += '<tr><td><strong>Diubah Pada</strong></td><td>' + (satuan.updated_at || '-') + '</td></tr>';
-
-          $('#satuanDetailBody').html(detailHtml);
-          $('#detailSatuanModal').modal('show');
-        } else {
-          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
-        }
-      },
-      error: function() {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
-      }
-    });
-  });
-
-  // Klik Edit
-  $(document).on('click', '#btnEdit', function() {
-    var satuanId = $(this).data('id');
-    $('#satuanId').val(satuanId);
-
-    $.ajax({
-      url: '/satuan/' + satuanId + '/find',
-      type: 'GET',
-      success: function(response) {
-        if (response.status) {
-          var satuan = response.data;
-          $('#edit_kode_satuan').val(satuan.kode_satuan);
-          $('#edit_nama_satuan').val(satuan.nama_satuan);
-          $('#edit_deskripsi').val(satuan.deskripsi);
-          $('#edit_status').val(satuan.status);
-          validator.resetForm();
-          $('#editSatuanForm').find('.is-invalid').removeClass('is-invalid');
-          $('#editSatuanModal').modal('show');
-        } else {
-          Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
-        }
-      },
-      error: function() {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan' });
-      }
-    });
-  });
+  
 
   // Delete
   $(document).on('click', '#btnDelete', function() {
@@ -247,11 +266,22 @@ $(document).ready(function() {
           type: 'DELETE',
           data: { _token: '{{ csrf_token() }}' },
           success: function(response) {
-            if (response.status) {
-              Swal.fire('Terhapus!', response.message, 'success');
-              table.ajax.reload();
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                table.ajax.reload();
+              });
             } else {
-              Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                table.ajax.reload();
+              });
             }
           },
           error: function() {
@@ -274,5 +304,5 @@ $(document).ready(function() {
 
 });
 </script>
-
-@include('layout.footer')
+</body>
+</html>

@@ -40,11 +40,11 @@
       </div>
       <div class="mb-3">
         <label for="harga_beli" class="form-label">Harga Beli*</label>
-        <input type="number" step="0.01" class="form-control" id="harga_beli" name="harga_beli" min="0" value="0" required>
+        <input type="number" class="form-control" id="harga_beli" name="harga_beli" min="0" value="0" required>
       </div>
       <div class="mb-3">
         <label for="harga_jual" class="form-label">Harga Jual*</label>
-        <input type="number" step="0.01" class="form-control" id="harga_jual" name="harga_jual" min="0" value="0" required>
+        <input type="number" class="form-control" id="harga_jual" name="harga_jual" min="0" value="0" required>
       </div>
       <div class="mb-3">
         <label for="deskripsi" class="form-label">Deskripsi</label>
@@ -65,20 +65,17 @@
         </select>
       </div>
 
-      <div id="barcode-list" class="mb-3">
-        <label class="form-label">Barcode Barang</label>
-        <div class="input-group mb-2">
-          <input type="text" name="barcodes[]" class="form-control" placeholder="Scan atau input barcode">
-          <button type="button" class="btn btn-success add-barcode">+</button>
-        </div>
-      </div>
-
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
     </form>
   </div>
+</div>
+
+@include('layout.footer')
 
 <script>
 $(document).ready(function() {
+
+  $("[name=kategori_id]").focus().select();
 
   // Autocomplete kategori
   $('#kategori_autocomplete').autocomplete({
@@ -88,7 +85,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success === true) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_kategori,
@@ -96,7 +93,14 @@ $(document).ready(function() {
                 id: item.id
               };
             }));
+          } else {
+            $('#' + data.form).focus().select();
+            alert(data.message);
           }
+        },
+        error: function(xhr) {
+          console.log(xhr.responseText);
+          alert('Terjadi kesalahan pada server.');
         }
       });
     },
@@ -108,21 +112,12 @@ $(document).ready(function() {
     }
   });
 
-
-
-  // Add barcode functionality
-  $('.add-barcode').on('click', function() {
-    const clone = $(this).closest('.input-group').clone();
-    clone.find('input').val('');
-    clone.find('.add-barcode').removeClass('add-barcode btn-success').addClass('remove-barcode btn-danger').html('-');
-    $('#barcode-list').append(clone);
-  });
-
-  $(document).on('click', '.remove-barcode', function() {
-    $(this).closest('.input-group').remove();
-  });
-
   $("#btnSave").click(function() {
+
+    if ($("[name=deskripsi]").val() == "") {
+      $("[name=deskripsi]").val('-');
+    }
+
     $('#addBarangForm').validate({
       rules: {
         kode_barang: {
@@ -154,44 +149,37 @@ $(document).ready(function() {
           required: true,
           number: true,
           min: 0
-        },
-        'barcodes.*': {
-          maxlength: 100
         }
       },
       messages: {
         kode_barang: {
-          required: "Kode Barang wajib diisi",
+          required: "Kode Barang harus diisi",
           minlength: "Kode Barang minimal 3 karakter"
         },
         nama_barang: {
-          required: "Nama Barang wajib diisi",
+          required: "Nama Barang harus diisi",
           minlength: "Nama Barang minimal 3 karakter"
         },
         kategori_id: {
-          required: "Kategori wajib dipilih"
+          required: "Kategori harus dipilih"
         },
         satuan_id: {
-          required: "Satuan wajib dipilih"
+          required: "Satuan harus dipilih"
         },
-
         stok: {
-          required: "Stok wajib diisi",
+          required: "Stok harus diisi",
           number: "Stok harus berupa angka",
           min: "Stok tidak boleh negatif"
         },
         harga_beli: {
-          required: "Harga Beli wajib diisi",
+          required: "Harga Beli harus diisi",
           number: "Harga Beli harus berupa angka",
           min: "Harga Beli tidak boleh negatif"
         },
         harga_jual: {
-          required: "Harga Jual wajib diisi",
+          required: "Harga Jual harus diisi",
           number: "Harga Jual harus berupa angka",
           min: "Harga Jual tidak boleh negatif"
-        },
-        'barcodes.*': {
-          maxlength: "Barcode maksimal 50 karakter"
         }
       },
       submitHandler: function(form) {
@@ -204,15 +192,27 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              setTimeout(() => {
-                window.location.href = "{{ route('barang.add') }}";
-              }, 500);
-            });
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  window.location.href = "{{ route('barang.add') }}";
+                }, 500);
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  $(`#${response.form}`).focus().select();
+                }, 500);
+              });
+            }
           },
           error: function(xhr) {
             let message = 'Terjadi kesalahan';
@@ -234,5 +234,5 @@ $(document).ready(function() {
   });
 });
 </script>
-
-@include('layout.footer')
+</body>
+</html>

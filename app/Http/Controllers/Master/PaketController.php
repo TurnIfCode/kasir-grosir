@@ -181,11 +181,80 @@ class PaketController extends Controller
                 }
             }
 
-            DB::commit();
+
+        DB::commit();
             return redirect()->route('master.paket.index')->with('success', 'Paket updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->withErrors(['error' => 'Failed to update paket: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Check apakah barang ada di dalam paket dan mengembalikan info paket
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkPaketForBarang(Request $request)
+    {
+        $request->validate([
+            'barang_id' => 'required|exists:barang,id'
+        ]);
+
+        try {
+            $barangId = $request->barang_id;
+
+            // Cari paket yang mengandung barang ini
+            $paketDetail = PaketDetail::select('paket_id')
+                ->where('barang_id', $barangId)
+                ->first();
+
+            if (!$paketDetail) {
+                return response()->json([
+                    'success' => true,
+                    'data' => null,
+                    'message' => 'Barang tidak ditemukan di paket manapun'
+                ]);
+            }
+
+            // Ambil info paket lengkap
+            $paket = Paket::with('details.barang')
+                ->where('id', $paketDetail->paket_id)
+                ->where('status', 'aktif')
+                ->first();
+
+            if (!$paket) {
+                return response()->json([
+                    'success' => true,
+                    'data' => null,
+                    'message' => 'Paket tidak aktif'
+                ]);
+            }
+
+            // Ambil semua barang_id dalam paket ini
+            $paketBarangIds = $paket->details->pluck('barang_id')->toArray();
+
+            $responseData = [
+                'paket_id' => $paket->id,
+                'nama' => $paket->nama,
+                'jenis' => $paket->jenis,
+                'total_qty' => $paket->total_qty,
+                'harga' => $paket->harga,
+                'paket_barang_ids' => $paketBarangIds,
+                'paket_barang_count' => count($paketBarangIds)
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $responseData,
+                'message' => 'Barang ditemukan di paket: ' . $paket->nama
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

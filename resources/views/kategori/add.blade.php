@@ -29,7 +29,12 @@
 
 <script>
 $(document).ready(function() {
+  $("[name=kode_kategori]").focus().select();
+
   $("#btnSave").click(function() {
+    if ($("[name=deskripsi]").val() == "") {
+      $("[name=deskripsi]").val('-');
+    }
     $('#addKategoriForm').validate({
       rules: {
         kode_kategori: {
@@ -62,15 +67,28 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              setTimeout(() => {
-                window.location.href = "{{ route('kategori.add') }}";
-              }, 500);
-            });
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  window.location.href = "{{ route('kategori.add') }}";
+                }, 500);
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  $(`#${response.form}`).focus().select();
+                }, 500);
+              });
+            }
+            
           },
           error: function(xhr) {
             Swal.fire({

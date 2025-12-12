@@ -132,7 +132,7 @@ $(document).ready(function() {
         url: '/barang/search',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success === true) {
             response(data.data.map(item => ({
               label: `${item.kode_barang} - ${item.nama_barang}`,
               value: item.nama_barang,
@@ -170,7 +170,7 @@ $(document).ready(function() {
     $.ajax({
       url: '/barang/' + barangId + '/satuan',
       success: function(data) {
-        if (data.status === 'success') {
+        if (data.success === true) {
           const satuanSelect = $('#satuan_id');
           satuanSelect.empty();
           satuanSelect.append('<option value="">-- Pilih Satuan --</option>');

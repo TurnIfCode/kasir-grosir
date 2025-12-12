@@ -156,11 +156,6 @@
               <option value="nonaktif">Nonaktif</option>
             </select>
           </div>
-
-          <div id="edit-barcode-list" class="mb-3">
-            <label class="form-label">Barcode Barang</label>
-            <!-- Barcodes will be loaded dynamically -->
-          </div>
         </form>
       </div>
       <div class="modal-footer">
@@ -289,7 +284,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_kategori,
@@ -380,7 +375,7 @@ $(document).ready(function() {
         type: 'POST',
         data: $(form).serialize() + '&_method=PUT',
         success: function(response) {
-          if (response.status) {
+          if (response.success) {
             Swal.fire({
               icon: 'success',
               title: 'Berhasil',
@@ -390,7 +385,19 @@ $(document).ready(function() {
               table.ajax.reload();
             });
           } else {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: response.message
+            }).then(function() {
+              setTimeout(() => {
+                if (response.form == 'reload') {
+                  table.ajax.reload();
+                } else {
+                  $(`[name=${response.form}]`).focus().select();
+                }
+              }, 500);
+            });
           }
         },
         error: function(xhr) {
@@ -411,7 +418,7 @@ $(document).ready(function() {
       url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var barang = response.data;
           var detailHtml = '';
 
@@ -457,33 +464,27 @@ $(document).ready(function() {
       url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var barang = response.data;
           $('#edit_kode_barang').val(barang.kode_barang);
           $('#edit_nama_barang').val(barang.nama_barang);
           $('#edit_kategori_id').val(barang.kategori_id || '');
           $('#edit_satuan_id').val(barang.satuan_id || '');
           $('#edit_stok').val(barang.stok || 0);
-          $('#edit_harga_beli').val(barang.harga_beli ? parseFloat(barang.harga_beli).toFixed(2) : '');
-          $('#edit_harga_jual').val(barang.harga_jual ? parseFloat(barang.harga_jual).toFixed(2) : '');
+          $('#edit_harga_beli').val(barang.harga_beli ? barang.harga_beli: '0');
+          $('#edit_harga_jual').val(barang.harga_jual ? barang.harga_jual: '0');
           $('#edit_multi_satuan').val(barang.multi_satuan || 0);
           $('#edit_deskripsi').val(barang.deskripsi || '');
           $('#edit_status').val(barang.status || 'aktif');
 
-          // Load barcodes
-          var barcodeHtml = '';
-          if (barang.barcodes && barang.barcodes.length > 0) {
-            barang.barcodes.forEach(function(b) {
-              barcodeHtml += '<div class="input-group mb-2"><input type="text" name="barcodes[]" value="' + b.barcode + '" class="form-control"><button type="button" class="btn btn-danger remove-barcode">-</button></div>';
-            });
-          } else {
-            barcodeHtml = '<div class="input-group mb-2"><input type="text" name="barcodes[]" class="form-control" placeholder="Scan atau input barcode"><button type="button" class="btn btn-success add-barcode">+</button></div>';
-          }
-          $('#edit-barcode-list').html(barcodeHtml);
+          
 
           validator.resetForm();
           $('#editBarangForm').find('.is-invalid').removeClass('is-invalid');
           $('#editBarangModal').modal('show');
+          setTimeout(() => {
+            $("[name=kategori_id]").focus().select();
+          }, 500);
         } else {
           Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
         }
@@ -525,11 +526,12 @@ $(document).ready(function() {
           type: 'DELETE',
           data: { _token: '{{ csrf_token() }}' },
           success: function(response) {
-            if (response.status) {
+            if (response.success) {
               Swal.fire('Terhapus!', response.message, 'success');
               table.ajax.reload();
             } else {
               Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });
+              table.ajax.reload();
             }
           },
           error: function() {
@@ -559,7 +561,7 @@ $(document).ready(function() {
       url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var barang = response.data;
           $('#barcodeBarangId').val(barang.id);
           $('#barcodeBarangIdForm').val(barang.id);
@@ -585,7 +587,7 @@ $(document).ready(function() {
       url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var barcodes = response.data.barcodes || [];
           var html = '';
           barcodes.forEach(function(b) {
@@ -615,7 +617,7 @@ $(document).ready(function() {
       type: 'POST',
       data: $(this).serialize(),
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           Swal.fire({
             icon: 'success',
             title: 'Berhasil',
@@ -659,7 +661,7 @@ $(document).ready(function() {
           type: 'DELETE',
           data: { _token: '{{ csrf_token() }}' },
           success: function(response) {
-            if (response.status) {
+            if (response.success) {
               Swal.fire('Terhapus!', response.message, 'success');
               var barangId = $('#barcodeBarangId').val();
               loadBarcodeList(barangId);
@@ -685,7 +687,7 @@ $(document).ready(function() {
       url: '{{ route("barang.find", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           var barang = response.data;
           $('#stokMinimumBarangId').val(barang.id);
           $('#stokMinimumBarang').val(barang.nama_barang + ' (' + barang.kode_barang + ')');
@@ -716,13 +718,12 @@ $(document).ready(function() {
       url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status === 'success') {
+
+        if (response.success) {
           var options = '<option value="">Pilih Satuan</option>';
           response.data.forEach(function(sat) {
             // Skip satuan dasar (nilai_konversi = 1)
-            if (sat.nilai_konversi !== 1) {
-              options += '<option value="' + sat.satuan_id + '">' + sat.nama_satuan + '</option>';
-            }
+            options += '<option value="' + sat.satuan_id + '">' + sat.nama_satuan + '</option>';
           });
           $('#satuan_id').html(options);
         }
@@ -738,7 +739,8 @@ $(document).ready(function() {
       url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status === 'success') {
+        
+        if (response.success) {
           var options = '<option value="">Pilih Satuan Terkecil</option>';
           response.data.forEach(function(sat) {
             // Only show satuan dasar (nilai_konversi = 1)
@@ -764,7 +766,8 @@ $(document).ready(function() {
       url: '{{ route("barang.stok-minimum.get", ":barangId") }}'.replace(':barangId', barangId),
       type: 'GET',
       success: function(response) {
-        if (response.status === 'success') {
+        
+        if (response.success) {
           var html = '';
           response.data.forEach(function(item) {
             html += '<tr>';
@@ -796,7 +799,7 @@ $(document).ready(function() {
         url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
         type: 'GET',
         success: function(response) {
-          if (response.status === 'success') {
+          if (response.success) {
             var satuanData = response.data.find(function(s) {
               return s.satuan_id == satuanId;
             });
@@ -836,7 +839,7 @@ $(document).ready(function() {
       type: 'POST',
       data: $(this).serialize(),
       success: function(response) {
-        if (response.status) {
+        if (response.success) {
           Swal.fire({
             icon: 'success',
             title: 'Berhasil',
@@ -877,7 +880,7 @@ $(document).ready(function() {
           type: 'DELETE',
           data: { _token: '{{ csrf_token() }}' },
           success: function(response) {
-            if (response.status) {
+            if (response.success) {
               Swal.fire('Terhapus!', response.message, 'success');
               var barangId = $('#stokMinimumBarangId').val();
               loadStokMinimumList(barangId);

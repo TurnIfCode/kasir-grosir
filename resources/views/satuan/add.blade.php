@@ -14,13 +14,13 @@
       </div>
       <div class="mb-3">
         <label for="deskripsi" class="form-label">Deskripsi</label>
-        <input type="text" class="form-control" id="deskripsi" name="deskripsi" placeholder="-">
+        <input type="text" class="form-control" id="deskripsi" name="deskripsi">
       </div>
       <div class="mb-3">
         <label for="status" class="form-label">Status Aktif</label>
         <select class="form-control" id="status" name="status" required>
-          <option value="AKTIF">AKTIF</option>
-          <option value="NONAKTIF">NONAKTIF</option>
+          <option value="aktif">AKTIF</option>
+          <option value="nonaktif">NONAKTIF</option>
         </select>
       </div>
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
@@ -29,7 +29,13 @@
 
 <script>
 $(document).ready(function() {
+  $("[name=kode_satuan]").focus().select();
+
   $("#btnSave").click(function() {
+    if ($("[name=deskripsi]").val() == "") {
+      $("[name=deskripsi]").val('-');
+    }
+
     $('#addSatuanForm').validate({
       rules: {
         kode_satuan: {
@@ -52,25 +58,33 @@ $(document).ready(function() {
         }
       },
       submitHandler: function(form) {
-        // Set default deskripsi jika kosong
-        if (!$('#deskripsi').val().trim()) {
-          $('#deskripsi').val('-');
-        }
-
         $.ajax({
           url: "{{ route('satuan.store') }}",
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              setTimeout(() => {
-                window.location.href = "{{ route('satuan.add') }}";
-              }, 500);
-            });
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  window.location.href = "{{ route('satuan.add') }}";
+                }, 500);
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  $(`[name=${response.form}]`).focus().select();
+                }, 500);
+              });
+            }
+            
           },
           error: function(xhr) {
             Swal.fire({

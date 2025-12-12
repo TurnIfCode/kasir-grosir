@@ -47,19 +47,29 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              window.location.href = "{{ route('kas-saldo.index') }}";
-            });
+            if (response.success === true) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                window.location.href = "{{ route('kas-saldo.index') }}";
+              });
+            } else {
+              $('#' + response.form).focus().select();
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              });
+            }
           },
           error: function(xhr) {
+            console.log(xhr.responseText);
             Swal.fire({
               icon: 'error',
               title: 'Gagal',
-              text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan'
+              text: 'Terjadi kesalahan pada server.'
             });
           }
         });

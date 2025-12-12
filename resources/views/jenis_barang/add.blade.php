@@ -52,7 +52,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_kategori,
@@ -80,7 +80,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_barang,
@@ -108,7 +108,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response($.map(data.data, function(item) {
               return {
                 label: item.nama_supplier,

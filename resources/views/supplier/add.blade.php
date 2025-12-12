@@ -73,7 +73,16 @@ $(document).ready(function() {
     url: "{{ route('supplier.generate-kode') }}",
     type: "GET",
     success: function(response) {
-      $('#kode_supplier').val(response.kode_supplier);
+      if (response.success === true) {
+        $('#kode_supplier').val(response.data.kode_supplier);
+      } else {
+        $('#' + response.form).focus().select();
+        alert(response.message);
+      }
+    },
+    error: function(xhr) {
+      console.log(xhr.responseText);
+      alert('Terjadi kesalahan pada server.');
     }
   });
 

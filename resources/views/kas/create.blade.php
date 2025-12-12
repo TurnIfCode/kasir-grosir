@@ -83,7 +83,7 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            if (response.status) {
+            if (response.success === true) {
               Swal.fire({
                 icon: 'success',
                 title: 'Berhasil',
@@ -92,6 +92,7 @@ $(document).ready(function() {
                 window.location.href = "{{ route('kas.index') }}";
               });
             } else {
+              $('#' + response.form).focus().select();
               Swal.fire({
                 icon: 'error',
                 title: 'Gagal',
@@ -100,10 +101,11 @@ $(document).ready(function() {
             }
           },
           error: function(xhr) {
+            console.log(xhr.responseText);
             Swal.fire({
               icon: 'error',
               title: 'Gagal',
-              text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan'
+              text: 'Terjadi kesalahan pada server.'
             });
           }
         });

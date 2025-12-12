@@ -424,7 +424,7 @@ class PembelianController extends Controller
         // Cek jika status sudah selesai atau batal, tidak bisa diubah lagi
         if ($pembelian->status !== 'draft') {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Status pembelian sudah tidak dapat diubah'
             ]);
         }

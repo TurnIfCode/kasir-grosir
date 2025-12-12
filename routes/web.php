@@ -18,10 +18,12 @@ use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
+
 use App\Http\Controllers\LaporanStokController;
 use App\Http\Controllers\Master\PaketController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\PembelianController;
+use App\Http\Controllers\Api\BarcodeController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -37,9 +39,16 @@ Route::get('/login', function () {
     return view('login');
 })->name('login');
 
+
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// CSRF Token Refresh Route
+Route::get('/refresh-csrf-token', function() {
+    return response()->json([
+        'token' => csrf_token()
+    ]);
+})->name('refresh-csrf-token');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -71,6 +80,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}/delete', [KategoriController::class, 'delete'])->name('kategori.delete');
     });
 
+
+
     Route::prefix('master/paket')->group(function () {
         Route::get('/', [App\Http\Controllers\Master\PaketController::class, 'index'])->name('master.paket.index');
         Route::get('/create', [App\Http\Controllers\Master\PaketController::class, 'create'])->name('master.paket.create');
@@ -80,6 +91,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}/update', [App\Http\Controllers\Master\PaketController::class, 'update'])->name('master.paket.update');
         // Delete route can be added if needed
     });
+
+    // Endpoint untuk cek paket dari penjualan (tanpa prefix master/paket)
+    Route::get('/paket/check-paket-for-barang', [App\Http\Controllers\Master\PaketController::class, 'checkPaketForBarang'])->name('paket.check-paket-for-barang');
     
     Route::get('/barang/search', [App\Http\Controllers\BarangController::class, 'search'])->name('barang.search');
 
@@ -118,9 +132,16 @@ Route::middleware('auth')->group(function () {
         Route::delete('/stok-minimum/{id}/delete', [\App\Http\Controllers\StokMinimumController::class, 'delete'])->name('barang.stok-minimum.delete');
         Route::get('/{barangId}/stok-minimum', [\App\Http\Controllers\StokMinimumController::class, 'getByBarang'])->name('barang.stok-minimum.get');
 
+
         // Barcode
         Route::post('/barcode/store', [BarangController::class, 'storeBarcode'])->name('barang.barcode.store');
         Route::delete('/barcode/{id}/delete', [BarangController::class, 'deleteBarcode'])->name('barang.barcode.delete');
+    });
+
+
+    // API Routes for barcode scanning and paket logic
+    Route::prefix('api')->group(function () {
+        Route::post('/barcode/current-paket', [BarcodeController::class, 'getCurrentPaket'])->name('api.barcode.current-paket');
     });
 
     Route::prefix('satuan')->group(function () {
@@ -227,7 +248,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/barang/{barangId}/harga/{satuanId}', [PenjualanController::class, 'getHargaByBarangSatuan'])->name('penjualan.barang.harga');
         Route::get('/barang/{barangId}/harga/{satuanId}/default', [PenjualanController::class, 'getHargaByBarangSatuanDefault'])->name('penjualan.barang.harga.default');
         Route::get('/barang/{barangId}/harga-barang-info', [PenjualanController::class, 'getHargaBarangInfo'])->name('penjualan.barang.harga-barang-info');
+
+
         Route::get('/get-paket-barang/{barangId}', [PenjualanController::class, 'getPaketBarang'])->name('penjualan.get-paket-barang');
+        Route::get('/get-all-paket', [PenjualanController::class, 'getAllPaket'])->name('penjualan.get-all-paket');
         Route::post('/calculate-subtotal', [PenjualanController::class, 'calculateSubtotal'])->name('penjualan.calculate-subtotal');
 
         Route::get('/{id}', [PenjualanController::class, 'show'])->name('penjualan.show');

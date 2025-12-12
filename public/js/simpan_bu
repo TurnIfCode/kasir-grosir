@@ -1,16 +1,107 @@
+
 let rowIndex = 0;
 let paymentIndex = 0;
 let barangInfoCache = {}; // Cache for barang information
-let paketInfoCache = {}; // Cache for paket data per barang
 let calculateTimeout = null; // For debouncing calculations
 let isCalculating = false; // Flag to prevent recursion in calculations
+let hargaCache = {}; // Cache for harga data
+
+
+
+
+
+// CSRF token management
+let csrfToken = $('input[name="_token"]').val();
+let isSubmitting = false; // Flag to prevent double submission
+let lastSubmissionTime = 0; // For race condition prevention
+
 
 $(document).ready(function() {
     // Initialize form
     generateKodePenjualan();
     addNewRow();
     updateRemoveButtons();
+    
+    // Refresh CSRF token periodically (every 30 minutes)
+    setInterval(refreshCsrfToken, 30 * 60 * 1000);
+    
+    // Handle CSRF token errors globally
+    $(document).ajaxError(function(event, xhr, settings) {
+        if (xhr.status === 419) {
+            console.log('CSRF token mismatch detected, refreshing token...');
+            refreshCsrfToken();
+        }
+    });
 });
+
+// Enhanced AJAX helper function that always includes CSRF token
+function enhancedAjax(options) {
+    // Default options
+    const defaults = {
+        headers: {
+            'X-CSRF-TOKEN': csrfToken
+        },
+        timeout: 30000, // 30 seconds timeout
+        beforeSend: function(xhr) {
+            // Ensure CSRF token is fresh
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+        }
+    };
+    
+    // Merge options
+    const ajaxOptions = $.extend(true, defaults, options);
+    
+    // Add error handling for CSRF specifically
+    const originalError = ajaxOptions.error;
+    ajaxOptions.error = function(xhr, status, error) {
+        if (xhr.status === 419) {
+            console.log('CSRF token expired, refreshing and retrying...');
+            refreshCsrfToken(function() {
+                // Retry the request with new token
+                ajaxOptions.headers['X-CSRF-TOKEN'] = csrfToken;
+                ajaxOptions.beforeSend = function(xhr) {
+                    xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+                };
+                $.ajax(ajaxOptions);
+            });
+            return;
+        }
+        
+        // Call original error handler if not CSRF related
+        if (originalError) {
+            originalError(xhr, status, error);
+        }
+    };
+    
+    return $.ajax(ajaxOptions);
+}
+
+// Function to refresh CSRF token
+function refreshCsrfToken(callback) {
+    enhancedAjax({
+        url: '/refresh-csrf-token',
+        method: 'GET',
+        success: function(response) {
+            if (response.token) {
+                csrfToken = response.token;
+                $('input[name="_token"]').val(csrfToken);
+                console.log('CSRF token refreshed successfully');
+                if (callback) callback();
+            }
+        },
+        error: function(xhr) {
+            console.error('Failed to refresh CSRF token:', xhr);
+            // Fallback: try to get token from meta tag
+            const metaToken = $('meta[name="csrf-token"]').attr('content');
+            if (metaToken) {
+                csrfToken = metaToken;
+                $('input[name="_token"]').val(csrfToken);
+                console.log('CSRF token updated from meta tag');
+                if (callback) callback();
+            }
+        }
+    });
+}
 
 function generateKodePenjualan() {
     const today = new Date();
@@ -57,7 +148,7 @@ function addNewRow() {
         </tr>
     `;
 
-    $('#detailContainer').append(rowHtml);
+    $('#detailContainer').prepend(rowHtml);
     initializeAutocomplete(rowIndex);
     rowIndex++;
     updateRemoveButtons();
@@ -83,9 +174,10 @@ function updateRemoveButtons() {
 
 
 function initializeAutocomplete(index) {
+
     $(`.barang-autocomplete[data-index="${index}"]`).autocomplete({
         source: function(request, response) {
-            $.ajax({
+            enhancedAjax({
                 url: '/barang/search',
                 data: { q: request.term, pelanggan_id: $('#pelanggan_id').val() },
                 success: function(data) {
@@ -95,7 +187,16 @@ function initializeAutocomplete(index) {
                             value: item.nama_barang,
                             id: item.id
                         })));
+                    } else {
+                        const formField = data.form || 'barang-autocomplete';
+                        const errorMessage = data.message || 'Terjadi kesalahan saat mencari barang';
+                        $('#' + formField).focus().select();
+                        alert(errorMessage);
                     }
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText);
+                    alert('Terjadi kesalahan pada server.');
                 }
             });
         },
@@ -109,48 +210,105 @@ function initializeAutocomplete(index) {
     });
 }
 
+
+
+
 function loadBarangInfo(index, barangId) {
     if (barangInfoCache[barangId]) {
         // Use cached data
         updateBarangInfo(index, barangInfoCache[barangId]);
+
     } else {
-        $.ajax({
+        enhancedAjax({
             url: '/barang/' + barangId + '/info',
             success: function(data) {
                 if (data.success === true) {
                     barangInfoCache[barangId] = data.data;
                     updateBarangInfo(index, data.data);
+                } else {
+                    const formField = data.form || 'barang-autocomplete';
+                    const errorMessage = data.message || 'Terjadi kesalahan saat memuat data barang';
+                    $('#' + formField).focus().select();
+                    alert(errorMessage);
                 }
+            },
+            error: function(xhr) {
+                console.log(xhr.responseText);
+                alert('Terjadi kesalahan pada server.');
             }
         });
     }
 
-    // Fetch paket info for the barang
-    if (paketInfoCache[barangId]) {
-        // Paket info cached, update display after loading
-        updateRowDisplay(index);
-    } else {
-        $.ajax({
-            url: '/penjualan/get-paket-barang/' + barangId,
-            success: function(data) {
-                if (data.success === true) {
-                    paketInfoCache[barangId] = data.data;
-                    // Update display after paket info is loaded
-                    updateRowDisplay(index);
+
+    // Logika paket: cek apakah barang ada di paket dan hitung harga
+    enhancedAjax({
+        url: '/paket/check-paket-for-barang',
+        data: { barang_id: barangId },
+        success: function(response) {
+            if (response.success === true && response.data) {
+                const paketInfo = response.data;
+                
+                // Hitung total qty barang paket di transaksi
+                let totalPaketQty = 0;
+                $('.detail-row').each(function() {
+                    const rowIndex = $(this).data('index');
+                    const rowBarangId = $(`.barang-id-input[data-index="${rowIndex}"]`).val();
+                    const rowQty = parseFloat($(`.qty-input[data-index="${rowIndex}"]`).val()) || 0;
+                    
+                    if (rowBarangId && paketInfo.paket_barang_ids.includes(parseInt(rowBarangId)) && rowQty > 0) {
+                        totalPaketQty += rowQty;
+                    }
+                });
+
+
+                // Jika total qty penjualan >= total_qty paket
+                if (totalPaketQty >= paketInfo.total_qty) {
+                    // details[index][harga_jual] = Math.round(harga/total_qty)
+                    const hargaPaketSatuan = Math.round(paketInfo.harga / paketInfo.total_qty);
+                    $(`.harga-jual-input[data-index="${index}"]`).val(hargaPaketSatuan);
+                    
+                    // subtotal-text = details[index][qty] * details[index][harga_jual]
+                    const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
+                    const subtotal = qty * hargaPaketSatuan;
+                    $(`.subtotal-text[data-index="${index}"]`).text(subtotal.toLocaleString('id-ID'));
                 }
             }
-        });
-    }
+        },
+        error: function() {
+            // Silent fail if paket check fails
+        }
+    });
 }
 
+// Fungsi untuk mengecek apakah barang ada di paket
+function checkBarangInPaket(barangId) {
+    return new Promise((resolve) => {
+        enhancedAjax({
+            url: '/paket/check-paket-for-barang',
+            data: { barang_id: barangId },
+            success: function(response) {
+                if (response.success === true && response.data) {
+                    resolve(response.data);
+                } else {
+                    resolve(null);
+                }
+            },
+            error: function() {
+                resolve(null);
+            }
+        });
+    });
+}
 
-function getTotalQtyForPaket(paket) {
+// Fungsi untuk menghitung total qty barang paket di transaksi
+function calculateTotalPaketQty(paketBarangIds) {
     let totalQty = 0;
     $('.detail-row').each(function() {
-        const rowIndex = $(this).data('index');
-        const barangId = $(`.barang-id-input[data-index="${rowIndex}"]`).val();
-        if (paket.barang_ids.includes(parseInt(barangId))) {
-            const qty = parseFloat($(`.qty-input[data-index="${rowIndex}"]`).val()) || 0;
+        const index = $(this).data('index');
+        const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+        const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
+        
+        if (barangId && paketBarangIds.includes(parseInt(barangId)) && qty > 0) {
             totalQty += qty;
         }
     });
@@ -158,141 +316,8 @@ function getTotalQtyForPaket(paket) {
 }
 
 
-function isBarangInActivePaket(barangId) {
-    console.log(`Checking if barang ${barangId} is in active paket...`); // Debug log
-    
-    if (!paketInfoCache[barangId] || paketInfoCache[barangId].length === 0) {
-        console.log(`No paket cache for barang ${barangId}`); // Debug log
-        return false;
-    }
-    
-    // Check if any paket applies (total_qty condition met)
-    for (const paket of paketInfoCache[barangId]) {
-        const totalQty = getTotalQtyForPaket(paket);
-        console.log(`Paket ${paket.nama} (jenis: ${paket.jenis}): totalQty=${totalQty}, required=${paket.total_qty}`); // Debug log
-        
-        if (totalQty >= paket.total_qty) {
-            console.log(`Paket applies for barang ${barangId}:`, paket); // Debug log
-            return true; // Barang ini termasuk dalam paket yang aktif
-        }
-    }
-    
-    console.log(`No paket applies for barang ${barangId}`); // Debug log
-    return false; // Tidak ada paket yang berlaku untuk barang ini
-}
 
 
-
-function updateAllPaketHarga() {
-    console.log('Updating all paket harga...'); // Debug log
-    let completed = 0;
-    const totalRows = $('.detail-row').length;
-    
-    $('.detail-row').each(function() {
-        const index = $(this).data('index');
-        console.log(`Updating row ${index}`); // Debug log
-        
-        // Modified loadHarga to accept callback
-        loadHargaWithCallback(index, true, function() {
-            completed++;
-            if (completed === totalRows) {
-                // All rows updated, now update display for all rows
-                updateAllRowDisplays();
-            }
-        });
-    });
-    
-    // If no rows, update displays immediately
-    if (totalRows === 0) {
-        updateAllRowDisplays();
-    }
-}
-
-function loadHargaWithCallback(index, skipCalculation = false, callback = null) {
-    const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
-    const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
-    const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
-    const pelangganId = $('#pelanggan_id').val();
-
-    if (!barangId || !satuanId || !tipeHarga) {
-        if (callback) callback();
-        return;
-    }
-
-    // Check if barang is in paket and paket condition applies
-    if (paketInfoCache[barangId] && paketInfoCache[barangId].length > 0) {
-        console.log('Paket info cache for barang', barangId, ':', paketInfoCache[barangId]); // Debug log
-        
-        // Find the paket dengan prioritas: jenis 'tidak' dulu, lalu harga terendah
-        let selectedPaket = null;
-        for (const paket of paketInfoCache[barangId]) {
-            const totalQty = getTotalQtyForPaket(paket);
-            console.log(`Checking paket ${paket.nama} (jenis: ${paket.jenis}, harga: ${paket.harga}, total_qty: ${paket.total_qty}, totalQty: ${totalQty})`); // Debug log
-            
-            if (totalQty >= paket.total_qty) {
-                if (!selectedPaket) {
-                    selectedPaket = paket;
-                    console.log(`Selected paket (first): ${paket.nama}`); // Debug log
-                } else {
-                    // Prioritaskan jenis 'tidak' terlebih dahulu
-                    if (paket.jenis === 'tidak' && selectedPaket.jenis !== 'tidak') {
-                        selectedPaket = paket;
-                        console.log(`Selected paket (prioritas jenis): ${paket.nama}`); // Debug log
-                    }
-                    // Jika jenis sama, pilih harga terendah
-                    else if (paket.jenis === selectedPaket.jenis && parseFloat(paket.harga) < parseFloat(selectedPaket.harga)) {
-                        selectedPaket = paket;
-                        console.log(`Selected paket (harga lebih rendah): ${paket.nama}`); // Debug log
-                    }
-                }
-            }
-        }
-
-        console.log('Final selected paket:', selectedPaket); // Debug log
-
-        if (selectedPaket) {
-            // Apply paket harga and round to integer
-            const paketHargaJual = Math.round(selectedPaket.harga / selectedPaket.total_qty);
-            console.log(`Applied paket harga: ${paketHargaJual} (${selectedPaket.harga} / ${selectedPaket.total_qty})`); // Debug log
-            $(`.harga-jual-input[data-index="${index}"]`).val(paketHargaJual);
-            if (!skipCalculation) {
-                calculateSubtotal(index);
-            }
-            if (callback) callback();
-            return;
-        }
-    }
-
-    console.log('No paket applies, using normal harga calculation'); // Debug log
-
-    // Fallback to normal harga and round to integer
-    $.ajax({
-        url: `/penjualan/barang/${barangId}/harga/${satuanId}`,
-        data: { tipe: tipeHarga, pelanggan_id: pelangganId },
-        success: function(data) {
-            if (data.success === true) {
-                const roundedHarga = Math.round(data.data.harga);
-                console.log('Normal harga result:', roundedHarga); // Debug log
-                $(`.harga-jual-input[data-index="${index}"]`).val(roundedHarga);
-                if (!skipCalculation) {
-                    calculateSubtotal(index);
-                }
-            }
-            if (callback) callback();
-        },
-        error: function() {
-            if (callback) callback();
-        }
-    });
-}
-
-function updateAllRowDisplays() {
-    console.log('Updating all row displays...'); // Debug log
-    $('.detail-row').each(function() {
-        const index = $(this).data('index');
-        updateRowDisplay(index);
-    });
-}
 
 
 function loadHarga(index, skipCalculation = false) {
@@ -305,138 +330,157 @@ function loadHarga(index, skipCalculation = false) {
         return;
     }
 
-    // Check if barang is in paket and paket condition applies
-    if (paketInfoCache[barangId] && paketInfoCache[barangId].length > 0) {
-        console.log('Paket info cache for barang', barangId, ':', paketInfoCache[barangId]); // Debug log
-        
-        // Find the paket dengan prioritas: jenis 'tidak' dulu, lalu harga terendah
-        let selectedPaket = null;
-        for (const paket of paketInfoCache[barangId]) {
-            const totalQty = getTotalQtyForPaket(paket);
-            console.log(`Checking paket ${paket.nama} (jenis: ${paket.jenis}, harga: ${paket.harga}, total_qty: ${paket.total_qty}, totalQty: ${totalQty})`); // Debug log
-            
-            if (totalQty >= paket.total_qty) {
-                if (!selectedPaket) {
-                    selectedPaket = paket;
-                    console.log(`Selected paket (first): ${paket.nama}`); // Debug log
-                } else {
-                    // Prioritaskan jenis 'tidak' terlebih dahulu
-                    if (paket.jenis === 'tidak' && selectedPaket.jenis !== 'tidak') {
-                        selectedPaket = paket;
-                        console.log(`Selected paket (prioritas jenis): ${paket.nama}`); // Debug log
-                    }
-                    // Jika jenis sama, pilih harga terendah
-                    else if (paket.jenis === selectedPaket.jenis && parseFloat(paket.harga) < parseFloat(selectedPaket.harga)) {
-                        selectedPaket = paket;
-                        console.log(`Selected paket (harga lebih rendah): ${paket.nama}`); // Debug log
-                    }
-                }
-            }
+    // Create cache key
+    const cacheKey = `${barangId}-${satuanId}-${tipeHarga}-${pelangganId}`;
+
+    // Check cache first
+    if (hargaCache[cacheKey]) {
+        $(`.harga-jual-input[data-index="${index}"]`).val(hargaCache[cacheKey]);
+        if (!skipCalculation) {
+            calculateSubtotal(index);
         }
-
-        console.log('Final selected paket:', selectedPaket); // Debug log
-
-
-        if (selectedPaket) {
-            // Apply paket harga and round to integer
-            const paketHargaJual = Math.round(selectedPaket.harga / selectedPaket.total_qty);
-            console.log(`Applied paket harga: ${paketHargaJual} (${selectedPaket.harga} / ${selectedPaket.total_qty})`); // Debug log
-            $(`.harga-jual-input[data-index="${index}"]`).val(paketHargaJual);
-            if (!skipCalculation) {
-                calculateSubtotal(index);
-            } else {
-                // Update row display after setting harga
-                updateRowDisplay(index);
-            }
-            return;
-        }
+        return;
     }
 
-    console.log('No paket applies, using normal harga calculation'); // Debug log
+    // Get barang info from cache to get barcode
+    const barangInfo = barangInfoCache[barangId];
+    if (!barangInfo) {
+        // Fallback to normal pricing if no barang info
+        loadHargaFallback(index, cacheKey, skipCalculation, pelangganId, barangId, satuanId, tipeHarga);
+        return;
+    }
 
-    // Fallback to normal harga and round to integer
-    $.ajax({
+    // Removed /api/barcode/scan call as requested, directly using fallback logic
+    loadHargaFallback(index, cacheKey, skipCalculation, pelangganId, barangId, satuanId, tipeHarga);
+}
+
+
+function loadHargaFallback(index, cacheKey, skipCalculation, pelangganId, barangId, satuanId, tipeHarga) {
+
+    // Fallback to normal harga
+    enhancedAjax({
         url: `/penjualan/barang/${barangId}/harga/${satuanId}`,
         data: { tipe: tipeHarga, pelanggan_id: pelangganId },
-
         success: function(data) {
-            if (data.success === true) {
-                const roundedHarga = Math.round(data.data.harga);
-                console.log('Normal harga result:', roundedHarga); // Debug log
-                $(`.harga-jual-input[data-index="${index}"]`).val(roundedHarga);
+            if (data.success === true && data.data && data.data.harga) {
+                const harga = data.data.harga;
+                // Cache the result
+                hargaCache[cacheKey] = harga;
+                $(`.harga-jual-input[data-index="${index}"]`).val(harga);
+                
+                // Reset background for normal pricing
+                const hargaInput = $(`.harga-jual-input[data-index="${index}"]`);
+                hargaInput.css('background-color', '');
+                hargaInput.attr('title', '');
+
                 if (!skipCalculation) {
                     calculateSubtotal(index);
-                } else {
-                    // Update row display after setting harga
-                    updateRowDisplay(index);
                 }
+            } else {
+                const formField = data.form || 'harga-jual-input';
+                const errorMessage = data.message || 'Tidak dapat memuat harga';
+                $('#' + formField).focus().select();
+                alert(errorMessage);
             }
+        },
+        error: function(xhr) {
+            console.log(xhr.responseText);
+            alert('Terjadi kesalahan pada server.');
         }
     });
 }
 
+
+
 function updateBarangInfo(index, barangInfo) {
+    // Ensure barcode is available in barangInfo
+    if (!barangInfo.barcode && barangInfo.kode_barang) {
+        barangInfo.barcode = barangInfo.kode_barang;
+    }
+    
     // Load satuan options
     loadSatuanOptions(index, barangInfo.id);
 
     // Set initial qty to 1
     $(`.qty-input[data-index="${index}"]`).val(1);
+
+    // Implementasi logika paket: jika barang dari autocomplete penjualan
+    checkBarangInPaket(barangInfo.id).then(paketInfo => {
+        if (paketInfo) {
+            // Cek apakah total qty penjualan > total_qty paket
+            const totalPaketQty = calculateTotalPaketQty(paketInfo.paket_barang_ids);
+            
+            if (totalPaketQty > paketInfo.total_qty) {
+                // details[index][harga_jual] = round(harga/total_qty)
+                const hargaPaketSatuan = Math.round(paketInfo.harga / paketInfo.total_qty);
+                $(`.harga-jual-input[data-index="${index}"]`).val(hargaPaketSatuan);
+                
+                // Update subtotal-text = details[index][qty] * details[index][harga_jual]
+                calculateSubtotal(index);
+            }
+        }
+    });
 }
 
+
 function loadSatuanOptions(index, barangId) {
-    $.ajax({
+
+    enhancedAjax({
         url: `/penjualan/barang/${barangId}/harga-barang-info`,
         success: function(hargaData) {
-            const satuanSelect = $(`.satuan-select[data-index="${index}"]`);
-            satuanSelect.empty();
-            satuanSelect.append('<option value="">Pilih Satuan</option>');
+            if (hargaData.success === true) {
+                const satuanSelect = $(`.satuan-select[data-index="${index}"]`);
+                satuanSelect.empty();
+                satuanSelect.append('<option value="">Pilih Satuan</option>');
 
-            if (hargaData.success === true && hargaData.data.length > 0) {
-                // Get unique satuan from harga_barang
-                let uniqueSatuan = [];
-                const seen = new Set();
-                hargaData.data.forEach(function(harga) {
-                    if (!seen.has(harga.satuan_id)) {
-                        seen.add(harga.satuan_id);
-                        uniqueSatuan.push({
-                            satuan_id: harga.satuan_id,
-                            nama_satuan: harga.nama_satuan
-                        });
+                if (hargaData.data && hargaData.data.length > 0) {
+                    // Get unique satuan from harga_barang
+                    let uniqueSatuan = [];
+                    const seen = new Set();
+                    hargaData.data.forEach(function(harga) {
+                        if (!seen.has(harga.satuan_id)) {
+                            seen.add(harga.satuan_id);
+                            uniqueSatuan.push({
+                                satuan_id: harga.satuan_id,
+                                nama_satuan: harga.nama_satuan
+                            });
+                        }
+                    });
+
+                    // Check if customer is Antar and barang is Rokok & Tembakau
+                    const isAntar = $('#pelanggan_jenis').val() === 'antar';
+                    const barangInfo = barangInfoCache[barangId];
+                    const isRokokTembakau = barangInfo && barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok & tembakau';
+
+                    if (isAntar && isRokokTembakau) {
+                        // Filter to only show 'slop' satuan
+                        uniqueSatuan = uniqueSatuan.filter(satuan => satuan.nama_satuan.toLowerCase() === 'slop');
                     }
-                });
 
+                    uniqueSatuan.forEach(function(satuan) {
+                        satuanSelect.append(`<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`);
+                    });
 
-                // Check if customer is Antar and barang is Rokok & Tembakau
-                const pelanggan = getSelectedPelanggan();
-                const isAntar = pelanggan && pelanggan.jenis === 'antar';
-                const barangInfo = barangInfoCache[barangId];
-                const isRokokTembakau = barangInfo && barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok & tembakau';
-
-                if (isAntar && isRokokTembakau) {
-                    // Filter to only show 'slop' satuan
-                    uniqueSatuan = uniqueSatuan.filter(satuan => satuan.nama_satuan.toLowerCase() === 'slop');
-                }
-
-                uniqueSatuan.forEach(function(satuan) {
-                    satuanSelect.append(`<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`);
-                });
-
-                // Auto-select the first satuan and load tipe harga
-                if (uniqueSatuan.length > 0) {
-                    const selectedSatuanId = uniqueSatuan[0].satuan_id;
-                    satuanSelect.val(selectedSatuanId);
-                    loadTipeHarga(index, barangId, selectedSatuanId, hargaData.data);
+                    // Auto-select the first satuan and load tipe harga
+                    if (uniqueSatuan.length > 0) {
+                        const selectedSatuanId = uniqueSatuan[0].satuan_id;
+                        satuanSelect.val(selectedSatuanId);
+                        loadTipeHarga(index, barangId, selectedSatuanId, hargaData.data);
+                    }
+                } else {
+                    // No harga_barang data, show no options
+                    satuanSelect.append('<option value="" disabled>Tidak ada satuan tersedia</option>');
                 }
             } else {
-                // No harga_barang data, show no options
-                satuanSelect.append('<option value="" disabled>Tidak ada satuan tersedia</option>');
+                const formField = hargaData.form || 'satuan-select';
+                const errorMessage = hargaData.message || 'Terjadi kesalahan saat memuat satuan';
+                $('#' + formField).focus().select();
+                alert(errorMessage);
             }
         },
-        error: function() {
-            const satuanSelect = $(`.satuan-select[data-index="${index}"]`);
-            satuanSelect.empty();
-            satuanSelect.append('<option value="">Pilih Satuan</option>');
-            satuanSelect.append('<option value="" disabled>Error loading satuan</option>');
+        error: function(xhr) {
+            console.log(xhr.responseText);
+            alert('Terjadi kesalahan pada server.');
         }
     });
 }
@@ -453,11 +497,12 @@ function onSatuanChange(index) {
     loadTipeHarga(index, barangId, satuanId);
 }
 
+
 function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
     const tipeHargaSelect = $(`.tipe-harga-select[data-index="${index}"]`);
     tipeHargaSelect.empty();
 
-    if (hargaData) {
+    if (hargaData && Array.isArray(hargaData)) {
         // Use provided hargaData to find tipe_harga for the satuan
         const matchingHargas = hargaData.filter(h => h.satuan_id == satuanId);
         if (matchingHargas.length > 0) {
@@ -478,11 +523,12 @@ function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
             tipeHargaSelect.append('<option value="" disabled>Tidak ada tipe harga tersedia</option>');
         }
     } else {
+
         // Fallback: fetch tipe_harga via AJAX if hargaData not provided
-        $.ajax({
+        enhancedAjax({
             url: `/penjualan/barang/${barangId}/satuan/${satuanId}/tipe-harga`,
             success: function(data) {
-                if (data.success === true) {
+                if (data.success === true && data.data && Array.isArray(data.data)) {
                     data.data.forEach(function(tipe) {
                         tipeHargaSelect.append(`<option value="${tipe}">${tipe.charAt(0).toUpperCase() + tipe.slice(1)}</option>`);
                     });
@@ -492,6 +538,9 @@ function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
                         tipeHargaSelect.val(data.data[0]);
                         loadHarga(index);
                     }
+                } else {
+                    const errorMessage = data.message || 'Tidak ada tipe harga tersedia';
+                    tipeHargaSelect.append(`<option value="" disabled>${errorMessage}</option>`);
                 }
             },
             error: function() {
@@ -502,25 +551,7 @@ function loadTipeHarga(index, barangId, satuanId, hargaData = null) {
 }
 
 
-function calculateSubtotal(index) {
-    // Prevent recursion
-    if (isCalculating) {
-        return;
-    }
 
-    // Clear previous timeout
-    if (calculateTimeout) {
-        clearTimeout(calculateTimeout);
-    }
-
-    // Update paket harga for all rows before calculation
-    updateAllPaketHarga();
-
-    // Debounce the calculation by 500ms
-    calculateTimeout = setTimeout(function() {
-        performCalculation();
-    }, 500);
-}
 
 function performCalculation() {
     // Set calculating flag
@@ -538,29 +569,58 @@ function performCalculation() {
 
 
     // Call backend to calculate
-    $.ajax({
+    enhancedAjax({
         url: '/penjualan/calculate-subtotal',
         method: 'POST',
         data: {
             details: details,
             pelanggan_id: $('#pelanggan_id').val(),
-            _token: $('input[name="_token"]').val()
+            _token: csrfToken
         },
         success: function(response) {
-            console.log('Backend response:', response); // Debug log
             if (response.success === true) {
+                // If backend returns updated details (e.g., paket pricing updated)
+                if (response.data.details && Array.isArray(response.data.details)) {
+                    response.data.details.forEach((detail, idx) => {
+                        // Find the corresponding row index. 
+                        // Assuming the order matches getAllDetails() which iterates .detail-row sequentially
+                        // But getAllDetails only picks valid rows. We need to be careful.
+                        // Ideally getAllDetails should probably attach the row index to the detail object
+                    });
+                    
+                    // Since getAllDetails() creates a new array, mapping back to DOM by index might be tricky 
+                    // if some rows were skipped.
+                    // Let's iterate details again to map DOM index to array index
+                    let arrayIndex = 0;
+                    $('.detail-row').each(function() {
+                        const index = $(this).data('index');
+                        const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
+                        const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
+                        const tipeHarga = $(`.tipe-harga-select[data-index="${index}"]`).val();
+                        const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
+
+                        if (barangId && satuanId && tipeHarga && qty > 0) {
+                            // This row corresponds to response.data.details[arrayIndex]
+                            const updatedDetail = response.data.details[arrayIndex];
+                            if (updatedDetail && updatedDetail.harga_jual) {
+                                $(`.harga-jual-input[data-index="${index}"]`).val(updatedDetail.harga_jual);
+                                updateRowDisplay(index); // Re-render row display
+                            }
+                            arrayIndex++;
+                        }
+                    });
+                }
+                
                 updateTotals(response.data);
             } else {
-                console.error('Backend calculation failed:', response);
-                // Fallback: set totals to 0 if backend fails
-                updateTotals({ subtotal: 0, pembulatan: 0, grand_total: 0 });
+                $('#' + response.form).focus().select();
+                alert(response.message);
             }
             isCalculating = false;
         },
         error: function(xhr) {
-            console.error('Error calculating subtotal:', xhr.responseText);
-            // Fallback: set totals to 0 if request fails
-            updateTotals({ subtotal: 0, pembulatan: 0, grand_total: 0 });
+            console.log(xhr.responseText);
+            alert('Terjadi kesalahan pada server.');
             isCalculating = false;
         }
     });
@@ -578,14 +638,9 @@ function roundTotal(total) {
     }
 }
 
-
-
 function updateRowDisplay(index) {
-    console.log(`Updating row display for index ${index}`); // Debug log
-    
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
     if (!barangId || !barangInfoCache[barangId]) {
-        console.log(`No barang data for row ${index}`); // Debug log
         return;
     }
 
@@ -595,17 +650,10 @@ function updateRowDisplay(index) {
     const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
     const pelangganId = $('#pelanggan_id').val();
 
-    console.log(`Row ${index} data: barang=${barangId}, qty=${qty}, tipe=${tipeHarga}, satuan=${satuanId}`); // Debug log
-
-    // Check if this barang is in an active paket
-    const isInActivePaket = isBarangInActivePaket(barangId);
-    console.log(`Row ${index} isInActivePaket: ${isInActivePaket}`); // Debug log
-
-    // Check if customer is special (Modal or Antar)
+    // Check if customer is special (Modal or Hubuan)
     const isSpecialCustomer = $('#is_special_customer').val() === '1';
-    const pelanggan = getSelectedPelanggan();
-    const isModal = isSpecialCustomer; // Modal customers are marked with is_special_customer = '1'
-    const isAntar = pelanggan && pelanggan.jenis === 'antar';
+    const isModal = $('#pelanggan_jenis').val() === 'modal';
+    const isAntar = $('#pelanggan_jenis').val() === 'antar';
 
     let subtotalText = '';
     let keteranganText = '';
@@ -614,11 +662,8 @@ function updateRowDisplay(index) {
         // Normal logic for regular customers
         if (barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal' && tipeHarga === 'grosir' && satuanId == 2) {
             // Logic for LEGAL jenis with grosir tipe_harga and satuan Bungkus (satuan_id = 2)
-
             const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-            console.log(`Row ${index} hargaJual: ${hargaJual}`); // Debug log
-            
-            const baseSubtotal = Math.round(qty * hargaJual);
+            const baseSubtotal = qty * hargaJual;
             let surcharge = 0;
 
             if (qty >= 1 && qty <= 4) {
@@ -629,29 +674,21 @@ function updateRowDisplay(index) {
 
             keteranganText = 'Rokok Legal Grosir';
 
+            console.log("INI SUCHARGENYA DUDE==> ", surcharge);
+            
+
             if (surcharge > 0) {
-
                 const total = baseSubtotal + surcharge;
-                console.log("Row " + index + " Total before rounding:", total);
+                console.log("Total before rounding:", total);
 
-                // Only apply pembulatanSubtotal if NOT in active paket
-                if (!isInActivePaket) {
-                    const roundedTotal = pembulatanSubtotal(total);
-                    subtotalText = `${Math.round(roundedTotal).toLocaleString('id-ID')}`;
-                } else {
-                    // For paket items, use the exact total without rounding
-                    subtotalText = `${Math.round(total).toLocaleString('id-ID')}`;
-                }
-
+                const roundedTotal = pembulatanSubtotal(total);
+                subtotalText = `${roundedTotal.toLocaleString('id-ID')}`;
             } else {
-                subtotalText = Math.round(baseSubtotal).toLocaleString('id-ID');
+                subtotalText = baseSubtotal.toLocaleString('id-ID');
             }
         } else {
-
             const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-            console.log(`Row ${index} hargaJual: ${hargaJual}`); // Debug log
-            
-            let subtotal = Math.round(qty * hargaJual);
+            let subtotal = qty * hargaJual;
 
             // Apply markup for barang timbangan
             if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'barang timbangan' && barangInfo.satuan_id == satuanId) {
@@ -659,78 +696,64 @@ function updateRowDisplay(index) {
                 subtotal = Math.ceil(hasilDasar / 1000) * 1000 + 1000;
             }
 
-            // Only apply pembulatanSubtotal if NOT in active paket
-            if (!isInActivePaket) {
-                const roundedTotal = pembulatanSubtotal(subtotal);
-                console.log(`Row ${index} subtotal: ${subtotal}, roundedTotal: ${roundedTotal}`); // Debug log
-                subtotalText = Math.round(roundedTotal).toLocaleString('id-ID');
-            } else {
-                // For paket items, use the exact subtotal without rounding
-                console.log(`Row ${index} paket subtotal (no rounding): ${subtotal}`); // Debug log
-                subtotalText = Math.round(subtotal).toLocaleString('id-ID');
-            }
-            
+            const roundedTotal = pembulatanSubtotal(subtotal);
+            subtotalText = roundedTotal.toLocaleString('id-ID');
             keteranganText = barangInfo.kategori || '-';
         }
-
     } else {
-        // Special logic for Modal and Antar customers
-
+        // Special logic for Modal and Hubuan
         if (isModal) {
-            // For Modal customers: just qty * harga_beli (already set by backend)
+            // For Modal: just qty * harga_beli (already set by backend)
             const hargaBeli = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-            const subtotal = Math.round(qty * hargaBeli);
+            const subtotal = qty * hargaBeli;
             subtotalText = subtotal.toLocaleString('id-ID');
             keteranganText = 'Modal';
-
         } else if (isAntar) {
-            // For Antar customers: special pricing logic
+            // For Antar: special pricing logic
             const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-            const ongkos = parseFloat($('#pelanggan_ongkos').val()) || 0;
-            let subtotal = Math.round(qty * hargaJual);
+            let subtotal = qty * hargaJual;
 
             // If Rokok with jenis legal, add ongkos to hargaJual
             if (barangInfo.kategori && barangInfo.kategori.toLowerCase() === 'rokok & tembakau' && barangInfo.jenis && barangInfo.jenis.toLowerCase() === 'legal') {
-                subtotal = Math.round(qty * (hargaJual + ongkos));
+                const ongkos = parseFloat($('#pelanggan_ongkos').val()) || 0;
+                subtotal = qty * (hargaJual + ongkos);
             }
 
             subtotalText = subtotal.toLocaleString('id-ID');
             keteranganText = barangInfo.kategori || '-';
-
         } else {
             // For other special customers: normal pricing but skip surcharges and markups
             const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
-            const subtotal = Math.round(qty * hargaJual);
+            const subtotal = qty * hargaJual;
             subtotalText = subtotal.toLocaleString('id-ID');
             keteranganText = barangInfo.kategori || '-';
         }
     }
-
-    console.log(`Row ${index} final subtotalText: ${subtotalText}`); // Debug log
 
     // Update displays for both desktop and mobile
     $(`.subtotal-text[data-index="${index}"]`).text(subtotalText);
     $(`.keterangan-text[data-index="${index}"]`).text(keteranganText);
 }
 
-
-
 function pembulatanSubtotal(subtotal) {
-    const remainder = Math.round(subtotal % 1000); // Round remainder to nearest integer
+    const remainder = subtotal % 1000;
     let pembulatan = 0;
+    let grand_total = subtotal;
 
     if (remainder === 0) {
         pembulatan = 0;
-    } else if (remainder >= 1 && remainder <= 499) {
-        // Bulat ke 500
+        grand_total = subtotal;
+    } else if (remainder >= 1 && remainder <= 699) {
         pembulatan = 500 - remainder;
-    } else {
-        // remainder >= 500, bulat ke 1000
+        grand_total = subtotal + (500 - remainder);
+    } else if (remainder >= 700 && remainder <= 999) {
         pembulatan = 1000 - remainder;
+        grand_total = subtotal + (1000 - remainder);
     }
 
-    return subtotal + pembulatan; // Return final total
+    return grand_total;
 }
+
 
 function getAllDetails() {
     const details = [];
@@ -743,39 +766,44 @@ function getAllDetails() {
         const hargaJual = parseFloat($(`.harga-jual-input[data-index="${index}"]`).val()) || 0;
 
         if (barangId && satuanId && tipeHarga && qty > 0) {
-            details.push({
+            const detail = {
                 barang_id: barangId,
                 satuan_id: satuanId,
                 tipe_harga: tipeHarga,
                 qty: qty,
                 harga_jual: hargaJual
-            });
+            };
+
+            // Tambahkan informasi paket jika tersedia
+            if (barangInfoCache[barangId] && barangInfoCache[barangId].paket_info) {
+                detail.paket_info = barangInfoCache[barangId].paket_info;
+            }
+
+            details.push(detail);
         }
     });
     return details;
 }
 
-
 /**
  * Fungsi pembulatan harga sesuai aturan:
  * remainder = subtotal % 1000
  * if remainder == 0: pembulatan = 0
- * else if remainder >= 1 && remainder <= 499: pembulatan = 500 - remainder
- * else if remainder >= 500 && remainder <= 999: pembulatan = 1000 - remainder
+ * else if remainder >= 1 && remainder <= 699: pembulatan = 500 - remainder
+ * else if remainder >= 700 && remainder <= 999: pembulatan = 1000 - remainder
  */
 function calculateRounding(subtotal) {
-    const remainder = Math.round(subtotal % 1000);
+    const remainder = subtotal % 1000;
     let pembulatan = 0;
     let grand_total = subtotal;
 
     if (remainder === 0) {
         pembulatan = 0;
         grand_total = subtotal;
-    } else if (remainder >= 1 && remainder <= 499) {
+    } else if (remainder >= 1 && remainder <= 699) {
         pembulatan = 500 - remainder;
         grand_total = subtotal + (500 - remainder);
-    } else {
-        // remainder >= 500
+    } else if (remainder >= 700 && remainder <= 999) {
         pembulatan = 1000 - remainder;
         grand_total = subtotal + (1000 - remainder);
     }
@@ -793,47 +821,41 @@ function parseIndonesianNumber(str) {
     return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
 }
 
-
 function sumSubtotalTexts() {
     let total = 0;
-    console.log('Processing subtotal texts:'); // Debug log
     $('.subtotal-text').each(function() {
         const text = $(this).text().trim();
-        const index = $(this).data('index');
-        console.log(`Row ${index}: "${text}"`); // Debug each row
         if (text && text !== '-') {
-            const parsed = parseIndonesianNumber(text);
-            console.log(`Row ${index}: parsed value = ${parsed}`); // Debug parsed value
-            total += parsed;
+            total += parseIndonesianNumber(text);
         }
     });
-    console.log('Total calculated:', total); // Debug final total
     return total;
 }
 
-
-
-
 function updateTotals(data) {
-    console.log('Backend calculation result:', data); // Debug backend result
-    
-    // Use backend calculation results
+    // Round values to integers before formatting
     const subtotal = Math.round(data.subtotal);
     const pembulatan = Math.round(data.pembulatan);
     const grandTotal = Math.round(data.grand_total);
 
-    console.log('Using backend values:', { subtotal, pembulatan, grandTotal }); // Debug final values
+    // Calculate grandSubtotal as sum of subtotal-text values
+    const grandSubtotal = sumSubtotalTexts();
 
-    // Update Ringkasan card (subtotal card)
-    $('#subtotal').val(subtotal.toLocaleString('id-ID'));
-    $('#pembulatan').val(pembulatan.toLocaleString('id-ID'));
-    $('#summaryGrandTotal').val(grandTotal.toLocaleString('id-ID'));
+    // Calculate grandPembulatan based on grandSubtotal value
+    const grandPembulatanData = calculateRounding(grandSubtotal);
+    const grandPembulatan = grandPembulatanData.pembulatan;
+    const paymentGrandTotal = grandPembulatanData.grand_total;
 
-    // Update Total Pembayaran card
-    $('#grandSubtotal').val(subtotal.toLocaleString('id-ID'));
-    $('#grandPembulatan').val(pembulatan.toLocaleString('id-ID'));
-    $('#paymentGrandTotal').val(grandTotal.toLocaleString('id-ID'));
-    $('#paymentGrandTotalValue').val(grandTotal);
+    // Update Ringkasan card to match Total Pembayaran card
+    $('#subtotal').val(grandSubtotal.toLocaleString('id-ID'));
+    $('#pembulatan').val(grandPembulatan.toLocaleString('id-ID'));
+    $('#summaryGrandTotal').val(paymentGrandTotal.toLocaleString('id-ID'));
+    $('#grandTotalValue').val(paymentGrandTotal);
+
+    $('#grandSubtotal').val(grandSubtotal.toLocaleString('id-ID'));
+    $('#grandPembulatan').val(grandPembulatan.toLocaleString('id-ID'));
+    $('#paymentGrandTotal').val(paymentGrandTotal.toLocaleString('id-ID'));
+    $('#paymentGrandTotalValue').val(paymentGrandTotal);
 
     calculateKembalian();
 }
@@ -905,7 +927,18 @@ function removePaymentRow(index) {
     $(`.payment-row[data-index="${index}"]`).remove();
 }
 
+
 function submitForm(printAfterSave = false) {
+    // Prevent race conditions and double submission
+    const now = Date.now();
+    if (isSubmitting || (now - lastSubmissionTime) < 2000) {
+        console.log('Submission already in progress or too soon');
+        return;
+    }
+    
+    isSubmitting = true;
+    lastSubmissionTime = now;
+
     // Custom validation
     let isValid = true;
     let errorMessage = '';
@@ -987,6 +1020,7 @@ function submitForm(printAfterSave = false) {
     });
 
     if (!isValid) {
+        isSubmitting = false;
         Swal.fire('Validasi Gagal', errorMessage, 'error');
         return;
     }
@@ -1018,15 +1052,13 @@ function submitForm(printAfterSave = false) {
 
     $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
 
-    $.ajax({
+    enhancedAjax({
         url: '/penjualan',
         type: 'POST',
         data: formData,
         processData: false,
         contentType: false,
-
         success: function(response) {
-            console.log('Submit response:', response); // Debug log
             if (response.success === true) {
                 Swal.fire({
                     icon: 'success',
@@ -1045,35 +1077,79 @@ function submitForm(printAfterSave = false) {
                     }
                 });
             } else {
-                Swal.fire('Gagal!', response.message || 'Terjadi kesalahan', 'error');
+                $('#' + response.form).focus().select();
+                Swal.fire('Gagal!', response.message, 'error');
             }
         },
-        error: function(xhr) {
-            const errors = xhr.responseJSON?.errors;
-            let errorMessage = 'Terjadi kesalahan:';
-            if (errors) {
-                for (const key in errors) {
-                    errorMessage += '\n- ' + errors[key][0];
+        error: function(xhr, status, error) {
+            console.log('Form submission error:', xhr.responseText);
+            
+            if (xhr.status === 419) {
+                Swal.fire('Session Expired', 'Sesi Anda telah berakhir. Halaman akan dimuat ulang.', 'warning').then(function() {
+                    window.location.reload();
+                });
+            } else if (xhr.status === 422) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.errors) {
+                        let errorMsg = 'Validasi gagal:\n';
+                        Object.keys(response.errors).forEach(function(key) {
+                            errorMsg += response.errors[key][0] + '\n';
+                        });
+                        Swal.fire('Validasi Gagal', errorMsg, 'error');
+                    } else {
+                        Swal.fire('Error!', response.message || 'Terjadi kesalahan pada server.', 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Error!', 'Terjadi kesalahan pada server.', 'error');
                 }
+            } else {
+                Swal.fire('Error!', 'Terjadi kesalahan pada server.', 'error');
             }
-            Swal.fire('Error!', errorMessage, 'error');
         },
         complete: function() {
             $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Simpan Penjualan');
+            isSubmitting = false;
         }
     });
 }
 
 
 
+
+
+
+
+
+function calculateSubtotal(index) {
+    // Prevent recursion
+    if (isCalculating) {
+        return;
+    }
+
+    // Clear previous timeout
+    if (calculateTimeout) {
+        clearTimeout(calculateTimeout);
+    }
+
+    // Update row display immediately for better UX
+    updateRowDisplay(index);
+
+    // Debounce the calculation by 500ms
+    calculateTimeout = setTimeout(function() {
+        performCalculation();
+    }, 500);
+}
+
+
 function resetForm() {
-    // Clear any pending calculation timeout
+    // Clear any pending timeouts
     if (calculateTimeout) {
         clearTimeout(calculateTimeout);
         calculateTimeout = null;
     }
 
-    // Reset calculation flag
+    // Reset flags
     isCalculating = false;
 
     $('#penjualanForm')[0].reset();
@@ -1081,36 +1157,10 @@ function resetForm() {
     $('#mobileDetailContainer').html('');
     $('#paymentContainer').html('');
     barangInfoCache = {}; // Clear cache
-    paketInfoCache = {}; // Clear paket cache
+    hargaCache = {}; // Clear harga cache
     rowIndex = 0;
     paymentIndex = 0;
     addNewRow();
-
     calculateTotal();
 }
 
-
-/**
- * Get selected pelanggan data
- */
-function getSelectedPelanggan() {
-    const pelangganId = $('#pelanggan_id').val();
-    if (!pelangganId) return null;
-    
-    const isModal = $('#is_special_customer').val() === '1';
-    const ongkos = parseFloat($('#pelanggan_ongkos').val()) || 0;
-    
-    // Determine customer type
-    let jenis = 'normal';
-    if (isModal) {
-        jenis = 'modal';
-    } else if (ongkos > 0) {
-        jenis = 'antar';
-    }
-    
-    return {
-        id: pelangganId,
-        jenis: jenis,
-        ongkos: ongkos
-    };
-}

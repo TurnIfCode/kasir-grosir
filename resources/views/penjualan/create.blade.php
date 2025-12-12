@@ -42,7 +42,9 @@
                                 <label for="pelanggan_autocomplete" class="form-label fw-semibold fs-6">Pelanggan <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="pelanggan_autocomplete" placeholder="Cari pelanggan..." value="{{ $defaultPelanggan ? $defaultPelanggan->nama_pelanggan : '' }}" required>
                                 <input type="hidden" id="pelanggan_id" name="pelanggan_id" value="{{ $defaultPelanggan ? $defaultPelanggan->id : '' }}">
-                                <input type="hidden" id="is_special_customer" value="{{ $defaultPelanggan && in_array(strtolower($defaultPelanggan->nama_pelanggan), ['kedai kopi', 'hubuan']) ? '1' : '0' }}">
+                                <input type="hidden" id="pelanggan_jenis" value="{{ $defaultPelanggan ? $defaultPelanggan->jenis : '' }}">
+                                <input type="hidden" id="pelanggan_ongkos" value="{{ $defaultPelanggan ? $defaultPelanggan->ongkos : '' }}">
+                                <input type="hidden" id="is_special_customer" value="{{ $defaultPelanggan && $defaultPelanggan->jenis === 'modal' ? '1' : '0' }}">
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="catatan" class="form-label fw-semibold fs-6">Catatan</label>
@@ -78,8 +80,9 @@
                             <label class="form-label fw-semibold fs-6">Grand Total</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
+
                                 <input type="text" class="form-control fw-bold fs-5 fs-md-4 text-primary" id="summaryGrandTotal" value="0" readonly>
-                                <input type="hidden" id="grandTotalValue" name="grand_total">
+                                <input type="hidden" id="grandTotalValue">
                             </div>
                         </div>
                     </div>
@@ -234,12 +237,14 @@ $(document).ready(function() {
                 url: '/pelanggan/search',
                 data: { q: request.term },
                 success: function(data) {
-                    if (data.status === 'success') {
-                        response(data.data.map(item => ({
-                            label: `${item.kode_pelanggan} - ${item.nama_pelanggan}`,
-                            value: item.nama_pelanggan,
-                            id: item.id
-                        })));
+                    if (data.success === true) {
+                    response(data.data.map(item => ({
+                        label: `${item.kode_pelanggan} - ${item.nama_pelanggan}`,
+                        value: item.nama_pelanggan,
+                        id: item.id,
+                        jenis: item.jenis,
+                        ongkos: item.ongkos
+                    })));
                     }
                 }
             });
@@ -248,6 +253,9 @@ $(document).ready(function() {
         select: function(event, ui) {
             $(this).val(ui.item.value);
             $('#pelanggan_id').val(ui.item.id);
+            $('#pelanggan_jenis').val(ui.item.jenis);
+            $('#pelanggan_ongkos').val(ui.item.ongkos);
+            $('#is_special_customer').val(ui.item.jenis === 'modal' ? '1' : '0');
             return false;
         }
     });

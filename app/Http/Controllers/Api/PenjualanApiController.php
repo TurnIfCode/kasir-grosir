@@ -38,7 +38,7 @@ class PenjualanApiController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
@@ -112,15 +112,16 @@ class PenjualanApiController extends Controller
             $barang = Barang::find($firstItem['barang_id']);
             $stokTerbaru = $barang->stok;
 
+
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'message' => 'Transaksi berhasil',
                 'stok_terbaru' => $stokTerbaru
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
