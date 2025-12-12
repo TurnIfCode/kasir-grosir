@@ -151,12 +151,13 @@ $(document).ready(function() {
     }
   });
 
+
   // Function to load barang info
   function loadBarangInfo(barangId) {
     $.ajax({
       url: '/barang/' + barangId + '/find',
       success: function(data) {
-        if (data.status === true) {
+        if (data.success === true) {
           $('#nama_barang').val(data.data.nama_barang);
           $('#stok_sistem').val(data.data.stok);
           loadSatuanOptions(barangId);

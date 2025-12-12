@@ -208,6 +208,7 @@ function updateAllPaketHarga() {
     }
 }
 
+
 function loadHargaWithCallback(index, skipCalculation = false, callback = null) {
     const barangId = $(`.barang-id-input[data-index="${index}"]`).val();
     const satuanId = $(`.satuan-select[data-index="${index}"]`).val();
@@ -251,12 +252,13 @@ function loadHargaWithCallback(index, skipCalculation = false, callback = null) 
         console.log('Final selected paket:', selectedPaket); // Debug log
 
         if (selectedPaket) {
-            // Apply paket harga and round to integer
+            // Apply paket harga and round to integer - sama dengan backend
             const paketHargaJual = Math.round(selectedPaket.harga / selectedPaket.total_qty);
             console.log(`Applied paket harga: ${paketHargaJual} (${selectedPaket.harga} / ${selectedPaket.total_qty})`); // Debug log
             $(`.harga-jual-input[data-index="${index}"]`).val(paketHargaJual);
             if (!skipCalculation) {
-                calculateSubtotal(index);
+                // Skip calculateSubtotal here to avoid recursion - will be called by updateAllPaketHarga
+                updateRowDisplay(index);
             }
             if (callback) callback();
             return;
@@ -275,7 +277,7 @@ function loadHargaWithCallback(index, skipCalculation = false, callback = null) 
                 console.log('Normal harga result:', roundedHarga); // Debug log
                 $(`.harga-jual-input[data-index="${index}"]`).val(roundedHarga);
                 if (!skipCalculation) {
-                    calculateSubtotal(index);
+                    updateRowDisplay(index);
                 }
             }
             if (callback) callback();

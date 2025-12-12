@@ -240,44 +240,10 @@ function loadBarangInfo(index, barangId) {
     }
 
 
-    // Logika paket: cek apakah barang ada di paket dan hitung harga
-    enhancedAjax({
-        url: '/paket/check-paket-for-barang',
-        data: { barang_id: barangId },
-        success: function(response) {
-            if (response.success === true && response.data) {
-                const paketInfo = response.data;
-                
-                // Hitung total qty barang paket di transaksi
-                let totalPaketQty = 0;
-                $('.detail-row').each(function() {
-                    const rowIndex = $(this).data('index');
-                    const rowBarangId = $(`.barang-id-input[data-index="${rowIndex}"]`).val();
-                    const rowQty = parseFloat($(`.qty-input[data-index="${rowIndex}"]`).val()) || 0;
-                    
-                    if (rowBarangId && paketInfo.paket_barang_ids.includes(parseInt(rowBarangId)) && rowQty > 0) {
-                        totalPaketQty += rowQty;
-                    }
-                });
 
-
-                // Jika total qty penjualan >= total_qty paket
-                if (totalPaketQty >= paketInfo.total_qty) {
-                    // details[index][harga_jual] = Math.round(harga/total_qty)
-                    const hargaPaketSatuan = Math.round(paketInfo.harga / paketInfo.total_qty);
-                    $(`.harga-jual-input[data-index="${index}"]`).val(hargaPaketSatuan);
-                    
-                    // subtotal-text = details[index][qty] * details[index][harga_jual]
-                    const qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
-                    const subtotal = qty * hargaPaketSatuan;
-                    $(`.subtotal-text[data-index="${index}"]`).text(subtotal.toLocaleString('id-ID'));
-                }
-            }
-        },
-        error: function() {
-            // Silent fail if paket check fails
-        }
-    });
+    // DISABLED: Logika paket dipindahkan ke backend PenjualanService
+    // Frontend hanya trigger calculation via performCalculation()
+    // calculateSubtotal(index);
 }
 
 // Fungsi untuk mengecek apakah barang ada di paket
@@ -404,22 +370,10 @@ function updateBarangInfo(index, barangInfo) {
     // Set initial qty to 1
     $(`.qty-input[data-index="${index}"]`).val(1);
 
-    // Implementasi logika paket: jika barang dari autocomplete penjualan
-    checkBarangInPaket(barangInfo.id).then(paketInfo => {
-        if (paketInfo) {
-            // Cek apakah total qty penjualan > total_qty paket
-            const totalPaketQty = calculateTotalPaketQty(paketInfo.paket_barang_ids);
-            
-            if (totalPaketQty > paketInfo.total_qty) {
-                // details[index][harga_jual] = round(harga/total_qty)
-                const hargaPaketSatuan = Math.round(paketInfo.harga / paketInfo.total_qty);
-                $(`.harga-jual-input[data-index="${index}"]`).val(hargaPaketSatuan);
-                
-                // Update subtotal-text = details[index][qty] * details[index][harga_jual]
-                calculateSubtotal(index);
-            }
-        }
-    });
+
+    // DISABLED: Logika paket dipindahkan ke backend PenjualanService
+    // Frontend hanya trigger calculation via performCalculation()
+    // Backend akan handle semua perhitungan paket
 }
 
 

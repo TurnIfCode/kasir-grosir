@@ -276,6 +276,7 @@ class BarangController extends Controller
         ]);
     }
 
+
     public function find($id)
     {
         $barang = Barang::with('kategori', 'satuan', 'barcodes', 'creator', 'updater')->find($id);
@@ -286,12 +287,75 @@ class BarangController extends Controller
             ]);
         }
 
-        $data = $barang->toArray();
-        $data['created_by'] = $barang->creator ? $barang->creator->name : '-';
-        $data['updated_by'] = $barang->updater ? $barang->updater->name : '-';
-        $data['stok'] = round($barang->stok, 2);
-        $data['harga_beli'] = round($barang->harga_beli, 2);
-        $data['harga_jual'] = round($barang->harga_jual, 2);
+        // Format response sesuai dengan struktur yang diinginkan
+        $data = [
+            'id' => $barang->id,
+            'kode_barang' => $barang->kode_barang,
+            'nama_barang' => $barang->nama_barang,
+            'kategori_id' => $barang->kategori_id,
+            'satuan_id' => $barang->satuan_id,
+            'stok' => $barang->stok,
+            'harga_beli' => $barang->harga_beli,
+            'harga_jual' => $barang->harga_jual,
+            'multi_satuan' => $barang->multi_satuan,
+            'deskripsi' => $barang->deskripsi,
+            'status' => $barang->status,
+            'jenis' => $barang->jenis,
+            'created_by' => $barang->creator ? $barang->creator->name : 'ADMINISTRATOR',
+            'updated_by' => $barang->updater ? $barang->updater->name : 'ADMINISTRATOR',
+            'created_at' => $barang->created_at,
+            'updated_at' => $barang->updated_at,
+            'kategori' => $barang->kategori ? [
+                'id' => $barang->kategori->id,
+                'kode_kategori' => $barang->kategori->kode_kategori,
+                'nama_kategori' => $barang->kategori->nama_kategori,
+                'deskripsi' => $barang->kategori->deskripsi,
+                'status' => $barang->kategori->status,
+                'created_by' => $barang->kategori->created_by,
+                'updated_by' => $barang->kategori->updated_by,
+                'created_at' => $barang->kategori->created_at,
+                'updated_at' => $barang->kategori->updated_at
+            ] : null,
+            'satuan' => $barang->satuan ? [
+                'id' => $barang->satuan->id,
+                'kode_satuan' => $barang->satuan->kode_satuan,
+                'nama_satuan' => $barang->satuan->nama_satuan,
+                'deskripsi' => $barang->satuan->deskripsi,
+                'status' => $barang->satuan->status,
+                'created_by' => $barang->satuan->created_by,
+                'updated_by' => $barang->satuan->updated_by,
+                'created_at' => $barang->satuan->created_at,
+                'updated_at' => $barang->satuan->updated_at
+            ] : null,
+            'barcodes' => $barang->barcodes ? $barang->barcodes->map(function($barcode) {
+                return [
+                    'id' => $barcode->id,
+                    'barcode' => $barcode->barcode
+                ];
+            }) : [],
+            'creator' => $barang->creator ? [
+                'id' => $barang->creator->id,
+                'username' => $barang->creator->username,
+                'name' => $barang->creator->name,
+                'role' => $barang->creator->role,
+                'status' => $barang->creator->status,
+                'created_by' => $barang->creator->created_by,
+                'created_at' => $barang->creator->created_at,
+                'updated_by' => $barang->creator->updated_by,
+                'updated_at' => $barang->creator->updated_at
+            ] : null,
+            'updater' => $barang->updater ? [
+                'id' => $barang->updater->id,
+                'username' => $barang->updater->username,
+                'name' => $barang->updater->name,
+                'role' => $barang->updater->role,
+                'status' => $barang->updater->status,
+                'created_by' => $barang->updater->created_by,
+                'created_at' => $barang->updater->created_at,
+                'updated_by' => $barang->updater->updated_by,
+                'updated_at' => $barang->updater->updated_at
+            ] : null
+        ];
 
         return response()->json([
             'success' => true,

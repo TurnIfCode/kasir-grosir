@@ -47,8 +47,12 @@ class PenjualanService
                 'updated_by' => auth()->id()
             ]);
 
+
             $pelangganId = $header['pelanggan_id'] ?? null;
             $subtotalDetails = 0;
+
+            // Apply paket pricing first - update harga_jual for all items based on paket
+            $details = $this->updateHargaJualForPaket($details);
 
             // Create details and update stock
             foreach ($details as $detail) {
@@ -56,11 +60,12 @@ class PenjualanService
                 $barang = \App\Models\Barang::with('kategori')->find($detail['barang_id']);
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
 
-                // Calculate subtotal for this detail using the same logic as calculateNormalPrice
-                $subtotalDetail = $this->calculateNormalPrice($detail, $pelangganId);
 
-                $hargaJualDetail = $subtotalDetail / $detail['qty'];
-                $hargaJualDetail = round($hargaJualDetail, 2);
+                // Calculate subtotal for this detail using the same logic as calculateNormalPrice
+                $subtotalDetail = $this->calculateNormalPrice($detail, $pelangganId, $details);
+
+                // Use harga_jual yang sudah diupdate oleh paket (jangan dihitung ulang)
+                $hargaJualDetail = $detail['harga_jual'];
 
                 // Calculate qty_konversi
                 $konversi = \App\Models\KonversiSatuan::where('barang_id', $detail['barang_id'])
@@ -223,10 +228,16 @@ class PenjualanService
         return $subtotal;
     }
 
+
+
+
+
     /**
-     * Calculate normal price for a detail item
+     * Calculate normal price for a detail item - FOLLOWING EXACT FRONTEND LOGIC
+     * NOTE: This method applies pembulatan per item for non-paket items
+     * sesuai dengan logic frontend
      */
-    private function calculateNormalPrice(array $detail, ?int $pelangganId = null): float
+    private function calculateNormalPrice(array $detail, ?int $pelangganId = null, array $allDetails = []): float
     {
         $barangId = $detail['barang_id'];
         $satuanId = $detail['satuan_id'];
@@ -235,102 +246,93 @@ class PenjualanService
         $tipeHarga = $detail['tipe_harga'];
 
         $barang = \App\Models\Barang::with('kategori')->find($barangId);
+        $customerType = $this->getCustomerType($pelangganId);
+        
 
-        // Check if customer is special (Kedai Kopi or Hubuan)
-        $isKedaiKopi = false;
-        $isHubuan = false;
-        if ($pelangganId) {
-            $pelanggan = \App\Models\Pelanggan::find($pelangganId);
-            if ($pelanggan) {
-                $isKedaiKopi = strtolower($pelanggan->nama_pelanggan) === 'kedai kopi';
-                $isHubuan = strtolower($pelanggan->nama_pelanggan) === 'hubuan';
-            }
+
+        // Check if item is in active paket - following frontend logic
+        $isInActivePaket = $this->isBarangInActivePaket($barangId, $detail, $allDetails);
+
+        // MODAL CUSTOMER: qty * harga_beli
+        if ($customerType['type'] === 'modal') {
+            $hargaBeli = $barang ? $barang->harga_beli : 0;
+            $subtotal = round($qty * $hargaBeli);
+            return $subtotal;
         }
-
-
-        if ($isKedaiKopi || $isHubuan) {
-            if ($isKedaiKopi) {
-                // For Kedai Kopi: just qty * harga_beli (no surcharges, no markups, no pembulatan)
+        
+        // ANTAR CUSTOMER: special pricing
+        if ($customerType['type'] === 'antar') {
+            $ongkos = $customerType['ongkos'];
+            
+            // If Rokok with jenis legal, add ongkos to harga
+            if ($barang && $barang->kategori && 
+                strtolower($barang->kategori->nama_kategori) === 'rokok & tembakau' && 
+                $barang->jenis && strtolower($barang->jenis) === 'legal') {
+                $subtotal = round($qty * ($harga + $ongkos));
+            } else {
+                $subtotal = round($qty * $harga);
+            }
+            return $subtotal;
+        }
+        
+        // KEDAI KOPI & HUBUAN: special handling
+        if (in_array($customerType['type'], ['kedai_kopi', 'hubuan'])) {
+            if ($customerType['type'] === 'kedai_kopi') {
+                // Kedai Kopi: qty * harga_beli
                 $hargaBeli = $barang ? $barang->harga_beli : 0;
                 return round($qty * $hargaBeli);
-            } elseif ($isHubuan) {
-                // For Hubuan: special pricing logic
+            } elseif ($customerType['type'] === 'hubuan') {
+                // Hubuan: add 3000 for Legal Rokok
                 $subtotal = $harga * $qty;
-                // If Rokok with jenis legal, add 3000 to harga
-                if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'rokok & tembakau' && $barang->jenis && strtolower($barang->jenis) === 'legal') {
+                if ($barang && $barang->kategori && 
+                    strtolower($barang->kategori->nama_kategori) === 'rokok & tembakau' && 
+                    $barang->jenis && strtolower($barang->jenis) === 'legal') {
                     $subtotal = round($qty * ($harga + 3000));
                 }
                 return round($subtotal);
-            } else {
-                // For other special customers: normal pricing but skip surcharges and markups
-                return round($harga * $qty);
             }
-
-        } else {
-            // Regular customers: apply all rules
-            $subtotal = round($harga * $qty);
-
-            // Check if 'legal' jenis with grosir tipe_harga and satuan 'bungkus' (satuan_id == 2)
-            if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && $tipeHarga === 'grosir' && $satuanId == 2) {
-
-                // Calculate legal surcharge
-                $surcharge = 0;
-                if ($qty >= 1 && $qty <= 4) {
-                    $surcharge = 500;
-                } else if ($qty >= 5) {
-                    $surcharge = 1000;
-                }
-                $subtotal += $surcharge;
-
-                // Apply pembulatan only if surcharge > 0
-                if ($surcharge > 0) {
-                    $subtotal += $this->calculatePembulatan($subtotal);
-                }
-                // If surcharge == 0, no pembulatan applied
-            } else {
-                // For other items, add surcharge for 'barang timbangan' kategori
-                if ($barang && $barang->kategori && strtolower($barang->kategori->nama_kategori) === 'barang timbangan' && $barang->satuan_id == $satuanId) {
-                    // Apply barang timbangan logic: ceil to nearest 1000 + 1000
-                    $hasilDasar = $qty * $harga;
-                    $subtotal = ceil($hasilDasar / 1000) * 1000 + 1000;
-                }
-
-                // Always apply pembulatan for non-legal grosir satuan 2 items
-                $subtotal += $this->calculatePembulatan($subtotal);
-            }
-
-            return round($subtotal);
         }
-    }
-
-
-
-    /**
-     * Calculate pembulatan sesuai aturan:
-     * remainder = subtotal % 1000
-     * if remainder == 0: pembulatan = 0
-     * else if remainder >= 1 && remainder <= 499: pembulatan = 500 - remainder
-     * else if remainder >= 500 && remainder <= 999: pembulatan = 1000 - remainder
-     */
-    public function calculatePembulatan(float $subtotal): float
-    {
-        $remainder = fmod($subtotal, 1000); // Use fmod for float precision
-        $remainder = round($remainder); // Round to nearest integer
         
-        if ($remainder == 0) {
-            return 0;
-        } elseif ($remainder >= 1 && $remainder <= 499) {
-            // Bulat ke 500
-            return (500 - $remainder);
-        } else {
-            // remainder >= 500, bulat ke 1000
-            return (1000 - $remainder);
+        // REGULAR CUSTOMERS: apply all rules
+        $subtotal = round($harga * $qty);
+        
+
+        // LEGAL GROSIR SURCHARGE
+        if ($barang && $barang->jenis && strtolower($barang->jenis) === 'legal' && 
+            $tipeHarga === 'grosir' && $satuanId == 2) {
+            
+            $surcharge = 0;
+            if ($qty >= 1 && $qty <= 4) {
+                $surcharge = 500;
+            } else if ($qty >= 5) {
+                $surcharge = 1000;
+            }
+            $subtotal += $surcharge;
+            
+            // NO pembulatan per item - let it be calculated at total level
+            
+            return $subtotal;
         }
+        
+        // BARANG TIMBANGAN MARKUP
+        if ($barang && $barang->kategori && 
+            strtolower($barang->kategori->nama_kategori) === 'barang timbangan' && 
+            $barang->satuan_id == $satuanId) {
+            
+            $hasilDasar = $qty * $harga;
+            $subtotal = ceil($hasilDasar / 1000) * 1000 + 1000;
+        }
+        
+        // NO pembulatan per item - let it be calculated at total level
+        
+        return $subtotal;
     }
 
 
     /**
-     * Calculate subtotal and pembulatan together
+     * Calculate subtotal and pembulatan together with paket processing
+     * Following exact frontend logic: no additional pembulatan at total level
+     * because each item is already rounded individually
      */
     public function calculateSubtotalAndPembulatan(array $details, ?int $pelangganId = null): array
     {
@@ -343,17 +345,23 @@ class PenjualanService
             ];
         }
 
-        // Calculate subtotal by summing each detail using calculateNormalPrice (same logic as createSale)
+        // Apply paket pricing first - this updates harga_jual in details
+        $detailsWithPaket = $this->updateHargaJualForPaket($details);
+
+
+
+        // Calculate subtotal by summing each detail using calculateNormalPrice
+        // calculateNormalPrice now applies pembulatan per item (following frontend logic)
         $subtotal = 0;
-        foreach ($details as $detail) {
-            $subtotal += $this->calculateNormalPrice($detail, $pelangganId);
+        foreach ($detailsWithPaket as $detail) {
+            $subtotal += $this->calculateNormalPrice($detail, $pelangganId, $detailsWithPaket);
         }
         $subtotal = round($subtotal, 2);
 
-        // Calculate pembulatan based on the subtotal
+        // Calculate pembulatan at total level based on final subtotal
+        // This ensures grand total reaches the next 1000 if needed
         $pembulatan = $this->calculatePembulatan($subtotal);
         $grandTotal = $subtotal + $pembulatan;
-        $grandTotal = round($grandTotal, 2);
 
         return [
             'subtotal' => $subtotal,
@@ -362,6 +370,148 @@ class PenjualanService
         ];
     }
 
+
+
+
+    /**
+     * Calculate pembulatan sesuai aturan:
+     * remainder = subtotal % 1000
+     * if remainder == 0: pembulatan = 0
+     * else if remainder >= 1 && remainder <= 50: pembulatan = 0 (tidak dibulatkan jika selisih sangat kecil)
+     * else if remainder >= 51 && remainder <= 499: pembulatan = 500 - remainder
+     * else if remainder >= 500 && remainder <= 999: pembulatan = 1000 - remainder
+     */
+    public function calculatePembulatan(float $subtotal): float
+    {
+        $remainder = fmod($subtotal, 1000); // Use fmod for float precision
+        $remainder = round($remainder); // Round to nearest integer
+        
+        if ($remainder == 0) {
+            return 0;
+        } elseif ($remainder >= 1 && $remainder <= 50) {
+            // Tidak dibulatkan jika selisih sangat kecil (<=50)
+            return 0;
+        } elseif ($remainder >= 51 && $remainder <= 499) {
+            // Bulat ke 500
+            return (500 - $remainder);
+        } else {
+            // remainder >= 500, bulat ke 1000
+            return (1000 - $remainder);
+        }
+    }
+
+
+
+
+
+
+
+    /**
+     * Get customer type following frontend logic
+     */
+    private function getCustomerType(?int $pelangganId): array
+    {
+        if (!$pelangganId) {
+            return ['type' => 'normal', 'ongkos' => 0, 'is_modal' => false];
+        }
+        
+        // Get pelanggan with ongkos field
+        $pelanggan = \App\Models\Pelanggan::select('id', 'nama_pelanggan', 'jenis', 'ongkos')
+            ->find($pelangganId);
+        
+        if (!$pelanggan) {
+            return ['type' => 'normal', 'ongkos' => 0, 'is_modal' => false];
+        }
+        
+        // Check Modal (jenis = 'modal' atau null/unknown) - following frontend
+        $isModal = in_array($pelanggan->jenis, ['modal', null, 'tidak_diketahui']);
+        
+        // Check Antar (jenis = 'antar') - following frontend
+        $isAntar = $pelanggan->jenis === 'antar';
+        
+        $ongkos = $pelanggan->ongkos ?? 0;
+        
+        if ($isModal) {
+            return ['type' => 'modal', 'ongkos' => 0, 'is_modal' => true];
+        } elseif ($isAntar) {
+            return ['type' => 'antar', 'ongkos' => $ongkos, 'is_modal' => false];
+        } else {
+            // Check by name for backward compatibility
+            $nama = strtolower($pelanggan->nama_pelanggan);
+            if ($nama === 'kedai kopi') {
+                return ['type' => 'kedai_kopi', 'ongkos' => 0, 'is_modal' => false];
+            } elseif ($nama === 'hubuan') {
+                return ['type' => 'hubuan', 'ongkos' => 0, 'is_modal' => false];
+            }
+        }
+        
+        return ['type' => 'normal', 'ongkos' => 0, 'is_modal' => false];
+    }
+
+
+    /**
+     * Check if barang is in active paket - following frontend logic
+     */
+    private function isBarangInActivePaket(int $barangId, array $currentDetail, array $allDetails = []): bool
+    {
+        // Check if barang is in any active paket
+        $pakets = \App\Models\Paket::whereHas('details', function($q) use ($barangId) {
+            $q->where('barang_id', $barangId);
+        })->where('status', 'aktif')->get();
+        
+        foreach ($pakets as $paket) {
+            $totalQty = $this->getTotalQtyForPaket($paket, $allDetails);
+            if ($totalQty >= $paket->total_qty) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+
+    /**
+     * Get total qty for paket based on current details
+     */
+    private function getTotalQtyForPaket($paket, array $allDetails = []): float
+    {
+        // Return 0 if no details provided
+        if (empty($allDetails)) {
+            return 0;
+        }
+        
+        $paketBarangIds = $paket->details->pluck('barang_id')->toArray();
+        $totalQty = 0;
+        
+        foreach ($allDetails as $detail) {
+            if (in_array($detail['barang_id'], $paketBarangIds)) {
+                $totalQty += $detail['qty'];
+            }
+        }
+        
+        return $totalQty;
+    }
+
+    /**
+     * Pembulatan per item following frontend logic
+     */
+    private function pembulatanSubtotal(float $subtotal): float
+    {
+        $remainder = round($subtotal % 1000);
+        $pembulatan = 0;
+
+        if ($remainder === 0) {
+            $pembulatan = 0;
+        } else if ($remainder >= 1 && $remainder <= 499) {
+            // Bulat ke 500
+            $pembulatan = 500 - $remainder;
+        } else {
+            // remainder >= 500, bulat ke 1000
+            $pembulatan = 1000 - $remainder;
+        }
+
+        return $subtotal + $pembulatan;
+    }
 
     /**
      * Get pakets with priority: 'tidak' first, then 'campur'
@@ -411,40 +561,68 @@ class PenjualanService
     }
 
 
+
+
+
+
+
+
+
     /**
      * Update harga_jual in details based on paket pricing rules
+     * Prioritas: jenis 'tidak' dulu, lalu harga terendah
      */
     private function updateHargaJualForPaket(array $details): array
     {
         // Get all active pakets with details, prioritizing jenis 'tidak' then 'campur'
-        $pakets = $this->getPaketsByPriority(false);
+        $pakets = $this->getPaketsByPriority(true); // true untuk sort by price
 
-        // Group details by paket_id for applicable pakets
-        $paketAssignments = [];
+        // Find the best paket that matches ALL items in details
+        $bestPaket = null;
+        $paketBarangIds = [];
 
         foreach ($pakets as $paket) {
             $paketBarangIds = $paket->details->pluck('barang_id')->toArray();
-            $paketDetails = collect($details)->whereIn('barang_id', $paketBarangIds);
-            $totalQty = $paketDetails->sum('qty');
-
-            if ($totalQty >= $paket->total_qty) {
-                // Paket applies, assign to details
-                foreach ($details as $index => $detail) {
-                    if (in_array($detail['barang_id'], $paketBarangIds)) {
-                        if (!isset($paketAssignments[$index]) || $paket->harga > $paketAssignments[$index]['paket']->harga) {
-                            $paketAssignments[$index] = [
-                                'paket' => $paket,
-                                'harga_jual' => round($paket->harga / $paket->total_qty)
-                            ];
-                        }
-                    }
+            $detailBarangIds = array_column($details, 'barang_id');
+            
+            // Check if ALL items in details are SUBSET of paket items
+            $allItemsMatch = true;
+            foreach ($detailBarangIds as $detailBarangId) {
+                if (!in_array($detailBarangId, $paketBarangIds)) {
+                    $allItemsMatch = false;
+                    break;
+                }
+            }
+            
+            // Check if total qty is sufficient
+            $totalQty = collect($details)->whereIn('barang_id', $paketBarangIds)->sum('qty');
+            
+            if ($allItemsMatch && $totalQty >= $paket->total_qty) {
+                // This paket applies, check if it's better than current best
+                if (!$bestPaket || 
+                    ($paket->jenis === 'tidak' && $bestPaket->jenis !== 'tidak') ||
+                    ($paket->jenis === $bestPaket->jenis && $paket->harga < $bestPaket->harga)) {
+                    $bestPaket = $paket;
                 }
             }
         }
 
-        // Apply the assignments
-        foreach ($paketAssignments as $index => $assignment) {
-            $details[$index]['harga_jual'] = $assignment['harga_jual'];
+
+        // If a suitable paket is found, apply it to ALL items in details
+        if ($bestPaket) {
+            // For paket jenis 'campur', use floor() instead of round()
+            // sesuai requirement: floor(harga/total_qty)
+            if ($bestPaket->jenis === 'campur') {
+                $hargaSatuan = floor($bestPaket->harga / $bestPaket->total_qty);
+            } else {
+                // For other paket types, use round() as before
+                $hargaSatuan = round($bestPaket->harga / $bestPaket->total_qty);
+            }
+            
+            // Apply paket price to ALL items in details
+            foreach ($details as $index => $detail) {
+                $details[$index]['harga_jual'] = $hargaSatuan;
+            }
         }
 
         return $details;
@@ -500,9 +678,19 @@ class PenjualanService
             return null; // No paket applies
         }
 
+
         // Calculate prices
         $hargaPerPaket = $selectedPaket->harga;
-        $hargaSatuan = round($hargaPerPaket / $selectedPaket->total_qty, 2);
+        
+        // For paket jenis 'campur', use floor() instead of round()
+        // sesuai requirement: floor(harga/total_qty)
+        if ($selectedPaket->jenis === 'campur') {
+            $hargaSatuan = floor($hargaPerPaket / $selectedPaket->total_qty);
+        } else {
+            // For other paket types, use round() as before
+            $hargaSatuan = round($hargaPerPaket / $selectedPaket->total_qty, 2);
+        }
+        
         $totalHargaPaket = $jumlahPaket * $hargaPerPaket;
 
         return [
