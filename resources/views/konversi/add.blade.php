@@ -21,7 +21,7 @@
             @endforeach
           @endif
         </select>
-      </div>
+      </div> 
 
       <div class="form-group">
         <label for="satuan_konversi_id">Satuan Konversi *</label>
