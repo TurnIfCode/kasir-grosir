@@ -279,7 +279,7 @@
                         dataType: 'json',
                         data: { q: request.term },
                         success: function (data) {
-                            if (data.status === 'success') {
+                            if (data.success) {
 
                                 // -------------------------------------------------------
                                 // AUTO SELECT BARCODE

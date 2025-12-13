@@ -9,6 +9,7 @@ use App\Models\Barang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\Log;
 
 class PaketController extends Controller
 {
@@ -83,56 +84,80 @@ class PaketController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nama' => 'required|string|max:100',
-            'total_qty' => 'required|integer|min:1',
-            'harga' => 'required|numeric|min:0',
-            'status' => 'required|in:aktif,nonaktif',
-            'barang_ids' => 'required|array',
-            'barang_ids.*' => 'integer|exists:barang,id',
-        ]);
+        $nama = trim($request->nama);
+        $total_qty = trim($request->total_qty);
+        $harga = trim($request->harga);
+        $jenis = trim($request->jenis);
+        $status = trim($request->status);
+        $barang_ids = array_map('trim', $request->barang_ids);
 
-        DB::beginTransaction();
-        try {
-            $paket = Paket::create([
-                'nama' => $request->nama,
-                'total_qty' => $request->total_qty,
-                'harga' => $request->harga,
-                'status' => $request->status,
-                'created_by' => Auth::id(),
-                'updated_by' => Auth::id(),
+
+        //disini cek dulu nama paketnya.
+        $cekNama = Paket::where('nama', $nama)->count();
+        if ($cekNama > 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Nama paket sudah terdaftar',
+                'form'      => 'nama'
             ]);
-
-            foreach ($request->barang_ids as $barang_id) {
-                PaketDetail::create([
-                    'paket_id' => $paket->id,
-                    'barang_id' => $barang_id,
-                    'created_by' => Auth::id(),
-                    'updated_by' => Auth::id(),
-                ]);
-            }
-            DB::commit();
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Paket berhasil ditambahkan'
-                ]);
-            }
-
-            return redirect()->route('master.paket.index')->with('success', 'Paket created successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to create paket: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return back()->withInput()->withErrors(['error' => 'Failed to create paket: ' . $e->getMessage()]);
         }
+
+        $total_qty  = round($total_qty);
+        $harga      = round($harga);
+
+        if ($total_qty <= 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Total quantity harus lebih besar dari 0',
+                'form'      => 'total_qty'
+            ]);
+        }
+
+
+        if ($harga <= 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Harga harus lebih besar dari 0',
+                'form'      => 'harga'
+            ]);
+        }
+
+        $paket = new Paket();
+        $paket->nama = $nama;
+        $paket->total_qty = $total_qty;
+        $paket->harga = $harga;
+        $paket->jenis = $jenis;
+        $paket->status = $status;
+        $paket->created_by = auth()->id();
+        $paket->created_at = now();
+        $paket->updated_by = auth()->id();
+        $paket->updated_at = now();
+        $paket->save();
+
+        if (count($barang_ids) > 0) {
+            foreach ($barang_ids as $barang_id) {
+                $paketDetail = new PaketDetail();
+                $paketDetail->paket_id = $paket->id;
+                $paketDetail->barang_id = $barang_id;
+                $paketDetail->created_by = auth()->id();
+                $paketDetail->created_at = now();
+                $paketDetail->updated_by = auth()->id();
+                $paketDetail->updated_at = now();
+                $paketDetail->save();
+            }
+            
+        }
+
+        $log = new Log();
+        $log->keterangan = 'Tambah paket : '.$paket->nama.' | Total Quantity : '.round($paket->total_qty).' | Harga Paket : '.round($paket->harga).' | Jenis : '.$paket->jenis.' Status : '.$paket->status;
+        $log->created_by = auth()->id();
+        $log->created_at = now();
+        $log->save();
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Berhasil tambah paket'
+        ]);
     }
 
     public function edit($id)
@@ -143,51 +168,84 @@ class PaketController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'nama' => 'required|string|max:100',
-            'total_qty' => 'required|integer|min:1',
-            'harga' => 'required|numeric|min:0',
-            'status' => 'required|in:aktif,nonaktif',
-            'barang_ids' => 'required|array',
-            'barang_ids.*' => 'integer|exists:barang,id',
-        ]);
+        $nama = trim($request->nama);
+        $total_qty = trim($request->total_qty);
+        $harga = trim($request->harga);
+        $jenis = trim($request->jenis);
+        $status = trim($request->status);
+        $barang_ids = array_map('trim', $request->barang_ids);
 
-        DB::beginTransaction();
-        try {
-            $paket = Paket::findOrFail($id);
-            $paket->update([
-                'nama' => $request->nama,
-                'total_qty' => $request->total_qty,
-                'harga' => $request->harga,
-                'status' => $request->status,
-                'updated_by' => Auth::id(),
+        //disini cek dulu nama paketnya.
+        $cekNama = Paket::where('nama', $nama)->where('id', '!=', $id)->count();
+        if ($cekNama > 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Nama paket sudah terdaftar',
+                'form'      => 'nama'
             ]);
+        }
 
-            // Sync paket details
+        $total_qty  = round($total_qty);
+        $harga      = round($harga);
+
+        if ($total_qty <= 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Total quantity harus lebih besar dari 0',
+                'form'      => 'total_qty'
+            ]);
+        }
+
+
+        if ($harga <= 0) {
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Harga harus lebih besar dari 0',
+                'form'      => 'harga'
+            ]);
+        }
+
+        $paket = Paket::find($id);
+        $paket->nama = $nama;
+        $paket->total_qty = $total_qty;
+        $paket->harga = $harga;
+        $paket->jenis = $jenis;
+        $paket->status = $status;
+        $paket->updated_by = auth()->id();
+        $paket->updated_at = now();
+        $paket->save();
+
+        if (count($barang_ids) > 0) {
             PaketDetail::where('paket_id', $id)
-                ->whereNotIn('barang_id', $request->barang_ids)
+                ->whereNotIn('barang_id', $barang_ids)
                 ->delete();
 
-            $existingBarangIds = PaketDetail::where('paket_id', $id)->pluck('barang_id')->toArray();
+                $existingBarangIds = PaketDetail::where('paket_id', $id)->pluck('barang_id')->toArray();
 
-            foreach ($request->barang_ids as $barang_id) {
+            foreach ($barang_ids as $barang_id) {
                 if (!in_array($barang_id, $existingBarangIds)) {
-                    PaketDetail::create([
-                        'paket_id' => $id,
-                        'barang_id' => $barang_id,
-                        'created_by' => Auth::id(),
-                        'updated_by' => Auth::id(),
-                    ]);
+                    $paketDetail = new PaketDetail();
+                    $paketDetail->paket_id = $id;
+                    $paketDetail->barang_id = $barang_id;
+                    $paketDetail->created_by = auth()->id();
+                    $paketDetail->created_at = now();
+                    $paketDetail->updated_by = auth()->id();
+                    $paketDetail->updated_at = now();
+                    $paketDetail->save();
                 }
             }
-
-
-        DB::commit();
-            return redirect()->route('master.paket.index')->with('success', 'Paket updated successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withInput()->withErrors(['error' => 'Failed to update paket: ' . $e->getMessage()]);
         }
+
+        $log = new Log();
+        $log->keterangan = 'Ubah paket : '.$paket->nama.' | Total Quantity : '.round($paket->total_qty).' | Harga Paket : '.round($paket->harga).' | Jenis : '.$paket->jenis.' Status : '.$paket->status;
+        $log->created_by = auth()->id();
+        $log->created_at = now();
+        $log->save();
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Berhasil ubah paket'
+        ]);
     }
 
     /**

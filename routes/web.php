@@ -14,7 +14,7 @@ use App\Http\Controllers\HargaBarangController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PelangganController;
 use App\Http\Controllers\LoginController;
-use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\Transaksi\PenjualanController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
@@ -200,6 +200,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/search', [PelangganController::class, 'search'])->name('pelanggan.search');
     });
 
+
     Route::prefix('pembelian')->group(function() {
         Route::get('/create', [PembelianController::class, 'create'])->name('pembelian.create');
         Route::post('/store', [PembelianController::class, 'store'])->name('pembelian.store');
@@ -214,6 +215,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/edit', [PembelianController::class, 'edit'])->name('pembelian.edit');
         Route::patch('/{id}/status', [PembelianController::class, 'updateStatus'])->name('pembelian.update-status');
         Route::put('/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
+        Route::delete('/{id}', [PembelianController::class, 'destroy'])->name('pembelian.destroy');
     });
 
     // Route::prefix('pembelian')->group(function () {
@@ -233,10 +235,28 @@ Route::middleware('auth')->group(function () {
     // });
 
     Route::prefix('penjualan')->group(function () {
+        Route::get('/create', [PenjualanController::class, 'create'])->name('penjualan.create');
+        Route::get('/barang/{barangId}/get-satuan-harga-jual', 
+            [PenjualanController::class, 'getSatuanBarang']
+        )->name('penjualan.get-satuan-barang');
+        Route::get('/barang/{barangId}/{satuanId}/get-type-harga-jual', 
+            [PenjualanController::class, 'getTypeHargaBarang']
+        )->name('penjualan.get-type-harga-jual');
+        Route::get('/barang/{barangId}/{satuanId}/{tipe_harga}/get-harga-jual', 
+            [PenjualanController::class, 'getHargaJual']
+        )->name('penjualan.get-harga-jual');
+        Route::get('/barang/{barangId}/get-detail-barang', 
+            [PenjualanController::class, 'getDetailBarang']
+        )->name('penjualan.get-detail-barang');
+        Route::get('/get-paket-barang', [PenjualanController::class, 'getPaketBarang'])->name('penjualan.get-paket-barang');
+        Route::post('/store', [PenjualanController::class, 'store'])->name('penjualan.store');
+
+
+
         Route::get('/', [PenjualanController::class, 'index'])->name('penjualan.index');
         Route::get('/data', [PenjualanController::class, 'data'])->name('penjualan.data');
-        Route::get('/create', [PenjualanController::class, 'create'])->name('penjualan.create');
-        Route::post('/', [PenjualanController::class, 'store'])->name('penjualan.store');
+
+        // Route::post('/', [PenjualanController::class, 'store'])->name('penjualan.store');
 
         // API endpoint for microservice
         Route::post('/api', [\App\Http\Controllers\Api\PenjualanApiController::class, 'store'])->name('penjualan.api.store');

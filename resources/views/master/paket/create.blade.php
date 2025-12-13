@@ -15,7 +15,14 @@
       </div>
       <div class="mb-3">
         <label for="harga" class="form-label">Harga <span class="text-danger">*</span></label>
-        <input type="number" class="form-control form-control-lg" id="harga" name="harga" placeholder="0" min="0" step="0.01" required>
+        <input type="number" class="form-control form-control-lg" id="harga" name="harga" placeholder="0" min="1" required>
+      </div>
+      <div class="mb-3">
+        <label for="jenis" class="form-label">Jenis <span class="text-danger">*</span></label>
+        <select class="form-select form-select-lg" id="jenis" name="jenis" required>
+          <option value="tidak" selected>Tidak Campur</option>
+          <option value="campur">Campur</option>
+        </select>
       </div>
       <div class="mb-3">
         <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
@@ -37,6 +44,7 @@
 
 <script>
 $(document).ready(function() {
+  $("[name=nama]").focus().select();
   console.log('Initializing Select2...');
 
   try {
@@ -142,13 +150,26 @@ $(document).ready(function() {
         type: "POST",
         data: $(form).serialize(),
         success: function(response) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Berhasil',
-            text: response.message || 'Paket berhasil ditambahkan'
-          }).then(function() {
-            window.location.href = "{{ route('master.paket.index') }}";
-          });
+          if (response.status) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil',
+              text: response.message || 'Paket berhasil ditambahkan'
+            }).then(function() {
+              window.location.href = "{{ route('master.paket.create') }}";
+            });
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: response.message
+            }).then(function() {
+              setTimeout(() => {
+                $(`#${response.form}`).focus().select();
+              }, 500);
+            });
+          }
+          
         },
         error: function(xhr) {
           console.error('Form submit error:', xhr.responseText);

@@ -506,6 +506,49 @@ class PembelianController extends Controller
             $newNumber = 1;
         }
 
+
         return 'PB-' . $tanggal . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $pembelian = Pembelian::findOrFail($id);
+
+            // Hanya bisa hapus pembelian dengan status 'draft'
+            if ($pembelian->status !== 'draft') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pembelian yang sudah selesai atau dibatalkan tidak dapat dihapus'
+                ], 400);
+            }
+
+            // Hapus semua detail pembelian terkait
+            PembelianDetail::where('pembelian_id', $id)->delete();
+
+            // Hapus semua pembayaran pembelian terkait
+            PembelianPembayaran::where('pembelian_id', $id)->delete();
+
+            // Hapus pembelian utama
+            $pembelian->delete();
+
+            // Log aktivitas
+            $log = new Log();
+            $log->keterangan = 'Hapus Pembelian : ' . $pembelian->kode_pembelian;
+            $log->created_by = auth()->id();
+            $log->created_at = now();
+            $log->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembelian berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus pembelian: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

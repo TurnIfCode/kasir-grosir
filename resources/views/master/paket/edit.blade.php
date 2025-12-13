@@ -24,12 +24,20 @@
 
       <div class="mb-3">
         <label for="total_qty" class="form-label">Total Quantity <span class="text-danger">*</span></label>
-        <input type="number" class="form-control form-control-lg" id="total_qty" name="total_qty" value="{{ old('total_qty', $paket->total_qty) }}" placeholder="0" required min="1" />
+        <input type="number" class="form-control form-control-lg" id="total_qty" name="total_qty" value="{{ round($paket->total_qty) }}" placeholder="0" required min="1" />
       </div>
 
       <div class="mb-3">
         <label for="harga" class="form-label">Harga <span class="text-danger">*</span></label>
-        <input type="number" class="form-control form-control-lg" id="harga" name="harga" value="{{ old('harga', $paket->harga) }}" placeholder="0" required min="0" step="0.01" />
+        <input type="number" class="form-control form-control-lg" id="harga" name="harga" value="{{ round($paket->harga) }}" placeholder="0" required min="0" step="0.01" />
+      </div>
+
+      <div class="mb-3">
+        <label for="jenis" class="form-label">Jenis <span class="text-danger">*</span></label>
+        <select class="form-select form-select-lg" id="jenis" name="jenis" required>
+          <option value="tidak" {{ old('jenis', $paket->jenis) === 'tidak' ? 'selected' : '' }}>Tidak Campur</option>
+          <option value="campur" {{ old('jenis', $paket->jenis) === 'campur' ? 'selected' : '' }}>Campur</option>
+        </select>
       </div>
 
       <div class="mb-3">
@@ -57,11 +65,16 @@
   </div>
 </div>
 
+
+@include('layout.footer')
+
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
 
 <script>
 $(document).ready(function() {
+  $("[name=nama]").focus().select();
+
   console.log('Initializing Select2...');
 
   try {
@@ -167,13 +180,25 @@ $(document).ready(function() {
         type: "POST",
         data: $(form).serialize(),
         success: function(response) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Berhasil',
-            text: response.message || 'Paket berhasil diperbarui'
-          }).then(function() {
-            window.location.href = "{{ route('master.paket.index') }}";
-          });
+          if (response.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil',
+              text: response.message || 'Paket berhasil ditambahkan'
+            }).then(function() {
+              window.location.href = "{{ route('master.paket.index') }}";
+            });
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: response.message
+            }).then(function() {
+              setTimeout(() => {
+                $(`#${response.form}`).focus().select();
+              }, 500);
+            });
+          }
         },
         error: function(xhr) {
           console.error('Form submit error:', xhr.responseText);
@@ -202,5 +227,5 @@ $(document).ready(function() {
   });
 });
 </script>
-
-@include('layout.footer')
+</body>
+</html>

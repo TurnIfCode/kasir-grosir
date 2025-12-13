@@ -120,7 +120,7 @@ $(document).ready(function() {
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {
-                        if (response.status) {
+                        if (response.success) {
                             Swal.fire('Berhasil!', response.message, 'success');
                             table.ajax.reload();
                         } else {
