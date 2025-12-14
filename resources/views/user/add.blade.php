@@ -38,6 +38,7 @@
 
 <script>
 $(document).ready(function() {
+  $("#username").focus().select();
   $("#btnSave").click(function() {
     $('#addUserForm').validate({
       rules: {

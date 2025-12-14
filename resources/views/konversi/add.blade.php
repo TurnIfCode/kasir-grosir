@@ -86,6 +86,8 @@
 <script>
 $(document).ready(function() {
 
+  $("#barang_nama").focus().select();
+
   // Load konversi table for selected barang
   function loadKonversiTable(barangId) {
     if (!barangId) {
@@ -123,6 +125,48 @@ $(document).ready(function() {
     });
   }
 
+  $(document).on("keypress", "#barang_nama", function (e) {
+
+      if (e.which !== 13) return;
+      e.preventDefault();
+
+      let barcode = $(this).val().trim();
+      if (barcode === "") return;
+
+      $.ajax({
+          url: "{{ route('barang.search') }}",
+          type: "GET",
+          dataType: "json",
+          data: { term: barcode }, // WAJIB: term
+          success: function (res) {
+
+              if (!res.success || res.data.length === 0) {
+                  Swal.fire({
+                      icon: "warning",
+                      title: "Barcode tidak ditemukan"
+                  });
+                  $("#barang_nama").select();
+                  return;
+              }
+
+              // BARCODE HARUS UNIK
+              let barang = res.data[0];
+
+              // 🔥 SET FIELD MANUAL (INI YANG AUTOCOMPLETE LAKUKAN)
+              $("#barang_id").val(barang.id);
+              $("#barang_nama").val(barang.nama_barang);
+              $("#satuan_dasar_id").val(barang.satuan_id);
+
+              // 🔥 PANGGIL LOGIC SETELAH PILIH BARANG
+              loadKonversiTable(barang.id);
+
+              // OPTIONAL: fokus ke field berikutnya
+              $("#satuan_konversi_id").focus();
+          }
+      });
+  });
+
+
   // Autocomplete barang
   $('.barang-autocomplete').autocomplete({
     source: function(request, response) {
@@ -131,7 +175,7 @@ $(document).ready(function() {
         dataType: 'json',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
           response($.map(data.data, function(item) {
               return {
                 label: item.kode_barang + ' - ' + item.nama_barang,

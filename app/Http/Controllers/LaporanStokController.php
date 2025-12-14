@@ -132,8 +132,9 @@ class LaporanStokController extends Controller
                 ->select([
                     'p.tanggal_pembelian as tanggal',
                     DB::raw("'Pembelian' as jenis_transaksi"),
+
                     'p.kode_pembelian as nomor_transaksi',
-                    'pd.qty as jumlah',
+                    'pd.qty_konversi as jumlah',
                     DB::raw('0 as stok_akhir'),
                     'b.nama_barang',
                     's.nama_satuan',
@@ -148,6 +149,7 @@ class LaporanStokController extends Controller
                 ->when($barangId, fn($q) => $q->where('pd.barang_id', $barangId))
                 ->orderBy('p.tanggal_pembelian', 'desc');
         } else {
+
             // Stok Keluar dari Penjualan
             $query = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'pd.penjualan_id', '=', 'p.id')
@@ -158,7 +160,7 @@ class LaporanStokController extends Controller
                     'p.tanggal_penjualan as tanggal',
                     DB::raw("'Penjualan' as jenis_transaksi"),
                     'p.kode_penjualan as nomor_transaksi',
-                    'pd.qty as jumlah',
+                    'pd.qty_konversi as jumlah',
                     DB::raw('0 as stok_akhir'),
                     'b.nama_barang',
                     's.nama_satuan',
@@ -500,7 +502,8 @@ class LaporanStokController extends Controller
                     'p.tanggal_pembelian as tanggal',
                     DB::raw("'Pembelian' as jenis_transaksi"),
                     'p.kode_pembelian as nomor_transaksi',
-                    'pd.qty as jumlah',
+
+                    'pd.qty_konversi as jumlah',
                     'b.nama_barang',
                     's.nama_satuan',
                     'pd.harga_beli',
@@ -514,6 +517,7 @@ class LaporanStokController extends Controller
                 ->when($barangId, fn($q) => $q->where('pd.barang_id', $barangId))
                 ->orderBy('p.tanggal_pembelian', 'desc')
                 ->get();
+
         } else {
             $data = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'pd.penjualan_id', '=', 'p.id')
@@ -524,7 +528,7 @@ class LaporanStokController extends Controller
                     'p.tanggal_penjualan as tanggal',
                     DB::raw("'Penjualan' as jenis_transaksi"),
                     'p.kode_penjualan as nomor_transaksi',
-                    'pd.qty as jumlah',
+                    'pd.qty_konversi as jumlah',
                     'b.nama_barang',
                     's.nama_satuan',
                     'pd.harga_jual',

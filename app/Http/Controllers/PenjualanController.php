@@ -6,6 +6,7 @@ use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
 use App\Models\PenjualanPembayaran;
 use App\Models\Pelanggan;
+use App\Models\Satuan;
 use App\Services\BarangService;
 use App\Services\HargaService;
 use App\Services\StokService;
@@ -39,7 +40,7 @@ class PenjualanController extends Controller
      */
     public function index()
     {
-        return view('penjualan.index');
+        return view('transaksi.penjualan.index');
     }
 
     /**

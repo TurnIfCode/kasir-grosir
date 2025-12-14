@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kas;
 use App\Models\KasSaldo;
+use App\Models\KasSaldoTransaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
@@ -14,8 +15,14 @@ class LaporanKasSaldoController extends Controller
 {
     public function index()
     {
-        // Get distinct kas names from kas_saldo table
-        $kasOptions = KasSaldo::select('kas')->distinct()->pluck('kas')->toArray();
+        // Get distinct kas names from kas_saldo_transaksi through kas_saldo relationship
+        $kasOptions = KasSaldoTransaksi::with('kasSaldo')
+            ->get()
+            ->pluck('kasSaldo.kas')
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
 
         return view('laporan.kas-saldo', compact('kasOptions'));
     }
@@ -26,31 +33,40 @@ class LaporanKasSaldoController extends Controller
         $endDate = $request->end_date;
         $namaKas = $request->nama_kas;
 
-        // Get all kas names if no specific kas selected
-        if (!$namaKas || $namaKas == 'all') {
-            $kasNames = KasSaldo::select('kas')->distinct()->pluck('kas')->toArray();
-        } else {
-            $kasNames = [$namaKas];
+        // Get kas names from KasSaldoTransaksi
+        $kasSaldoQuery = KasSaldoTransaksi::with('kasSaldo');
+
+        // Filter by kas name if specified
+        if ($namaKas && $namaKas != 'all') {
+            $kasSaldoQuery->whereHas('kasSaldo', function($query) use ($namaKas) {
+                $query->where('kas', $namaKas);
+            });
         }
+
+        // Get data grouped by kas name
+        $groupedData = $kasSaldoQuery
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->get()
+            ->groupBy(function($item) {
+                return $item->kasSaldo->kas ?? 'Unknown';
+            });
 
         $data = [];
 
-        foreach ($kasNames as $kasName) {
-            // Get saldo awal
-            $saldoAwal = $this->getSaldoAwal($kasName, $startDate);
-
-            // Get total masuk and keluar in date range
-            $totalMasuk = Kas::where('sumber_kas', $kasName)
-                ->where('tipe', 'masuk')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('nominal');
-
-            $totalKeluar = Kas::where('sumber_kas', $kasName)
-                ->where('tipe', 'keluar')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('nominal');
-
-            $saldoAkhir = $saldoAwal + $totalMasuk - $totalKeluar;
+        foreach ($groupedData as $kasName => $transactions) {
+            // Calculate totals based on tipe transaction
+            $totalMasuk = $transactions->where('tipe', 'masuk')->sum(function($transaksi) {
+                return $transaksi->saldo_akhir - $transaksi->saldo_awal;
+            });
+            
+            $totalKeluar = $transactions->where('tipe', 'keluar')->sum(function($transaksi) {
+                return $transaksi->saldo_awal - $transaksi->saldo_akhir;
+            });
+            
+            // Get saldo awal from first transaction in range
+            $saldoAwal = $transactions->first()->saldo_awal ?? 0;
+            // Get saldo akhir from last transaction in range
+            $saldoAkhir = $transactions->last()->saldo_akhir ?? 0;
 
             $data[] = [
                 'nama_kas' => $kasName,
@@ -84,38 +100,32 @@ class LaporanKasSaldoController extends Controller
         $endDate = $request->end_date;
         $namaKas = $request->nama_kas;
 
-        // Get all kas names if no specific kas selected
-        if (!$namaKas || $namaKas == 'all') {
-            $kasNames = KasSaldo::select('kas')->distinct()->pluck('kas')->toArray();
-        } else {
-            $kasNames = [$namaKas];
+        // Get transactions from KasSaldoTransaksi
+        $kasSaldoQuery = KasSaldoTransaksi::with('kasSaldo');
+
+        // Filter by kas name if specified
+        if ($namaKas && $namaKas != 'all') {
+            $kasSaldoQuery->whereHas('kasSaldo', function($query) use ($namaKas) {
+                $query->where('kas', $namaKas);
+            });
         }
 
-        $totalSaldoAwal = 0;
-        $totalMasuk = 0;
-        $totalKeluar = 0;
-        $totalSaldoAkhir = 0;
+        $transactions = $kasSaldoQuery
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->get();
 
-        foreach ($kasNames as $kasName) {
-            // Get saldo awal
-            $saldoAwal = $this->getSaldoAwal($kasName, $startDate);
-            $totalSaldoAwal += $saldoAwal;
-
-            // Get total masuk and keluar in date range
-            $masuk = Kas::where('sumber_kas', $kasName)
-                ->where('tipe', 'masuk')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('nominal');
-            $totalMasuk += $masuk;
-
-            $keluar = Kas::where('sumber_kas', $kasName)
-                ->where('tipe', 'keluar')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('nominal');
-            $totalKeluar += $keluar;
-
-            $totalSaldoAkhir += ($saldoAwal + $masuk - $keluar);
-        }
+        // Calculate totals
+        $totalMasuk = $transactions->where('tipe', 'masuk')->sum(function($transaksi) {
+            return $transaksi->saldo_akhir - $transaksi->saldo_awal;
+        });
+        
+        $totalKeluar = $transactions->where('tipe', 'keluar')->sum(function($transaksi) {
+            return $transaksi->saldo_awal - $transaksi->saldo_akhir;
+        });
+        
+        // Get saldo awal from earliest transaction and saldo akhir from latest transaction
+        $totalSaldoAwal = $transactions->first()->saldo_awal ?? 0;
+        $totalSaldoAkhir = $transactions->last()->saldo_akhir ?? 0;
 
         return response()->json([
             'total_saldo_awal' => 'Rp ' . number_format($totalSaldoAwal, 0, ',', '.'),
@@ -125,40 +135,31 @@ class LaporanKasSaldoController extends Controller
         ]);
     }
 
-    private function getSaldoAwal($namaKas, $startDate)
-    {
-        // First, try to get from kas_saldo table
-        $kasSaldo = KasSaldo::where('kas', $namaKas)->first();
-        if ($kasSaldo) {
-            return $kasSaldo->saldo;
-        }
-
-        // If not found, calculate from kas transactions before start_date
-        $totalMasuk = Kas::where('sumber_kas', $namaKas)
-            ->where('tipe', 'masuk')
-            ->where('tanggal', '<', $startDate)
-            ->sum('nominal');
-
-        $totalKeluar = Kas::where('sumber_kas', $namaKas)
-            ->where('tipe', 'keluar')
-            ->where('tanggal', '<', $startDate)
-            ->sum('nominal');
-
-        return $totalMasuk - $totalKeluar;
-    }
-
     public function exportPDF(Request $request)
     {
         $startDate = $request->start_date;
         $endDate = $request->end_date;
         $namaKas = $request->nama_kas;
 
-        // Get all kas names if no specific kas selected
-        if (!$namaKas || $namaKas == 'all') {
-            $kasNames = KasSaldo::select('kas')->distinct()->pluck('kas')->toArray();
-        } else {
-            $kasNames = [$namaKas];
+        // Get transactions from KasSaldoTransaksi
+        $kasSaldoQuery = KasSaldoTransaksi::with('kasSaldo');
+
+        // Filter by kas name if specified
+        if ($namaKas && $namaKas != 'all') {
+            $kasSaldoQuery->whereHas('kasSaldo', function($query) use ($namaKas) {
+                $query->where('kas', $namaKas);
+            });
         }
+
+        $transactions = $kasSaldoQuery
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->get();
+
+
+        // Group data by kas name
+        $groupedData = $transactions->groupBy(function($item) {
+            return $item->kasSaldo->kas ?? 'Unknown';
+        });
 
         $data = [];
         $totalSaldoAwal = 0;
@@ -166,22 +167,19 @@ class LaporanKasSaldoController extends Controller
         $totalKeluar = 0;
         $totalSaldoAkhir = 0;
 
-        foreach ($kasNames as $kasName) {
-            // Get saldo awal
-            $saldoAwal = $this->getSaldoAwal($kasName, $startDate);
-
-            // Get total masuk and keluar in date range
-            $masuk = Kas::where('sumber_kas', $kasName)
-                ->where('tipe', 'masuk')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('nominal');
-
-            $keluar = Kas::where('sumber_kas', $kasName)
-                ->where('tipe', 'keluar')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('nominal');
-
-            $saldoAkhir = $saldoAwal + $masuk - $keluar;
+        foreach ($groupedData as $kasName => $kasTransactions) {
+            // Calculate totals based on tipe transaction
+            $masuk = $kasTransactions->where('tipe', 'masuk')->sum(function($transaksi) {
+                return $transaksi->saldo_akhir - $transaksi->saldo_awal;
+            });
+            
+            $keluar = $kasTransactions->where('tipe', 'keluar')->sum(function($transaksi) {
+                return $transaksi->saldo_awal - $transaksi->saldo_akhir;
+            });
+            
+            // Get saldo awal from first transaction and saldo akhir from last transaction
+            $saldoAwal = $kasTransactions->first()->saldo_awal ?? 0;
+            $saldoAkhir = $kasTransactions->last()->saldo_akhir ?? 0;
 
             $data[] = [
                 'nama_kas' => $kasName,

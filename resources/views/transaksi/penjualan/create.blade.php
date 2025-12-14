@@ -100,7 +100,7 @@
             </div>
 
             <form id="detailContainer" class="mt-2">
-                <input type="text" value="ecer" id="tipe_harga_default" name="tipe_harga_default">
+                <input type="hidden" value="ecer" id="tipe_harga_default" name="tipe_harga_default">
                 <!-- ROW 0 -->
                 <div class="row align-items-center g-2 py-2 border-bottom detail-row" data-row="0">
 
@@ -160,18 +160,18 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label for="jenis_pembayaran" class="form-label fw-semibold">Jenis Pembayaran <span class="text-danger">*</span></label>
-                            <select class="form-select" id="jenis_pembayaran" name="jenis_pembayaran" required onchange="togglePaymentFields()">
+                            <select class="form-select" id="jenis_pembayaran" name="jenis_pembayaran" required>
                                 <option value="">Pilih Jenis</option>
                                 <option value="tunai">Tunai</option>
                                 <option value="non_tunai">Non Tunai</option>
-                                <option value="campuran">Campuran</option>
+                                <!-- <option value="campuran">Campuran</option> -->
                             </select>
                         </div>
                         <div class="col-6 tunai-field" style="display: none;">
                             <label for="dibayar" class="form-label fw-semibold">Nominal Bayar</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" class="form-control fw-bold fs-5" id="dibayar" name="dibayar" min="0" step="0.01" onchange="calculateKembalian()" onkeyup="calculateKembalian()" required>
+                                <input type="number" class="form-control fw-bold fs-5" id="dibayar" name="dibayar" min="0" required>
                             </div>
                         </div>
                         <div class="col-6 tunai-field" style="display: none;">
@@ -233,15 +233,9 @@
         <!-- Tombol Aksi -->
         <div class="row mt-3 mt-md-4">
             <div class="col-12">
-                <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-12">
                     <button type="button" class="btn btn-primary btn-lg px-4 w-100 w-sm-auto" id="btnSimpanCetak">
                         <i class="fas fa-save me-2"></i>Simpan & Cetak
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-lg px-4 w-100 w-sm-auto" onclick="submitForm(false)">
-                        <i class="fas fa-save me-2"></i>Simpan Saja
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-lg px-4 w-100 w-sm-auto" onclick="resetForm()">
-                        <i class="fas fa-undo me-2"></i>Reset
                     </button>
                 </div>
             </div>
@@ -252,6 +246,8 @@
 
 <script>
 $(document).ready(function () {
+
+    toggleRemoveButton();
 
     // =====================================================
     // EVENT LISTENER GLOBAL BARANG (input / keyup / change)
@@ -343,6 +339,7 @@ $(document).ready(function () {
                 });
             },
 
+
             select: function (event, ui) {
 
                 // Set hidden barang_id[row]
@@ -361,9 +358,15 @@ $(document).ready(function () {
                 pilihBarangAuto(dataId, ui.item);
                 // Pindah ke satuan_id
                 $("#satuan_id\\[" + dataId + "\\]").focus().select();
+
+                // 🔥 CEK PAKET SETELAH BARANG DIPILIH
+                setTimeout(() => {
+                    cekPaketBarang();
+                }, 200);
             }
         });
     });
+
 
     $(document).on('keyup', '.qty-input', function() {
         var dataId = $(this).attr('data-id');
@@ -373,15 +376,17 @@ $(document).ready(function () {
         let hargaJual = $("#harga_jual\\[" + dataId + "\\]").val();
         var qty = $(this).val();
 
-        
-        
-
         loadCalculateSubtotalDtl(dataId, barangId, satuanId, tipeHarga, hargaJual, qty);
+
+        // 🔥 PANGGIL CEK PAKET SETIAP QTY BERUBAHA
+        setTimeout(() => {
+            cekPaketBarang();
+        }, 100);
 
         if (qty != null || qty != '' || qty > 0) {
             setTimeout(() => {
                 addNewRow();
-            }, 500);
+            }, 1000);
         }
     });
 
@@ -628,6 +633,8 @@ $(document).ready(function () {
             type: 'get',
             success: function(result) {
                 if (result.success) {
+                    console.log("INI NAMA KATEGORINYA DUDE==>", result.data.kategori.nama_kategori);
+                    
                     var subtotal = 0;
                     if (
                         result.data.kategori.kode_kategori.toLowerCase() == 'rokok' &&
@@ -640,14 +647,32 @@ $(document).ready(function () {
                         } else {
                             subtotal = (qty*hargaJual)+1000;
                         }
+                        subtotal = Math.round(subtotal);
+                        const subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
+                        $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
+                    } else if (
+                        tipeHarga == 'grosir' &&
+                        result.data.kategori.nama_kategori.toLowerCase() == 'barang timbangan'
+                    ) {
+                        var namaSatuan = result.data.satuan.nama_satuan;
+                        if (satuanId == 33 || satuanId == 37) {
+                            subtotal = (qty*hargaJual);
+                            subtotal = Math.ceil(subtotal / 1000) * 1000;
+                            subtotal = subtotal+1000;
+                            console.log("INI SUBTOTAL BARANG TIMBANGANNYA DUDE==>", subtotal);
+                        } else {
+                            subtotal = qty*hargaJual;
+                        }
+                        subtotal = Math.round(subtotal);
+                        $("#subtotal\\[" + dataId + "\\]").val(subtotal);
                     } else {
                         subtotal = qty*hargaJual;
+                        subtotal = Math.round(subtotal);
+                        $("#subtotal\\[" + dataId + "\\]").val(subtotal);
                     }
                     
-                    
-                    subtotal = Math.round(subtotal);
-                    const subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
-                    $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
+                    // const subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
+                    // $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
                     // 🔥 UPDATE RINGKASAN
                     updateRingkasan();
                     
@@ -656,6 +681,21 @@ $(document).ready(function () {
         })
 
         $("#harga_jual\\[" + dataId + "\\]").val(hargaJual);
+    }
+
+    function loadPembulatanSubtotalDetailTimbangan(subtotal) {
+        const remainder = Math.round(subtotal % 1000); // Round remainder to nearest integer
+        let pembulatan = 0;
+        let subTotalDetail = 0;
+        
+        if (remainder === 0) {
+            pembulatan = 0;
+        } else {
+            pembulatan = 1000-remainder;
+        }
+        subTotalDetail = subtotal+pembulatan;
+        subTotalDetail = Math.round(subTotalDetail);
+        return subTotalDetail;
     }
 
     function loadPembulatanSubtotalDetail(subtotal) {
@@ -790,23 +830,48 @@ $(document).ready(function () {
     $(document).on("click", ".remove-row", function () {
         $(this).closest(".detail-row").remove();
         updateRingkasan();
+        toggleRemoveButton();
     });
 
-    $(document).on('click', '#btnSimpanCetak', function() {
+    $(document).on('click', '#btnSimpanCetak', function () {
         console.log("TOMBOL SIMPAN & CETAK DUDE==>");
-        if ($("[name=catatan]").val() == null || $("[name=catatan]").val() == '') {
-            $("[name=catatan]").val('-');
+
+        // ================= DEFAULT CATATAN =================
+        if ($("#catatan").val() === null || $("#catatan").val() === '') {
+            $("#catatan").val('-');
         }
+
         let formData = new FormData();
 
-        // header
+        // ================= HEADER =================
+        let grandTotal = parseFloat($("#paymentGrandTotalValue").val()) || 0;
+        let dibayar    = parseFloat($("#dibayar").val()) || 0;
+        let jenisPembayaran = $("#jenis_pembayaran").val();
+
+        if (!jenisPembayaran) {
+            alert("Pilih jenis pembayaran");
+            return;
+        }
+
+        if (jenisPembayaran == 'tunai' && dibayar < grandTotal) {
+            alert("Total pembayaran kurang dari Grand Total");
+            return;
+        }
+
+        let kembalian = dibayar - grandTotal;
+
         formData.append("kode_penjualan", $("#kode_penjualan").val());
         formData.append("tanggal_penjualan", $("#tanggal_penjualan").val());
         formData.append("pelanggan_id", $("#pelanggan_id").val());
         formData.append("catatan", $("#catatan").val());
-        formData.append("grand_total", $("#paymentGrandTotalValue").val());
+        formData.append("grand_total", grandTotal);
 
-        // detail
+        // ================= PEMBAYARAN =================
+        formData.append("jenis_pembayaran", jenisPembayaran);
+        formData.append("dibayar", dibayar);
+        formData.append("kembalian", kembalian);
+
+        // ================= DETAIL =================
         $(".detail-row").each(function (i) {
             let idx = $(this).data("row");
 
@@ -821,6 +886,7 @@ $(document).ready(function () {
             formData.append(`detail[${i}][subtotal]`, $("#subtotal\\[" + idx + "\\]").val());
         });
 
+        // ================= AJAX =================
         $.ajax({
             url: "{{ route('penjualan.store') }}",
             type: "POST",
@@ -830,17 +896,43 @@ $(document).ready(function () {
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
             },
-            success: function (res) {
-                alert("Berhasil disimpan");
-                // window.location.href = "/penjualan";
+            beforeSend: function () {
+                $("#btnSimpanCetak")
+                    .prop("disabled", true)
+                    .text("Menyimpan...");
+            },
+            success: function (response) {
+                console.log("RESPONSE==>", response.success);
+                
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: response.message,
+                        showConfirmButton: false,
+                        timer: 1000
+                    }).then(function() {
+                        window.open('/penjualan/' + response.data.id + '/print', '_blank');
+                        // Reload the current create page
+                        window.location.reload();
+                    });
+                }
             },
             error: function (err) {
                 console.error(err);
-                alert("Gagal simpan");
+                alert("Gagal simpan penjualan");
+            },
+            complete: function () {
+                $("#btnSimpanCetak")
+                    .prop("disabled", false)
+                    .text("Simpan & Cetak");
             }
         });
-        
     });
+
+
+
+
 
     function getListBarangId() {
         let barangIds = [];
@@ -857,21 +949,117 @@ $(document).ready(function () {
         return barangIds;
     }
 
+    function getBarangQtyMap() {
+        let qtyMap = {};
+
+        $(".detail-row").each(function () {
+            let idx = $(this).data("row");
+            let barangId = $("#barang_id\\[" + idx + "\\]").val();
+            let qty = $("#qty\\[" + idx + "\\]").val();
+
+            if (barangId && qty > 0) {
+                qtyMap[barangId] = parseInt(qty);
+            }
+        });
+
+        return qtyMap;
+    }
+
     function cekPaketBarang() {
-        let barangIds = getUniqueBarangId();
+        let barangIds = getListBarangId();
+        let qtyMap = getBarangQtyMap();
 
         if (barangIds.length === 0) return;
 
+
         $.ajax({
-            url: "/penjualan/get-paket-barang" + barangIds,
-            type: "get",
+            url: "{{ route('penjualan.get-paket-barang') }}",
+            type: "GET",
+            data: {
+                barang_ids: barangIds,
+                qty_map: qtyMap
+            },
             success: function (result) {
                 console.log("INI PAKET BARANGNYA DUDE==>", result);
                 
+                if (result.success && result.paket_details.length > 0) {
+                    applyPaketToItems(result.paket_details);
+                    updateRingkasan();
+                }
+            },
+            error: function (err) {
+                console.error("Error cek paket barang:", err);
             }
         });
     }
 
+    function applyPaketToItems(paketDetails) {
+        // Loop through each paket detail
+        paketDetails.forEach(function(paket) {
+            paket.items.forEach(function(item) {
+                // Update harga dan subtotal di UI untuk barang yang masuk paket
+                updateItemPriceFromPaket(item.barang_id, item.harga_setelah_paket, item.subtotal_setelah_paket);
+            });
+        });
+    }
+
+    function updateItemPriceFromPaket(barangId, hargaPaket, subtotalPaket) {
+        // Cari semua row yang memiliki barang_id tersebut dan update harga serta subtotal
+        $(".detail-row").each(function() {
+            let idx = $(this).data("row");
+            let rowBarangId = $("#barang_id\\[" + idx + "\\]").val();
+
+            if (rowBarangId == barangId) {
+                // Update harga jual dengan harga paket
+                $("#harga_jual\\[" + idx + "\\]").val(hargaPaket);
+                
+                // Update subtotal dengan subtotal paket
+                $("#subtotal\\[" + idx + "\\]").val(subtotalPaket);
+                
+                console.log("Updated barang ID " + barangId + " dengan harga paket " + hargaPaket);
+            }
+        });
+    }
+
+    function toggleRemoveButton() {
+        let totalRows = $(".detail-row").length;
+
+        if (totalRows <= 1) {
+            $(".remove-row").hide();
+        } else {
+            $(".remove-row").show();
+        }
+    }
+
+    function togglePaymentFields() {
+        const jenis = $('#jenis_pembayaran').val();
+        $('.tunai-field').hide();
+        $('#campuranFields').hide();
+
+        if (jenis === 'tunai') {
+            $('.tunai-field').show();
+        } else if (jenis === 'campuran') {
+            $('#campuranFields').show();
+        }
+    }
+
+    $(document).on('change', '#jenis_pembayaran', function () {
+        togglePaymentFields();
+    });
+
+    function calculateKembalian() {
+        const jenis = $('#jenis_pembayaran').val();
+        if (jenis === 'tunai') {
+            const grandTotal = parseFloat($('#paymentGrandTotalValue').val()) || 0;
+            const dibayar = parseFloat($('#dibayar').val()) || 0;
+            const kembalian = dibayar - grandTotal;
+            $('#kembalian').val(Math.max(0, kembalian).toLocaleString('id-ID'));
+        }
+    }
+
+    $(document).on('keyup', '#dibayar', function() {
+        calculateKembalian()
+    });
 
 
 });

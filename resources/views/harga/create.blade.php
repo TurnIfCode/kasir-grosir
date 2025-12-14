@@ -30,6 +30,8 @@
                 <select name="harga_data[0][tipe_harga]" id="tipe_harga_0" class="form-control" required>
                   <option value="ecer">Ecer</option>
                   <option value="grosir">Grosir</option>
+                  <option value="modal">Modal</option>
+                  <option value="hubuan">Hubuan</option>
                 </select>
               </div>
             </div>
@@ -97,8 +99,8 @@ $(document).ready(function() {
               <select name="harga_data[${rowCount}][tipe_harga]" id="tipe_harga_${rowCount}" class="form-control" required>
                 <option value="ecer">Ecer</option>
                 <option value="grosir">Grosir</option>
-                <option value="member">Member</option>
-                <option value="promo">Promo</option>
+                <option value="modal">Modal</option>
+                <option value="hubuan">Hubuan</option>
               </select>
             </div>
           </div>
@@ -140,6 +142,41 @@ $(document).ready(function() {
   });
 });
 
+$(document).on("keypress", ".barang-autocomplete", function (e) {
+
+    if (e.which !== 13) return; // ENTER only
+    e.preventDefault();
+
+    let index   = $(this).data("index");
+    let barcode = $(this).val().trim();
+
+    if (barcode === "") return;
+
+    $.ajax({
+        url: "/barang/search",
+        type: "GET",
+        dataType: "json",
+        data: { term: barcode }, // WAJIB term
+        success: function (res) {
+
+            if (!res.success || res.data.length === 0) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Barcode tidak ditemukan"
+                });
+                $(`#barang_autocomplete_${index}`).select();
+                return;
+            }
+
+            // BARCODE HARUS UNIK
+            let barang = res.data[0];
+
+            // 🔥 AUTO PILIH BARANG (SEPERTI KLIK)
+            pilihBarangHarga(index, barang);
+        }
+    });
+});
+
 function initializeAutocomplete(index) {
   $(`.barang-autocomplete[id="barang_autocomplete_${index}"]`).autocomplete({
     source: function(request, response) {
@@ -147,7 +184,7 @@ function initializeAutocomplete(index) {
         url: '/barang/search',
         data: { q: request.term },
         success: function(data) {
-          if (data.status === 'success') {
+          if (data.success) {
             response(data.data.map(item => ({
               label: item.text,
               value: item.nama_barang,

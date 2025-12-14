@@ -1,23 +1,21 @@
 
-# TODO - Perbaikan Query Paket di PenjualanService
+# TODO - Modifikasi Laporan Kas Saldo untuk menggunakan KasSaldoTransaksi
 
 ## Plan
-- [x] Buat helper method `getPaketsByPriority()` di PenjualanService.php
-- [x] Method ini akan mengembalikan pakets dengan prioritas jenis 'tidak' > 'campur'
-- [x] Ganti kedua query lama dengan pemanggilan helper method baru
-- [x] Pastikan logic tetap sama untuk method `determinePaket` (urutkan berdasarkan harga)
+- [x] Import KasSaldoTransaksi model di controller
+- [x] Modifikasi method index() untuk mendapatkan kas options dari KasSaldoTransaksi
+- [x] Modifikasi method data() untuk menggunakan data dari KasSaldoTransaksi
+- [x] Modifikasi method getRingkasan() untuk menggunakan data dari KasSaldoTransaksi
+- [x] Modifikasi method exportPDF() untuk menggunakan data dari KasSaldoTransaksi
+- [x] Hapus method getSaldoAwal() karena saldo akan diambil langsung dari KasSaldoTransaksi
 
-## Implementation Steps
-1. ✅ Buat helper method `getPaketsByPriority()` 
-2. ✅ Update method `updateHargaJualForPaket()` 
-3. ✅ Update method `determinePaket()`
-4. ✅ Verifikasi implementasi
+## Status
+✅ Completed - Controller sudah dimodifikasi untuk menggunakan KasSaldoTransaksi
 
-## Status: COMPLETED ✅
-
-## Summary of Changes
-- ✅ Menambahkan helper method `getPaketsByPriority()` yang mengutamakan pencarian berdasarkan jenis 'tidak', jika tidak ada baru jenis 'campur'
-- ✅ Method `updateHargaJualForPaket()` menggunakan helper baru tanpa sorting harga
-- ✅ Method `determinePaket()` menggunakan helper baru dengan sorting harga untuk maintain existing logic
-- ✅ Query lama `$pakets = \App\Models\Paket::with('details')->where('status', 'aktif')->get();` diganti dengan prioritas jenis paket
-- ✅ Logic existing tetap dipertahankan untuk backward compatibility
+## Perubahan yang dilakukan:
+1. Import model KasSaldoTransaksi
+2. Method index(): Menggunakan KasSaldoTransaksi untuk mendapatkan daftar kas
+3. Method data(): Menggunakan KasSaldoTransaksi untuk grouped data dan menghitung saldo masuk/keluar
+4. Method getRingkasan(): Menggunakan KasSaldoTransaksi untuk menghitung total saldo
+5. Method exportPDF(): Menggunakan KasSaldoTransaksi untuk export PDF
+6. Perhitungan saldo masuk/keluar menggunakan selisih saldo_akhir dan saldo_awal

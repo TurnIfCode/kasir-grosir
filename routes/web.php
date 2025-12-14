@@ -250,11 +250,9 @@ Route::middleware('auth')->group(function () {
         )->name('penjualan.get-detail-barang');
         Route::get('/get-paket-barang', [PenjualanController::class, 'getPaketBarang'])->name('penjualan.get-paket-barang');
         Route::post('/store', [PenjualanController::class, 'store'])->name('penjualan.store');
-
-
-
         Route::get('/', [PenjualanController::class, 'index'])->name('penjualan.index');
         Route::get('/data', [PenjualanController::class, 'data'])->name('penjualan.data');
+        Route::get('/{satuanId}/get-satuan', [PenjualanController::class, 'getSatuan'])->name('penjualan.get-satuan');
 
         // Route::post('/', [PenjualanController::class, 'store'])->name('penjualan.store');
 
@@ -270,8 +268,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/barang/{barangId}/harga-barang-info', [PenjualanController::class, 'getHargaBarangInfo'])->name('penjualan.barang.harga-barang-info');
 
 
-        Route::get('/get-paket-barang/{barangId}', [PenjualanController::class, 'getPaketBarang'])->name('penjualan.get-paket-barang');
-        Route::get('/get-all-paket', [PenjualanController::class, 'getAllPaket'])->name('penjualan.get-all-paket');
+
+
+        // Removed duplicate route - using the correct one above
         Route::post('/calculate-subtotal', [PenjualanController::class, 'calculateSubtotal'])->name('penjualan.calculate-subtotal');
 
         Route::get('/{id}', [PenjualanController::class, 'show'])->name('penjualan.show');

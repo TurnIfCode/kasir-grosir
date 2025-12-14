@@ -125,29 +125,81 @@ $(document).ready(function() {
   // Initial bind
   bindStokFisikEvents();
 
-  // Initialize autocomplete for barang search
-  $('#barang_search').autocomplete({
-    source: function(request, response) {
-      $.ajax({
-        url: '/barang/search',
-        data: { q: request.term },
-        success: function(data) {
-          if (data.success === true) {
-            response(data.data.map(item => ({
-              label: `${item.kode_barang} - ${item.nama_barang}`,
-              value: item.nama_barang,
-              id: item.id
-            })));
+  $(function () {
+
+    $("#barang_search").autocomplete({
+      minLength: 2,
+      delay: 200,
+      source: function (request, response) {
+        $.ajax({
+          url: "{{ route('barang.search') }}",
+          type: "GET",
+          data: { term: request.term },
+          success: function (res) {
+            if (!res.success) {
+              response([]);
+              return;
+            }
+
+            response($.map(res.data, function (item) {
+              return {
+                label: item.kode_barang + " - " + item.nama_barang,
+                value: item.nama_barang,
+                id: item.id
+              };
+            }));
           }
+        });
+      },
+      select: function (event, ui) {
+        $("#barang_search").val(ui.item.value);
+        $("#barang_id").val(ui.item.id);
+
+        loadBarangInfo(ui.item.id); // 🔥 pakai fungsi kamu sendiri
+        return false;
+      }
+    });
+
+  });
+
+  $(document).on("keypress", "#barang_search", function (e) {
+    if (e.which === 13) {
+      e.preventDefault();
+
+      let barcode = $(this).val().trim();
+      if (barcode === "") return;
+
+      $.ajax({
+        url: "{{ route('barang.search') }}",
+        type: "GET",
+        data: { term: barcode },
+        success: function (res) {
+          if (res.success && res.data.length > 0) {
+
+            let barang = res.data[0]; // 🔥 ambil hasil pertama
+
+            $("#barang_search").val(barang.nama_barang);
+            $("#barang_id").val(barang.id);
+
+            loadBarangInfo(barang.id); // 🔥 sama seperti autocomplete
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Barcode tidak ditemukan',
+              text: 'Periksa barcode barang'
+            });
+
+            $("#barang_search").select();
+          }
+        },
+        error: function () {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Gagal mencari barang'
+          });
         }
       });
-    },
-    minLength: 2,
-    select: function(event, ui) {
-      $(this).val(ui.item.value);
-      $('#barang_id').val(ui.item.id);
-      loadBarangInfo(ui.item.id);
-      return false;
     }
   });
 

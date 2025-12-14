@@ -27,10 +27,11 @@ class DashboardController extends Controller
             ->whereDate('tanggal_pembelian', $today)
             ->sum('total');
 
+
         $totalBarangTerjual = DB::table('penjualan_detail as pd')
             ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
             ->whereDate('p.tanggal_penjualan', $today)
-            ->sum('pd.qty');
+            ->sum('pd.qty_konversi');
 
         $totalPembelian = DB::table('pembelian')
             ->whereDate('tanggal_pembelian', $today)
@@ -78,7 +79,8 @@ class DashboardController extends Controller
             ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
             ->join('barang as b', 'b.id', '=', 'pd.barang_id')
             ->join('kategori as k', 'k.id', '=', 'b.kategori_id')
-            ->select('k.nama_kategori', DB::raw('SUM(pd.qty * pd.harga_jual) as total'))
+
+            ->select('k.nama_kategori', DB::raw('SUM(pd.qty_konversi * pd.harga_jual) as total'))
             ->whereDate('p.tanggal_penjualan', $today)
             ->groupBy('k.nama_kategori')
             ->orderByDesc('total')
@@ -90,7 +92,8 @@ class DashboardController extends Controller
         $topBarangLaku = DB::table('penjualan_detail as pd')
             ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
             ->join('barang as b', 'b.id', '=', 'pd.barang_id')
-            ->select('b.nama_barang', DB::raw('SUM(pd.qty) as total_terjual'))
+
+            ->select('b.nama_barang', DB::raw('SUM(pd.qty_konversi) as total_terjual'))
             ->whereDate('p.tanggal_penjualan', $today)
             ->groupBy('b.nama_barang')
             ->orderByDesc('total_terjual')
@@ -106,7 +109,8 @@ class DashboardController extends Controller
                      ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
                      ->where('p.tanggal_penjualan', '>=', $lastWeek);
             })
-            ->select('b.nama_barang', DB::raw('COALESCE(SUM(pd.qty), 0) as total_terjual'))
+
+            ->select('b.nama_barang', DB::raw('COALESCE(SUM(pd.qty_konversi), 0) as total_terjual'))
             ->where('b.status', 'aktif')
             ->groupBy('b.nama_barang')
             ->orderBy('total_terjual', 'asc')
