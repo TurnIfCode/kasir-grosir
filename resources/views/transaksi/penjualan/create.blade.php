@@ -655,7 +655,7 @@ $(document).ready(function () {
                         result.data.kategori.nama_kategori.toLowerCase() == 'barang timbangan'
                     ) {
                         var namaSatuan = result.data.satuan.nama_satuan;
-                        if (satuanId == 33 || satuanId == 37) {
+                        if (satuanId == 35 || satuanId == 37) {
                             subtotal = (qty*hargaJual);
                             subtotal = Math.ceil(subtotal / 1000) * 1000;
                             subtotal = subtotal+1000;
