@@ -316,7 +316,7 @@ $(document).ready(function () {
         let dataId = input.data("id");
 
         input.autocomplete({
-            minLength: 2,
+            minLength: 3,
             delay: 200,
             source: function (request, response) {
                 $.ajax({
@@ -654,12 +654,20 @@ $(document).ready(function () {
                         tipeHarga == 'grosir' &&
                         result.data.kategori.nama_kategori.toLowerCase() == 'barang timbangan'
                     ) {
-                        var namaSatuan = result.data.satuan.nama_satuan;
-                        if (satuanId == 35 || satuanId == 37) {
-                            subtotal = (qty*hargaJual);
-                            subtotal = Math.ceil(subtotal / 1000) * 1000;
-                            subtotal = subtotal+1000;
-                            console.log("INI SUBTOTAL BARANG TIMBANGANNYA DUDE==>", subtotal);
+                        console.log("INI SATUAN IDNYA DUDE==>", satuanId);
+                        if (satuanId == 35 || satuanId == 33) {
+                            subtotal = qty*hargaJual;
+                            subtotal = Math.ceil(subtotal/1000)*1000;
+                        } else if(result.data.id == 2193 && satuanId == 34 && qty % 5 === 0) {
+                            subtotal = qty*(hargaJual-1000);
+                        } else if (result.data.id == 2181 && satuanId == 34 && qty % 5 === 0) {
+                                subtotal = qty*(hargaJual-1400);
+                        } else if (result.data.id == 325 && satuanId == 34 && qty % 5 === 0) {
+                            subtotal = qty*(hargaJual-200);
+                        } else if (result.data.id == 334 && satuanId == 34 && qty % 5 === 0) {
+                            subtotal = qty*(hargaJual-400);
+                        } else if (result.data.id == 2977 && satuanId == 24 && qty % 10 === 0) {
+                            subtotal = qty*(hargaJual-1000);
                         } else {
                             subtotal = qty*hargaJual;
                         }

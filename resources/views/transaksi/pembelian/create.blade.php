@@ -1,5 +1,5 @@
 
-@section('title', 'Pembelian')
+@section('title', 'Tambah Pembelian')
 @include('layout.header')
 <div class="container-fluid py-4">
     <!-- Header Section -->
@@ -36,11 +36,11 @@
                                     <input type="date" class="form-control" id="tanggal_pembelian" name="tanggal_pembelian" value="{{ date('Y-m-d') }}" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="diskon" class="form-label fw-medium">Diskon</label>
+                                    <label for="diskon" class="form-label fw-medium">Diskon(Rp.)</label>
                                     <input type="number" class="form-control" id="diskon" name="diskon" value="0" min="0">
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="ppn" class="form-label fw-medium">PPN</label>
+                                    <label for="ppn" class="form-label fw-medium">PPN(Rp.)</label>
                                     <input type="number" class="form-control" id="ppn" name="ppn" value="0" min="0">
                                 </div>
                                 <div class="col-8">
@@ -167,6 +167,8 @@
 
 <script>
     $(document).ready(function() {
+        $("#supplier_autocomplete").focus().select();
+        
         $('#supplier_autocomplete').autocomplete({
             source: function(request, response) {
                 $.ajax({
@@ -186,7 +188,7 @@
             }
                 });
             },
-            minLength: 2,
+            minLength: 3,
             select: function(event, ui) {
                 $('#supplier_id').val(ui.item.id);
                 $('#supplier_autocomplete').val(ui.item.value);
@@ -354,12 +356,19 @@
 
                         satuanSelect.prop('disabled', false);
 
-                        if (data.data.length > 0) {
-                            satuanSelect.val(data.data[0].satuan_id);
-                            $('[name="qty"]').val(1);
-                            $('[name="harga_beli"]').val(data.data[0].harga_beli);
 
-                            $('[name="subtotal"]').val(data.data[0].harga_beli);
+                        if (data.data.length > 0) {
+                            // Cari satuan dengan nilai_konversi tertinggi
+                            let highestKonversi = data.data.reduce(function(max, current) {
+                                return (current.nilai_konversi > max.nilai_konversi) ? current : max;
+                            });
+                            
+                            // Set select ke satuan dengan nilai konversi tertinggi
+                            satuanSelect.val(highestKonversi.satuan_id);
+                            $('[name="qty"]').val(1);
+                            $('[name="harga_beli"]').val(highestKonversi.harga_beli);
+
+                            $('[name="subtotal"]').val(highestKonversi.harga_beli);
                         }
                     }
                 }
@@ -426,54 +435,45 @@
                 success: function(response) {
                     if (response.success) {
 
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: response.message,
-                            timer: 1200,
-                            showConfirmButton: false
-                        }).then(function() {
+                        setTimeout(() => {
 
-                            setTimeout(() => {
+                            // ===============================
+                            // 🔥 UPDATE TOTAL
+                            // ===============================
+                            let totalSubtotal = parseFloat(response.data.subtotal) || 0;
+                            let totalDiskon   = parseFloat(response.data.diskon) || 0;
+                            let totalPpn      = parseFloat(response.data.ppn) || 0;
+                            let totalAkhir    = parseFloat(response.data.total) || 0;
 
-                                // ===============================
-                                // 🔥 UPDATE TOTAL
-                                // ===============================
-                                let totalSubtotal = parseFloat(response.data.subtotal) || 0;
-                                let totalDiskon   = parseFloat(response.data.diskon) || 0;
-                                let totalPpn      = parseFloat(response.data.ppn) || 0;
-                                let totalAkhir    = parseFloat(response.data.total) || 0;
+                            $('#totalSubtotal').text('Rp ' + totalSubtotal.toLocaleString('id-ID'));
+                            $('#totalDiskon').text('Rp ' + totalDiskon.toLocaleString('id-ID'));
+                            $('#totalPpn').text('Rp ' + totalPpn.toLocaleString('id-ID'));
+                            $('#totalAkhir').text('Rp ' + totalAkhir.toLocaleString('id-ID'));
 
-                                $('#totalSubtotal').text('Rp ' + totalSubtotal.toLocaleString('id-ID'));
-                                $('#totalDiskon').text('Rp ' + totalDiskon.toLocaleString('id-ID'));
-                                $('#totalPpn').text('Rp ' + totalPpn.toLocaleString('id-ID'));
-                                $('#totalAkhir').text('Rp ' + totalAkhir.toLocaleString('id-ID'));
-
-                                // 🔄 Refresh detail list
-                                getDetail(response.data.id);
+                            // 🔄 Refresh detail list
+                            getDetail(response.data.id);
 
 
-                                // =====================================================
-                                // 🔥 RESET FORM INPUT DETAIL (sesuai permintaan kamu)
-                                // =====================================================
+                            // =====================================================
+                            // 🔥 RESET FORM INPUT DETAIL (sesuai permintaan kamu)
+                            // =====================================================
 
-                                $("[name=barang_id]").val('');
-                                $("[name=barang_nama]").val(''); // kalau pakai autocomplete
+                            $("[name=barang_id]").val('');
+                            $("[name=barang_nama]").val(''); // kalau pakai autocomplete
 
-                                // Reset select satuan
-                                let satuanSelect = $("[name=satuan_id]");
-                                satuanSelect.empty()
-                                    .append('<option value="">Pilih Satuan</option>')
-                                    .prop("disabled", true);
+                            // Reset select satuan
+                            let satuanSelect = $("[name=satuan_id]");
+                            satuanSelect.empty()
+                                .append('<option value="">Pilih Satuan</option>')
+                                .prop("disabled", true);
 
-                                $("[name=qty]").val('');
-                                $("[name=harga_beli]").val('');
-                                $("[name=keterangan]").val('');
-                                $("[name=nama_barang]").val('');
+                            $("[name=qty]").val('');
+                            $("[name=harga_beli]").val('');
+                            $("[name=keterangan]").val('');
+                            $("[name=nama_barang]").val('');
+                            $("[name=subtotal]").val('')
 
-                            }, 300);
-
-                        });
+                        }, 300);
                     }
                 },
 
@@ -598,7 +598,7 @@
                                         <span class="fw-medium">Rp ${parseFloat(item.harga_beli).toLocaleString('id-ID')}</span>
                                     </div>
                                     <div class="col-md-2">
-                                        <span class="fw-bold text-success">Rp ${parseFloat(item.subtotal).toLocaleString('id-ID')}</span>
+                                        <span class="fw-bold text-success" style="text-align: right;">Rp ${parseFloat(item.subtotal).toLocaleString('id-ID')}</span>
                                     </div>
                                     <div class="col-md-2 text-end">
                                         <button type="button" id="btnDltDtl" data-id="${item.id}" data-mst-id="${item.pembelian_id}}" class="btn btn-sm btn-outline-danger remove-from-list-btn">

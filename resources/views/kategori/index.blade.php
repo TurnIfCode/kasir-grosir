@@ -56,8 +56,8 @@
           @csrf
           <input type="hidden" id="kategoriId" name="id">
           <div class="mb-3">
-            <label for="editKodeKategori" class="form-label">Kode Kategori*</label>
-            <input type="text" class="form-control" id="editKodeKategori" name="kode_kategori" required>
+            <label for="editKodeKategori" class="form-label">Kode Kategori</label>
+            <input type="text" class="form-control" id="editKodeKategori" name="kode_kategori" readonly required>
           </div>
           <div class="mb-3">
             <label for="editNamaKategori" class="form-label">Nama Kategori*</label>
@@ -236,7 +236,7 @@ $(document).ready(function() {
           $('#updateKategoriForm').find('.is-invalid').removeClass('is-invalid');
           $('#editKategoriModal').modal('show');
           setTimeout(() => {
-            $("[name=kode_kategori]").focus().select();
+            $("[name=nama_kategori]").focus().select();
           }, 500);
         } else {
           Swal.fire({ icon: 'error', title: 'Gagal', text: response.message });

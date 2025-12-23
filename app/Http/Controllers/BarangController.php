@@ -571,7 +571,7 @@ class BarangController extends Controller
             });
         }
 
-        $barangs = $query->limit(20)->get(['id', 'nama_barang', 'kode_barang', 'satuan_id']);
+        $barangs = $query->orderBy('nama_barang', 'asc')->get(['id', 'nama_barang', 'kode_barang', 'satuan_id']);
 
         // Format data untuk autocomplete
         $results = $barangs->map(function($barang) {

@@ -56,7 +56,7 @@
           @csrf
           <input type="hidden" id="satuanId" name="id">
           <div class="mb-3">
-            <label for="edit_kode_satuan" class="form-label">Kode Satuan*</label>
+            <label for="edit_kode_satuan" class="form-label">Kode Satuan</label>
             <input type="text" class="form-control" id="edit_kode_satuan" name="kode_satuan" readonly>
           </div>
           <div class="mb-3">

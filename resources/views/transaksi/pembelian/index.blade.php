@@ -79,7 +79,8 @@ $(document).ready(function() {
             { data: 'DT_RowIndex', orderable: false, searchable: false },
             { data: 'kode_pembelian', name: 'kode_pembelian' },
             { data: 'tanggal_pembelian_formatted', name: 'tanggal_pembelian' },
-            { data: 'supplier_nama', name: 'supplier' },
+
+            { data: 'supplier_nama', name: 'supplier.nama_supplier', searchable: true },
             { data: 'total_formatted', name: 'total' },
             { data: 'status', name: 'status' },
             { data: 'aksi', orderable: false, searchable: false }

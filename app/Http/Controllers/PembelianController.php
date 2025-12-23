@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barang;
+use App\Models\HargaBarang;
 use App\Models\Kas;
 use App\Models\KasSaldo;
 use App\Models\KasSaldoTransaksi;
+use App\Models\Kategori;
 use App\Models\Pembelian;
 use App\Models\PembelianDetail;
 use App\Models\PembelianPembayaran;
@@ -339,7 +341,7 @@ class PembelianController extends Controller
         //disini ambil pembelian_detail
         $pembelianDetail = PembelianDetail::where('pembelian_id', $pembelian_id)->get();
         foreach ($pembelianDetail as $detail) {
-            $this->updateStokDanHargaBarang($detail['barang_id'], $detail['satuan_id'], $detail['qty'], $detail['harga_beli']);
+            $this->updateStokDanHargaBarang($detail['barang_id'], $detail['satuan_id'], round($detail['qty'],2), round($detail['harga_beli'],2));
         }
         
 
@@ -349,6 +351,7 @@ class PembelianController extends Controller
             'data'      => $pembelian_id
         ]);
     }
+
 
     public function data(Request $request)
     {
@@ -385,6 +388,21 @@ class PembelianController extends Controller
             ->addColumn('aksi', function ($row) {
                 return '<a href="' . route('pembelian.show', $row->id) . '" class="btn btn-info btn-sm" title="Lihat"><i class="fas fa-eye"></i></a> ' .
                        ($row->status === 'draft' ? '<button class="btn btn-danger btn-sm btn-delete" data-id="' . $row->id . '" title="Hapus"><i class="fas fa-trash"></i></button>' : '');
+            })
+            ->filter(function ($query) use ($request) {
+                if ($request->has('search') && $request->search['value']) {
+                    $search = $request->search['value'];
+                    
+                    $query->where(function($q) use ($search) {
+                        $q->where('kode_pembelian', 'LIKE', '%' . $search . '%')
+                          ->orWhere('tanggal_pembelian', 'LIKE', '%' . $search . '%')
+                          ->orWhere('total', 'LIKE', '%' . $search . '%')
+                          ->orWhere('status', 'LIKE', '%' . $search . '%')
+                          ->orWhereHas('supplier', function($sq) use ($search) {
+                              $sq->where('nama_supplier', 'LIKE', '%' . $search . '%');
+                          });
+                    });
+                }
             })
             ->rawColumns(['aksi'])
             ->make(true);
@@ -462,33 +480,317 @@ class PembelianController extends Controller
         }
     }
 
+
     private function updateStokDanHargaBarang($barangId, $satuanId, $qty, $hargaBeli)
     {
-        $konversi_pembelian = KonversiSatuan::where('barang_id', $barangId)
-            ->where('satuan_konversi_id', $satuanId)
+        $nilaiKonversi = 0;
+        $hargaBeliDasar = 0;
+        //disini ambil dulu Konversi Satuannya
+        $konversiSatuan = KonversiSatuan::where('barang_id', $barangId)
+                            ->where('satuan_konversi_id', $satuanId)
+                            ->first();
+        
+        if ($konversiSatuan) {
+            $nilaiKonversi = round($konversiSatuan->nilai_konversi,2);
+            $hargaBeliDasar = round($hargaBeli/$nilaiKonversi);
+        } else {
+            $nilaiKonversi = 1; // Default nilai konversi jika tidak ada data konversi
+            $hargaBeliDasar = $hargaBeli;
+        }
+
+        
+        $barang         = Barang::find($barangId);
+        
+        $stokSebelum    = round($barang->stok,2);
+        $stokBeli       = $qty*$nilaiKonversi;
+        $stokBeli       = round($stokBeli,2);
+        $stokBaru       = $stokSebelum+$stokBeli;
+        $stokBaru       = round($stokBaru,2);
+
+        //disini ambil harga beli sebelum barang sebelum
+        $hargaBeliSebelum = round($barang->harga_beli);
+        
+        //update data barang
+        $barang->stok       = $stokBaru;
+        $barang->harga_beli = $hargaBeliDasar;
+        $barang->updated_by = auth()->id();
+        $barang->updated_at = now();
+        $barang->save();
+
+        
+        //disini ambil kategorinya dulu
+        $kategori = Kategori::where('id', $barang->kategori_id)->first();
+        $kodeKategori = $kategori ? $kategori->kode_kategori : '';
+
+        //disini ambil dulu semua data konversi_satuan berdasarkan barang_id dan update semua harga belinya
+        $hargaBeli = 0;
+        $nilaiKonversi = 0;
+        $dataKonversi = KonversiSatuan::where('barang_id',$barangId)->get();
+        if (count($dataKonversi) > 0) {
+            foreach ($dataKonversi as $dk) {
+                $nilaiKonversi = round($dk->nilai_konversi);
+                //disini hitung semua harga modal
+                $hargaBeli = $hargaBeliDasar*$nilaiKonversi;
+
+                //update data
+                $dk->harga_beli = $hargaBeli;
+                $dk->updated_at = now();
+                $dk->save();
+            }
+
+
+            //disini ambil data dari harga jual
+            $dataHargaBarang = HargaBarang::where('barang_id', $barangId)->get();
+            if (count($dataHargaBarang) > 0) {
+                $hargaBeli = 0;
+                $hargaJual = 0;
+                $hargaJualSebelum = 0;
+                $pembulatanSelisih = 0;
+                $hargaBeliBaru = 0;
+                $hitungHargaBeliSebelum = 0;
+                $selisihHargaBeli = 0;
+                $hitungHargaBeliBaru = 0;
+                $remainderSelisih = 0;
+                foreach ($dataHargaBarang as $dataHarga) {
+                    //disini ambil konversinya
+                    $cekKonversi = KonversiSatuan::where('barang_id', $barangId)->where('satuan_konversi_id', $dataHarga->satuan_id)->first();
+                    
+                    if (strtolower($kodeKategori) == 'rokok') {
+                        if (strtolower($barang->jenis) == 'legal') {
+                            if ($cekKonversi) {
+                                if (strtolower($dataHarga->tipe_harga) == 'grosir') {
+                                    $hargaBeli = round($cekKonversi->harga_beli);
+
+                                    $hitungHarga = floor($hargaBeli/1000)*1000;
+                                    
+                                    $hargaJual = round($hitungHarga+2000);
+
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+                                } else if (strtolower($dataHarga->tipe_harga) == 'modal') {
+                                    $hargaBeli = round($cekKonversi->harga_beli);
+                                    
+                                    $hargaJual = round($hargaBeli);
+
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+                                } else if (strtolower($dataHarga->tipe_harga) == 'hubuan') {
+                                    $hargaBeli = round($cekKonversi->harga_beli);
+
+                                    $hargaBeli = round($hargaBeli+3000);
+
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+                                }
+                            } else {
+                                if (strtolower($dataHarga->tipe) == 'ecer') {
+                                    $hitungHarga = floor($hargaBeliDasar/1000)*1000;
+
+                                    $hargaJual = $hitungHarga+2000;
+                                    
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+
+                                } else if (strtolower($dataHarga->tipe_harga) == 'grosir') {
+                                    //disini cek satuan
+                                    $cekSatuan = Satuan::find($barang->satuan_id);
+                                    if ($cekSatuan && isset($cekSatuan->kode_satuan)) {
+                                        if (strtolower($cekSatuan->kode_satuan) == 'klg') {
+                                            $hitungHarga = floor($hargaBeliDasar/1000)*1000;
+
+                                            $hargaJual = round($hitungHarga+3000);
+                                            
+                                            $dataHarga->harga = $hargaJual;
+                                            $dataHarga->updated_at = now();
+                                            $dataHarga->save();
+                                        } else {
+                                            $hargaJual = round($hargaBeliDasar);
+                                            
+                                            $dataHarga->harga = $hargaJual;
+                                            $dataHarga->updated_at = now();
+                                            $dataHarga->save();
+                                        }
+                                    }
+                                } else if (strtolower($dataHarga->tipe_harga) == 'modal') {
+                                    $hargaJual = round($hargaBeliDasar);
+                                            
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+                                }
+                            }
+                        }
+                    } else if (strtolower($kodeKategori) == 'tbg') {
+                        if ($cekKonversi) {
+                            //disini ambil harga jual sebelum
+                            $hargaJualSebelum = $dataHarga->harga;
+                            $hargaJualSebelum = round($hargaJualSebelum,2);
+
+                            //disini ambil harga_beli sebelum
+                            $nilaiKonversi = round($cekKonversi->nilai_konversi,2);
+                            
+                            $hitungHargaBeliSebelum = $hargaBeliSebelum*$nilaiKonversi;
+                            $hitungHargaBeliSebelum = round($hitungHargaBeliSebelum,2);
+
+                            //hitung harga_beli baru
+                            $hitungHargaBeliBaru = $hargaBeliDasar*$nilaiKonversi;
+                            $hitungHargaBeliBaru = round($hitungHargaBeliBaru);
+
+                            //hitung selisih harga beli
+                            $selisihHargaBeli = $hitungHargaBeliBaru-$hitungHargaBeliSebelum;
+                            $selisihHargaBeli = round($selisihHargaBeli,2);
+
+                            //hitung pembulatannya
+                            $remainderSelisih = round($selisihHargaBeli % 1000);
+                            if ($remainderSelisih < 0) {
+                                $pembulatanSelisih = 1000+$remainderSelisih;
+                            } else if ($pembulatanSelisih > 0) {
+                                $pembulatanSelisih = 1000-$remainderSelisih;
+                            }
+
+                            $hargaJual = $hargaJualSebelum+($selisihHargaBeli+($pembulatanSelisih));
+                            $hargaJual = round($hargaJual);
+
+                            $hargaJual = floor($hargaJual/1000)*1000;
+
+                            $dataHarga->harga = $hargaJual;
+                            $dataHarga->updated_at = now();
+                            $dataHarga->save();
+                        } else if (!$cekKonversi) {
+                            //disini ambil data konversi dengan nilai_konversi paling tinggi
+                            $konversiTertinggi = KonversiSatuan::where('barang_id', $barangId)
+                                                ->where('satuan_dasar_id', $dataHarga->satuan_id)
+                                                ->orderBy('nilai_konversi', 'asc')
+                                                ->first();
+                            
+                            //disini ambil harga jual tertinggi
+                            $hargaTertinggi = HargaBarang::where('barang_id', $barangId)
+                                                ->where('satuan_id', '!=', $barang->satuan_id)
+                                                ->orderBy('harga', 'asc')
+                                                ->first();
+
+                            //hitung berapa harga jualnya
+                            $hargaJual = round($hargaTertinggi->harga,2)/round($konversiTertinggi->nilai_konversi,2);
+                            $hargaJual = round($hargaJual,2);
+
+                            if (strtolower($barang->kode_barang) == 'tbg-wijen') {
+                                $hargaJual = ceil($hargaJual/1000)*1000;
+                            }
+
+                            $dataHarga->harga = $hargaJual;
+                            $dataHarga->updated_at = now();
+                            $dataHarga->save();
+
+                            
+                        }
+                    } else if (strtolower($kodeKategori) == 'sembako') {
+                        if (strtolower($barang->kode_barang) == 'telayam') {
+                            if ($cekKonversi) {
+                                $hargaJual = round($cekKonversi->harga_beli)+3000;
+
+                                $dataHarga->harga = $hargaJual;
+                                $dataHarga->updated_at = now();
+                                $dataHarga->save();
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            $selisihHargaBeli = 0;
+            $pembulatanSelisih = 0;
+            $remainderSelisih = 0;
+            $hargaJualSebelum = 0;
+            $dataHargaBarang = HargaBarang::where('barang_id', $barangId)->get();
+            foreach($dataHargaBarang as $data) {
+                //cek kode kategorinya
+                if (strtolower($kodeKategori) == 'tbg') {
+                    
+                    //hitung harga beli
+                    $selisihHargaBeli = $hargaBeliDasar-$hargaBeliSebelum;
+                    $selisihHargaBeli = round($selisihHargaBeli,2);
+
+                    //ambil harga jual sebelum
+                    $hargaJualSebelum = $data->harga;
+                    $hargaJualSebelum = round($hargaJualSebelum,2);
+
+
+                    //hitung pembulatannya
+                    $remainderSelisih = round($selisihHargaBeli % 1000);
+                    if ($remainderSelisih < 0) {
+                        $pembulatanSelisih = 1000+$remainderSelisih;
+                    } else if ($pembulatanSelisih > 0) {
+                        $pembulatanSelisih = 1000-$remainderSelisih;
+                    }
+
+                    $hargaJual = $hargaJualSebelum+($selisihHargaBeli+($pembulatanSelisih));
+                    $hargaJual = round($hargaJual);
+
+                    $hargaJual = floor($hargaJual/1000)*1000;
+
+                    $data->harga = $hargaJual;
+                    $data->updated_at = now();
+                    $data->save();
+                    
+                } else if ($kodeKategori == 'sembako') {
+                    //hitung harga beli
+                    $selisihHargaBeli = $hargaBeliDasar-$hargaBeliSebelum;
+                    $selisihHargaBeli = round($selisihHargaBeli,2);
+
+                    //ambil harga jual sebelum
+                    $hargaJualSebelum = $data->harga;
+                    $hargaJualSebelum = round($hargaJualSebelum,2);
+
+
+                    //hitung pembulatannya
+                    $remainderSelisih = round($selisihHargaBeli % 1000);
+                    if ($remainderSelisih < 0) {
+                        $pembulatanSelisih = 1000+$remainderSelisih;
+                    } else if ($pembulatanSelisih > 0) {
+                        $pembulatanSelisih = 1000-$remainderSelisih;
+                    }
+
+                    $hargaJual = $hargaJualSebelum+($selisihHargaBeli+($pembulatanSelisih));
+                    $hargaJual = round($hargaJual);
+
+                    $hargaJual = floor($hargaJual/1000)*1000;
+
+                    $data->harga = $hargaJual;
+                    $data->updated_at = now();
+                    $data->save();
+                }
+                    
+            }
+            
+        }
+
+        //disini update harga jual barang utamakan harga jual ecer
+        $hargaEcer = HargaBarang::where('barang_id', $barangId)
+                    ->where('satuan_id', $barang->satuan_id)
+                    ->where('tipe_harga', 'ecer')
+                    ->orderBy('harga', 'asc')
+                    ->first();
+        if ($hargaEcer) {
+            $barang->harga_jual = round($hargaEcer->harga);
+            $barang->updated_by = auth()->id();
+            $barang->updated_at = now();
+            $barang->save();
+        } else {
+            $hargaGrosir = HargaBarang::where('barang_id', $barangId)
+            ->where('satuan_id', $barang->satuan_id)
+            ->where('tipe_harga', 'grosir')
+            ->orderBy('harga', 'asc')
             ->first();
-
-        $barang = Barang::find($barangId);
-        $nilai_konversi = $konversi_pembelian ? $konversi_pembelian->nilai_konversi : 1;
-        $harga_beli_dasar = $hargaBeli / $nilai_konversi;
-
-        // Update harga dasar dan stok
-        $barang->update([
-            'stok' => $barang->stok + ($qty * $nilai_konversi),
-            'harga_beli' => $harga_beli_dasar,
-            'updated_by' => auth()->id(),
-            'updated_at' => now()
-        ]);
-
-        // Update semua konversi satuan yang berkaitan
-        $semua_konversi = KonversiSatuan::where('barang_id', $barangId)->get();
-        foreach ($semua_konversi as $k) {
-            $harga_konversi = $harga_beli_dasar * $k->nilai_konversi;
-            $k->update([
-                'harga_beli' => $harga_konversi,
-                'updated_by' => auth()->id(),
-                'updated_at' => now()
-            ]);
+            if ($hargaGrosir) {
+                $barang->harga_jual = round($hargaGrosir->harga);
+                $barang->updated_by = auth()->id();
+                $barang->updated_at = now();
+                $barang->save();
+            }
         }
     }
 

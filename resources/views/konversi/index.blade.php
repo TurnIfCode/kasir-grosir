@@ -156,7 +156,7 @@ $(document).ready(function() {
           dataType: 'json',
           data: { q: request.term },
           success: function(data) {
-            if (data.status === 'success') {
+            if (data.success) {
               response($.map(data.data, function(item) {
                 return {
                   label: item.kode_barang + ' - ' + item.nama_barang,
@@ -168,7 +168,7 @@ $(document).ready(function() {
           }
         });
       },
-      minLength: 2,
+      minLength: 3,
       select: function(event, ui) {
         var row = $(this).closest('.modal-body');
         row.find('#edit_barang_id').val(ui.item.id);

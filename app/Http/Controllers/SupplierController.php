@@ -247,7 +247,6 @@ class SupplierController extends Controller
         $suppliers = Supplier::where('nama_supplier', 'like', '%' . $q . '%')
                             ->orWhere('kode_supplier', 'like', '%' . $q . '%')
                             ->where('status', 'aktif')
-                            ->limit(10)
                             ->get();
 
         return response()->json([

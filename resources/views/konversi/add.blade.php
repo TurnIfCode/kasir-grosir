@@ -310,18 +310,33 @@ $(document).ready(function() {
           type: "POST",
           data: $(form).serialize(),
           success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Berhasil',
-              text: response.message
-            }).then(function() {
-              // Reload konversi table
-              var barangId = $('#barang_id').val();
-              loadKonversiTable(barangId);
-              // Reset form
-              form.reset();
-              $('#barang_nama').val('');
-            });
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  // Reload konversi table
+                  var barangId = $('#barang_id').val();
+                  loadKonversiTable(barangId);
+                  // Reset form
+                  form.reset();
+                  $('#barang_nama').val('');
+                }, 500);
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: response.message
+              }).then(function() {
+                setTimeout(() => {
+                  $(`#${response.form}`).focus().select();
+                }, 500);
+              });
+            }
+            
           },
           error: function(xhr) {
             Swal.fire({
