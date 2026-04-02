@@ -633,7 +633,6 @@ $(document).ready(function () {
             type: 'get',
             success: function(result) {
                 if (result.success) {
-                    console.log("INI NAMA KATEGORINYA DUDE==>", result.data.kategori.nama_kategori);
                     
                     var subtotal = 0;
                     if (
@@ -654,7 +653,6 @@ $(document).ready(function () {
                         tipeHarga == 'grosir' &&
                         result.data.kategori.nama_kategori.toLowerCase() == 'barang timbangan'
                     ) {
-                        console.log("INI SATUAN IDNYA DUDE==>", satuanId);
                         if (satuanId == 35 || satuanId == 33) {
                             subtotal = qty*hargaJual;
                             subtotal = Math.ceil(subtotal/1000)*1000;
@@ -710,8 +708,6 @@ $(document).ready(function () {
         const remainder = Math.round(subtotal % 1000); // Round remainder to nearest integer
         let pembulatan = 0;
         let subTotalDetail = 0;
-
-        console.log("INI REMINDERNYA DUDE==>", remainder);
         
 
         if (remainder === 0) {
@@ -719,7 +715,6 @@ $(document).ready(function () {
         } else if (remainder >= 1 && remainder < 300) {
             // Bulat ke 0
             pembulatan = -remainder;
-            console.log("INI PEMBULATAN KE 0 DUDE==>", pembulatan);
         } else if (remainder >= 300 && remainder <= 500) {
             // Bulat ke 500
             pembulatan = 500 - remainder;
@@ -838,8 +833,6 @@ $(document).ready(function () {
         $("#grandPembulatan").val(pembulatan);
         $("#paymentGrandTotal").val(grandTotal);
         $("#paymentGrandTotalValue").val(grandTotal);
-
-        console.log("INI LIST BARANG IDNYA DUDE==>", getListBarangId());
     }
 
     $(document).on("click", ".remove-row", function () {
@@ -849,7 +842,6 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '#btnSimpanCetak', function () {
-        console.log("TOMBOL SIMPAN & CETAK DUDE==>");
 
         // ================= DEFAULT CATATAN =================
         if ($("#catatan").val() === null || $("#catatan").val() === '') {
@@ -917,7 +909,6 @@ $(document).ready(function () {
                     .text("Menyimpan...");
             },
             success: function (response) {
-                console.log("RESPONSE==>", response.success);
                 
                 if (response.success) {
                     Swal.fire({
@@ -995,7 +986,6 @@ $(document).ready(function () {
                 qty_map: qtyMap
             },
             success: function (result) {
-                console.log("INI PAKET BARANGNYA DUDE==>", result);
                 
                 if (result.success && result.paket_details.length > 0) {
                     applyPaketToItems(result.paket_details);
@@ -1030,8 +1020,6 @@ $(document).ready(function () {
                 
                 // Update subtotal dengan subtotal paket
                 $("#subtotal\\[" + idx + "\\]").val(subtotalPaket);
-                
-                console.log("Updated barang ID " + barangId + " dengan harga paket " + hargaPaket);
             }
         });
     }
