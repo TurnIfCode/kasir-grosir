@@ -711,9 +711,16 @@ $(document).ready(function () {
         let pembulatan = 0;
         let subTotalDetail = 0;
 
+        console.log("INI REMINDERNYA DUDE==>", remainder);
+        
+
         if (remainder === 0) {
             pembulatan = 0;
-        } else if (remainder >= 1 && remainder <= 499) {
+        } else if (remainder >= 1 && remainder < 300) {
+            // Bulat ke 0
+            pembulatan = -remainder;
+            console.log("INI PEMBULATAN KE 0 DUDE==>", pembulatan);
+        } else if (remainder >= 300 && remainder <= 500) {
             // Bulat ke 500
             pembulatan = 500 - remainder;
         } else {
