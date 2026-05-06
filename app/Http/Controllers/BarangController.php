@@ -447,7 +447,7 @@ class BarangController extends Controller
         if ($cekNamaBarang > 0) {
             return response()->json([
                 'success'   => false,
-                'message'   => 'Nama barang harus diisi',
+                'message'   => 'Nama barang sudah terdaftar',
                 'form'      => 'nama_barang'
             ]);
         }
