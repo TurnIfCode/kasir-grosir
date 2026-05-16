@@ -27,12 +27,12 @@
                 <td>{{ \Carbon\Carbon::parse($item->tanggal_penjualan)->format('d/m/Y') }}</td>
                 <td>{{ $item->pelanggan->nama_pelanggan ?? 'Umum' }}</td>
                 <td>{{ $item->jumlah_item }}</td>
-                <td>{{ $item->total_hpp }}</td>
-                <td>{{ $item->total }}</td>
-                <td>{{ $item->pembulatan }}</td>
-                <td>{{ $item->grand_total }}</td>
-                <td>{{ $item->dibayar }}</td>
-                <td>{{ $item->kembalian }}</td>
+                <td>Rp {{ number_format((float) $item->total_hpp, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $item->total, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $item->pembulatan, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $item->grand_total, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $item->dibayar, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $item->kembalian, 0, ',', '.') }}</td>
                 <td>{{ $item->jenis_pembayaran == 'tunai' ? 'tunai' : 'non-tunai' }}</td>
                 <td>{{ $item->kasir_name }}</td>
                 <td>{{ $item->laba }}</td>
@@ -52,22 +52,18 @@
     <thead>
         <tr>
             <th>Total Transaksi</th>
-            <th>Total Penjualan</th>
-            <th>Total Pembulatan</th>
             <th>Total Laba Kotor</th>
             <th>Total Modal (HPP)</th>
             <th>Laba Bersih</th>
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>{{ $summary['total_transaksi'] }}</td>
-            <td>{{ $summary['total_penjualan'] }}</td>
-            <td>{{ $summary['total_pembulatan'] }}</td>
-            <td>{{ $summary['total_laba_kotor'] }}</td>
-            <td>{{ $summary['total_modal'] }}</td>
-            <td>{{ $summary['total_laba_bersih'] }}</td>
-        </tr>
+            <tr>
+                <td>{{ $summary['total_transaksi'] }}</td>
+                <td>Rp {{ number_format((float) $summary['total_laba_kotor'], 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $summary['total_modal'], 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $summary['total_laba_bersih'], 0, ',', '.') }}</td>
+            </tr>
     </tbody>
 </table>
 @endif

@@ -21,7 +21,7 @@ class DashboardController extends Controller
         // -------------------------
         $totalPenjualanHariIni = DB::table('penjualan')
             ->whereDate('tanggal_penjualan', $today)
-            ->sum('grand_total');
+            ->sum(DB::raw('dibayar - kembalian'));
 
         $labaKotorHariIni = $totalPenjualanHariIni - DB::table('pembelian')
             ->whereDate('tanggal_pembelian', $today)

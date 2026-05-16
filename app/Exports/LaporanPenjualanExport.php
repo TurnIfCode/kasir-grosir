@@ -42,8 +42,8 @@ class LaporanPenjualanExport implements FromView
                 'penjualan.updated_at',
                 'users.name as kasir_name',
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi), 0)) as jumlah_item'),
-                DB::raw('COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0) as total_hpp'),
-                DB::raw('(penjualan.grand_total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
+                DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as total_hpp'),
+                DB::raw('ROUND((penjualan.dibayar - penjualan.kembalian) - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
             ])
             ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
             ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
@@ -71,14 +71,22 @@ class LaporanPenjualanExport implements FromView
 
         $data = $query->get();
 
-        // Calculate summaries
+        // Calculate summaries (samakan dengan rumus di halaman DataTables)
+        // Di halaman: 
+        // - Laba Kotor = (dibayar - kembalian)
+        // - Laba Bersih = (laba_kotor - total_modal)
+        $totalModal = $data->sum('total_hpp');
+        $totalLabaKotor = $data->sum(function ($row) {
+            return ((float) $row->dibayar) - ((float) $row->kembalian);
+        });
+
         $summary = [
             'total_transaksi' => $data->count(),
             'total_penjualan' => $data->sum('total'),
             'total_pembulatan' => $data->sum('pembulatan'),
-            'total_laba_kotor' => $data->sum('grand_total'),
-            'total_modal' => $data->sum('total_hpp'),
-            'total_laba_bersih' => $data->sum('laba')
+            'total_laba_kotor' => $totalLabaKotor,
+            'total_modal' => $totalModal,
+            'total_laba_bersih' => $totalLabaKotor - $totalModal
         ];
 
         return view('exports.laporan-penjualan', compact('data', 'summary'));

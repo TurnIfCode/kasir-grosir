@@ -33,8 +33,8 @@
                 <td>{{ $item->ppn }}</td>
                 <td>{{ $item->pembulatan }}</td>
                 <td>{{ $item->grand_total }}</td>
-                <td>{{ $item->dibayar }}</td>
-                <td>{{ $item->kembalian }}</td>
+                <td>Rp {{ number_format((float) $item->dibayar, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format((float) $item->kembalian, 0, ',', '.') }}</td>
                 <td>{{ $item->jenis_pembayaran == 'tunai' ? 'tunai' : 'non-tunai' }}</td>
                 <td>{{ $item->kasir_name }}</td>
                 <td>{{ $item->laba_kotor }}</td>
@@ -50,17 +50,10 @@
             <tr style="font-weight: bold; background-color: #f8f9fa;">
                 <td colspan="4" style="text-align: right;">TOTAL:</td>
                 <td>{{ $summary['total_transaksi'] }}</td>
-                <td>{{ $summary['total_penjualan'] }}</td>
-                <td>{{ $summary['total_diskon'] }}</td>
-                <td>{{ $summary['total_ppn'] }}</td>
-                <td>{{ $summary['total_pembulatan'] }}</td>
-                <td>{{ $summary['total_grand_total'] }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>{{ $summary['total_laba'] }}</td>
-                <td></td>
+                <td colspan="4"></td>
+                <td>{{ 'Rp ' . number_format((float) $summary['total_laba_kotor'], 0, ',', '.') }}</td>
+                <td>{{ 'Rp ' . number_format((float) $summary['total_modal'], 0, ',', '.') }}</td>
+                <td>{{ 'Rp ' . number_format((float) $summary['total_laba_bersih'], 0, ',', '.') }}</td>
             </tr>
         @endif
     </tbody>

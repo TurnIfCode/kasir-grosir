@@ -35,6 +35,7 @@ class LaporanPenjualanController extends Controller
                 'penjualan.ppn',
                 'penjualan.pembulatan',
                 'penjualan.grand_total',
+                'penjualan.potongan',
                 'penjualan.jenis_pembayaran',
                 'penjualan.dibayar',
                 'penjualan.kembalian',
@@ -47,10 +48,10 @@ class LaporanPenjualanController extends Controller
                 'users.name as kasir_name',
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi), 0)) as jumlah_item'),
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as total_hpp'),
-                DB::raw('ROUND(penjualan.grand_total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
+                DB::raw('ROUND((penjualan.dibayar - penjualan.kembalian) - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
             ])
             ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
-            ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
+            ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.potongan', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
 
         // Apply filters
         if ($request->filled('tanggal_dari')) {
@@ -97,6 +98,9 @@ class LaporanPenjualanController extends Controller
             ->addColumn('grand_total_formatted', function ($row) {
                 return 'Rp ' . number_format($row->grand_total, 0, ',', '.');
             })
+            ->addColumn('potongan_formatted', function ($row) {
+                return 'Rp ' . number_format($row->potongan, 0, ',', '.');
+            })
             ->addColumn('dibayar_formatted', function ($row) {
                 return 'Rp ' . number_format($row->dibayar, 0, ',', '.');
             })
@@ -133,6 +137,7 @@ class LaporanPenjualanController extends Controller
                 'penjualan.ppn',
                 'penjualan.pembulatan',
                 'penjualan.grand_total',
+                'penjualan.potongan',
                 'penjualan.jenis_pembayaran',
                 'penjualan.dibayar',
                 'penjualan.kembalian',
@@ -145,10 +150,10 @@ class LaporanPenjualanController extends Controller
                 'users.name as kasir_name',
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi), 0)) as jumlah_item'),
                 DB::raw('ROUND(COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as total_hpp'),
-                DB::raw('ROUND(penjualan.grand_total - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
+                DB::raw('ROUND((penjualan.dibayar - penjualan.kembalian) - COALESCE(SUM(penjualan_detail.qty_konversi * penjualan_detail.harga_beli), 0)) as laba')
             ])
             ->leftJoin('penjualan_detail', 'penjualan.id', '=', 'penjualan_detail.penjualan_id')
-            ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
+            ->groupBy('penjualan.id', 'penjualan.kode_penjualan', 'penjualan.tanggal_penjualan', 'penjualan.pelanggan_id', 'penjualan.total', 'penjualan.diskon', 'penjualan.ppn', 'penjualan.pembulatan', 'penjualan.grand_total', 'penjualan.potongan', 'penjualan.jenis_pembayaran', 'penjualan.dibayar', 'penjualan.kembalian', 'penjualan.catatan', 'penjualan.status', 'penjualan.created_by', 'penjualan.updated_by', 'penjualan.created_at', 'penjualan.updated_at', 'users.name');
 
         // Apply filters
         if ($request->filled('tanggal_dari')) {

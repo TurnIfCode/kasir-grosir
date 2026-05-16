@@ -14,10 +14,13 @@ use App\Models\Penjualan;
 use App\Models\KonversiSatuan;
 use App\Models\PenjualanDetail;
 use App\Models\PenjualanPembayaran;
+use App\Models\PenjualanRetur;
+use App\Models\PenjualanReturDetail;
 use App\Models\ProfilToko;
 use App\Models\Satuan;
 
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Reader\IReader;
 
 class PenjualanController extends Controller
 {
@@ -92,16 +95,18 @@ class PenjualanController extends Controller
     }
 
     public function store(Request $request) {
-        $kode_penjualan     = $this->generateKodePenjualan();
-        $tanggal_penjualan  = trim($request->tanggal_penjualan);
-        $pelanggan_id       = trim($request->pelanggan_id);
-        $catatan            = trim($request->catatan);
+        $kode_penjualan         = $this->generateKodePenjualan();
+        $tanggal_penjualan      = trim($request->tanggal_penjualan);
+        $pelanggan_id           = trim($request->pelanggan_id);
+        $catatan                = trim($request->catatan);
 
-        $kode_penjualan     = trim($kode_penjualan);
-        $tanggal_penjualan  = date('Y-m-d', strtotime($tanggal_penjualan));
-        $jenis_pembayaran   = trim($request->jenis_pembayaran);
-        $dibayar            = trim($request->dibayar);
-        $dibayar            = round($dibayar);
+        $kode_penjualan         = trim($kode_penjualan);
+        $tanggal_penjualan      = date('Y-m-d', strtotime($tanggal_penjualan));
+        $jenis_pembayaran       = trim($request->jenis_pembayaran);
+        $dibayar                = trim($request->dibayar);
+        $dibayar                = round($dibayar);
+        $potongan               = trim($request->potongan);
+        $penjualan_retur_id     = trim($request->penjualan_retur_id);
 
 
         //disini save dulu
@@ -122,6 +127,8 @@ class PenjualanController extends Controller
 
         $satuan_konversi = 0;
         $subTotal = 0;
+
+        $hitungStok = 0;
 
         //disini simpan penjualan detailnya
         foreach ($request->detail as $detail) {
@@ -160,11 +167,30 @@ class PenjualanController extends Controller
             $penjualanDetail->save();
 
             $subTotal += $detail['subtotal'];
+
+            //disini ambil data barang untuk update stok saat penjualan
+            $dataBarang = Barang::find($detail['barang_id']);
+            $stokSebelum = round($dataBarang->stok,2);
+            $hitungStok = $stokSebelum - $satuan_konversi;
+            $hitungStok = round($hitungStok);
+
+            // Update stok barang
+            $dataBarang->stok = $hitungStok;
+            $dataBarang->updated_by = auth()->id();
+            $dataBarang->updated_at = now();
+            $dataBarang->save();
+
+            $insertLogBarang = new Log();
+            $insertLogBarang->keterangan = 'Update Stok Barang | No. Penjualan : '.$kode_penjualan.' | Barang : '.$dataBarang->nama_barang.' | Stok Sebelum : '.number_format($stokSebelum, 0, ',', '.').' | Stok Setelah : '.number_format($hitungStok, 0, ',', '.');
+            $insertLogBarang->created_by = auth()->id();
+            $insertLogBarang->created_at = now();
+            $insertLogBarang->save();
         }
+
 
         $subTotal = round($subTotal,2);
 
-        $remainder = $subTotal % 1000;
+        $remainder = ($subTotal-$potongan) % 1000;
         $pembulatan = 0;
 
         if ($remainder >= 1 && $remainder <= 499) {
@@ -173,7 +199,7 @@ class PenjualanController extends Controller
             $pembulatan = 1000 - $remainder;
         }
         $pembulatan = round($pembulatan,2);
-        $grandTotal = $subTotal+($pembulatan);
+        $grandTotal = ($subTotal-$potongan)+($pembulatan);
         $grandTotal = round($grandTotal);
 
         $kembalian = 0;
@@ -206,12 +232,72 @@ class PenjualanController extends Controller
         $penjualanUpdate->dibayar = $dibayar;
         $penjualanUpdate->kembalian = $kembalian;
         $penjualanUpdate->total = $subTotal;
+        $penjualanUpdate->potongan = $potongan;
         $penjualanUpdate->pembulatan = $pembulatan;
         $penjualanUpdate->grand_total = $grandTotal;
         $penjualanUpdate->status = 'selesai';
         $penjualanUpdate->updated_by = auth()->id();
         $penjualanUpdate->updated_at = now();
         $penjualanUpdate->save();
+
+        //disini update stok barang jika ada retur
+        if ($penjualan_retur_id) {
+            $penjualanReturDetail = PenjualanReturDetail::where('penjualan_retur_id', $penjualan_retur_id)->get();
+            foreach($penjualanReturDetail as $returDetail) {
+                $barang = Barang::find($returDetail->barang_id);
+                if ($barang) {
+                    $barang->stok += $returDetail->qty_konversi;
+                    $barang->save();
+                }
+            }
+
+            //cari penjualan retur
+            $penjualanRetur = PenjualanRetur::find($penjualan_retur_id);
+            
+            //disini cari penjualan sebelumnya
+            $cariPenjualan = Penjualan::where('kode_penjualan', $penjualanRetur->kode_penjualan)->first();
+
+            //disini ambil data penjualan sebelumnya dari penjualan retur untuk update grand total penjualan
+            $penjualanReturDetail = PenjualanReturDetail::where('penjualan_retur_id', $penjualan_retur_id)->get();
+            foreach($penjualanReturDetail as $returDetail) {
+                //disini cari penjualan detail sebelumnya
+                $penjualanDetailSebelum = PenjualanDetail::where('penjualan_id', $cariPenjualan->id)
+                    ->where('barang_id', $returDetail->barang_id)
+                    ->first();
+                if ($penjualanDetailSebelum) {
+                    //hitung subtotal yang baru
+                    $penjualanDetailSebelum->qty_konversi -= $returDetail->qty_konversi;
+                    $penjualanDetailSebelum->subtotal -= $returDetail->total;
+                    $penjualanDetailSebelum->save();
+                }
+            }
+
+            //disini sum total penjualan sebelumnya untuk update grand total penjualan
+            $totalPenjualanSebelum = PenjualanDetail::where('penjualan_id', $cariPenjualan->id)->sum('subtotal');
+
+            //disini ambil semua data sebelumnya untuk update grand total penjualan
+            $potonganSebelum = round($cariPenjualan->potongan,2);
+            
+            $pembulatanSekarang = 0;
+            //disini update ulang pembulatannya
+            $remainderPenjualanSebelum = ($totalPenjualanSebelum-$potonganSebelum) % 1000;
+            if ($remainderPenjualanSebelum >= 1 && $remainderPenjualanSebelum <= 499) {
+                $pembulatanSekarang = 500 - $remainderPenjualanSebelum;
+            } else if ($remainderPenjualanSebelum >= 501) {
+                $pembulatanSekarang = 1000 - $remainderPenjualanSebelum;
+            }
+            $pembulatanSekarang = round($pembulatanSekarang,2);
+            $grandTotalUpdate = ($totalPenjualanSebelum-$potonganSebelum)+($pembulatanSekarang);
+            $grandTotalUpdate = round($grandTotalUpdate);
+
+            $cariPenjualan->total = $totalPenjualanSebelum;
+            $cariPenjualan->pembulatan = $pembulatanSekarang;
+            $cariPenjualan->grand_total = $grandTotalUpdate;
+            $cariPenjualan->updated_by = auth()->id();
+            $cariPenjualan->updated_at = now();
+            $cariPenjualan->save();
+
+        }
 
         $log = new Log();
         $log->keterangan = 'Tambah Penjualan | No. Penjualan : '.$penjualanUpdate->kode_penjualan.' | Grand Total Penjualan : Rp. '.number_format($penjualanUpdate->grand_total, 0, ',', '.');

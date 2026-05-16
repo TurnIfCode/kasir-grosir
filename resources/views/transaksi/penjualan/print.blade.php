@@ -80,6 +80,10 @@
         <span>Total</span>
         <span>{{ number_format($penjualan->total,0,',','.') }}</span>
     </div>
+    <div class="row">
+        <span>Potongan</span>
+        <span>-{{ number_format($penjualan->potongan,0,',','.') }}</span>
+    </div>
 
     <div class="row">
         <span>Pembulatan</span>
@@ -100,6 +104,18 @@
     <div class="row">
         <span>KEMBALIAN</span>
         <span>{{ number_format($penjualan->kembalian,0,',','.') }}</span>
+    </div>
+
+    <!-- QR code (generated from kode_penjualan) -->
+    @php
+        $qrValue = (string) ($penjualan->kode_penjualan ?? '');
+        // pakai Google Chart API (tanpa dependency tambahan)
+        $qrSrc = 'https://quickchart.io/qr?size=120&margin=1&format=png&ecLevel=M&text=' . urlencode($qrValue);
+    @endphp
+    <div class="center">
+        @if($qrValue !== '')
+            <img src="{{ $qrSrc }}" alt="QR Penjualan {{ $qrValue }}" style="width: 50px; height: 50px; display: block; margin: 6px auto 0;">
+        @endif
     </div>
     @endif
 

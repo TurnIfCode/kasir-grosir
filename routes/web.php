@@ -18,6 +18,7 @@ use App\Http\Controllers\Transaksi\PenjualanController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\Transaksi\ReturPenjualan;
 
 use App\Http\Controllers\LaporanStokController;
 use App\Http\Controllers\Master\PaketController;
@@ -263,6 +264,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}', [PenjualanController::class, 'update'])->name('penjualan.update');
         Route::delete('/{id}', [PenjualanController::class, 'destroy'])->name('penjualan.destroy');
         Route::patch('/{id}/status', [PenjualanController::class, 'updateStatus'])->name('penjualan.update-status');
+
+        Route::prefix('retur')->group(function() {
+            Route::post('/cari', [ReturPenjualan::class, 'cari'])->name('penjualan.cari-retur');
+            Route::get('cari/detail/{id}', [ReturPenjualan::class, 'cari_penjualan_detail'])->name('penjualan.cari-retur-detail');
+            Route::post('/store', [ReturPenjualan::class, 'store'])->name('penjualan.retur.store');
+        });
     });
 
     // Laporan Routes

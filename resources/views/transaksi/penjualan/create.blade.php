@@ -61,6 +61,13 @@
                         </div>
                     </div>
                     <div class="mb-2 mb-md-3">
+                        <label class="form-label fw-semibold fs-6">Potongan</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" class="form-control fw-bold fs-6 fs-md-5" id="potongan" value="0" readonly>
+                        </div>
+                    </div>
+                    <div class="mb-2 mb-md-3">
                         <label class="form-label fw-semibold fs-6">Pembulatan</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
@@ -149,6 +156,12 @@
         </div>
     </div>
 
+    <div class="row mb-3 mb-md-4">
+        <div>
+            <button type="button" id="btnRetur" class="btn btn-primary btn-sm px-4 w-sm-auto">Retur</button>
+        </div>
+    </div>
+
     <!-- Total & Pembayaran -->
     <div class="row mb-3 mb-md-4">
         <div class="col-lg-8 mt-4 mt-lg-0">
@@ -212,6 +225,14 @@
                         </div>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Potongan</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" class="form-control fw-bold fs-5" id="grandPotongan" value="0" readonly>
+                            <input type="hidden" id="returId">
+                        </div>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Pembulatan</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
@@ -238,6 +259,56 @@
                         <i class="fas fa-save me-2"></i>Simpan & Cetak
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="returModal" tabindex="-1" aria-labelledby="returModal" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returModalLabel">Retur Barang</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="#" id="returForm">
+                    @csrf
+                    <div class="row mb-3 mb-md-4">
+                        <div class="col-12 col-md-6">
+                            <label for="kode_penjualan_retur" class="form-label fw-semibold fs-6">Kode Penjualan</label>
+                            <input type="text" class="form-control" id="kode_penjualan_retur" name="kode_penjualan_retur" autocomplete="off" placeholder="Masukkan kode penjualan...">
+                            <input type="hidden" name="penjualan_id" id="penjualan_id">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="grand_total" class="form-label fw-semibold fs-6">Grand Total</label>
+                            <input type="text" class="form-control" id="grand_total" name="grand_total" autocomplete="off" readonly value="0">
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                        <h5 class="card-title mb-0">Detail Barang</h5>
+                    </div>
+                    <div class="card-body p-1 p-md-3">
+                        <div class="row g-2 px-2 fw-semibold text-muted border-bottom pb-2">
+                            <div class="col-2">Barang</div>
+                            <div class="col-2">Satuan Jual</div>
+                            <div class="col-1">Qty Jual</div>
+                            <div class="col-1">Harga Jual</div>
+                            <div class="col-2">Satuan Retur</div>
+                            <div class="col-1">Qty Retur</div>
+                            <div class="col-2">Harga Retur</div>
+                            <div class="col-1">Subtotal</div>
+                        </div>
+                        <div id="detail-container" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="btnSimpanRetur" class="btn btn-primary">Simpan</button>
             </div>
         </div>
     </div>
@@ -401,10 +472,6 @@ $(document).ready(function () {
 
         //ambil dulu value dari = tipe_harga_default
         
-        
-        
-        
-
         if ($("[name=tipe_harga_default]").val() != tipe_harga) {
             $("[name=tipe_harga_default]").val(tipe_harga);
         }
@@ -484,6 +551,51 @@ $(document).ready(function () {
     });
 
     // =====================================================
+    // DISTINCT SATUAN RETUR: berdasarkan (barang_id)
+    // =====================================================
+    function loadSatuanRetur(index, barangId, selectedSatuanId, selectedNamaSatuan) {
+        const $select = $(`#retur-satuan-${index}`);
+        $select.empty();
+
+        $.ajax({
+            url: `/penjualan/barang/${barangId}/get-satuan-harga-jual`,
+            type: 'get',
+            success: function(result) {
+                if (result.success && result.datas && result.datas.length > 0) {
+                    // distinct berdasarkan: satuan_id + nama_satuan
+                    const uniq = new Set();
+                    const items = [];
+
+                    result.datas.forEach(function(row) {
+                        const key = `${row.satuan_id}__${row.nama_satuan}`;
+                        if (uniq.has(key)) return;
+                        uniq.add(key);
+                        items.push({ satuan_id: row.satuan_id, nama_satuan: row.nama_satuan });
+                    });
+
+                    items.forEach(function(it) {
+                        const selected = String(it.satuan_id) === String(selectedSatuanId);
+                        $select.append(
+                            `<option value="${it.satuan_id}" ${selected ? 'selected' : ''}>${it.nama_satuan}</option>`
+                        );
+                    });
+                } else {
+                    // fallback: set ulang default dari data retur yang sudah ada
+                    $select.append(
+                        `<option value="${selectedSatuanId}" selected>${selectedNamaSatuan}</option>`
+                    );
+                }
+            },
+            error: function() {
+                $select.append(
+                    `<option value="${selectedSatuanId}" selected>${selectedNamaSatuan}</option>`
+                );
+            }
+        });
+    }
+
+
+    // =====================================================
     // FUNGSI AUTO PILIH BARANG SETELAH SCAN
     // =====================================================
     function pilihBarangAuto(row, item) {
@@ -526,18 +638,34 @@ $(document).ready(function () {
                         }
                     });
 
-                    // Tambahkan opsi
+                    // Tambahkan opsi (distinct berdasarkan: satuan_id + nama_satuan)
+                    const uniqKeyMap = new Set();
                     uniqueSatuan.forEach(function(satuan) {
-                        satuanSelect.append(`<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`);
+                        const key = `${satuan.satuan_id}__${satuan.nama_satuan}`;
+                        if (uniqKeyMap.has(key)) return;
+                        uniqKeyMap.add(key);
+
+                        satuanSelect.append(
+                            `<option value="${satuan.satuan_id}">${satuan.nama_satuan}</option>`
+                        );
                     });
 
-                    // 🚀 AUTO SELECT satuan default (jika ada)
+                    // 🚀 AUTO SELECT: pakai default_satuan_id jika ada, selain itu ambil opsi pertama
                     if (result.default_satuan_id) {
+                        satuanSelect.val(result.default_satuan_id).trigger("change");
+                    } else if (uniqueSatuan.length > 0) {
                         satuanSelect.val(uniqueSatuan[0].satuan_id).trigger("change");
                     }
 
-                    loadTypeHarga(row, barangId, uniqueSatuan[0].satuan_id);
+                    // Pilih tipe harga dengan satuan pertama (atau default)
+                    const selectedSatuanId = result.default_satuan_id || (uniqueSatuan[0]?.satuan_id ?? null);
+                    if (selectedSatuanId) {
+                        loadTypeHarga(row, barangId, selectedSatuanId);
+                    }
+
                     updateRingkasan();
+                    
+
                     
                 }
             },
@@ -810,10 +938,14 @@ $(document).ready(function () {
 
     function updateRingkasan() {
         let subtotal = hitungGrandSubtotal();
+        
+        let potongan = parseFloat($("#grandPotongan").val()) || 0;
 
         // pembulatan global (pakai logic yang sama)
-        let remainder = subtotal % 1000;
+        let remainder = (subtotal-potongan) % 1000;
         let pembulatan = 0;
+
+        
 
         if (remainder >= 1 && remainder <= 500) {
             pembulatan = 500 - remainder;
@@ -821,7 +953,7 @@ $(document).ready(function () {
             pembulatan = 1000 - remainder;
         }
 
-        let grandTotal = subtotal + pembulatan;
+        let grandTotal = (subtotal-potongan) + pembulatan;
 
         // === RINGKASAN ATAS ===
         $("#subtotal").val(subtotal);
@@ -872,6 +1004,8 @@ $(document).ready(function () {
         formData.append("pelanggan_id", $("#pelanggan_id").val());
         formData.append("catatan", $("#catatan").val());
         formData.append("grand_total", grandTotal);
+        formData.append("potongan", parseFloat($("#grandPotongan").val()) || 0);
+        formData.append("penjualan_retur_id", $("#returId").val());
 
         // ================= PEMBAYARAN =================
         formData.append("jenis_pembayaran", jenisPembayaran);
@@ -1064,6 +1198,420 @@ $(document).ready(function () {
         calculateKembalian()
     });
 
+    $(document).on('click', '#btnRetur', function() {
+        console.log("Button Retur Di Click Dude");
+        $("#kode_penjualan_retur").val('');
+        $("#penjualan_id").val('');
+        $("#grand_total").val(0);
+        $('#returModal').modal('show');
+    })
+
+    $(document).on('keypress', '#kode_penjualan_retur', function(e) {
+       if (e.which === 13) { // ENTER
+            e.preventDefault();
+            let kodePenjualan = $(this).val().trim();
+
+            console.log("Kode Penjualan yang dimasukkan:", kodePenjualan);
+            
+
+            if (kodePenjualan === "") return;
+
+            $.ajax({
+                url: "{{ route('penjualan.cari-retur') }}",
+                type: "post",
+                data: { 
+                    kode_penjualan: kodePenjualan,
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    console.log("INI RESPONSENYA DUDE==>", response);
+                    if (response.success) {
+                        $('#penjualan_id').val(response.data.penjualan_id);
+                        $('#grand_total').val(response.data.grand_total);
+                        $('#kode_penjualan_retur').val(response.data.kode_penjualan);
+                        cariPenjualanDetail(response.data.penjualan_id);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message
+                        }).then(function() {
+                            setTimeout(() => {
+                                $('#kode_penjualan_retur').focus().select();
+                                $('#penjualan_id').val('');
+                                $('#grand_total').val(0);
+                            }, 500);
+                        });
+                    }
+                },
+                error: function() {
+                    setTimeout(() => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: 'Koneksi internet bermasalah. Coba lagi.'
+                        }).then(function() {
+                            setTimeout(() => {
+                                $('#kode_penjualan_retur').focus().select();
+                                $('#penjualan_id').val('');
+                                $('#grand_total').val(0);
+                            }, 500);
+                        });
+                    }, 500);
+                }
+            });
+        } 
+    });
+
+    function cariPenjualanDetail(penjualanId) {
+        $.ajax({
+            url: "/penjualan/retur/cari/detail/" + penjualanId,
+            type: "get",
+            success: function(result) {
+                if (result.success) {
+                    let details = result.datas;
+                    let detailHtml = '';
+
+                    console.log("Detail Penjualan yang ditemukan:", details);
+                    
+
+                    details.forEach(function(item, index) {
+                        detailHtml += `
+                            <div class="row align-items-center g-2 py-2 border-bottom detail-row">
+
+                                <input type="hidden" 
+                                    name="details[${index}][barang_id]" 
+                                    class="barang-id"
+                                    value="${item.barang_id}">
+                                <input type="hidden" 
+                                    name="details[${index}][qty_konversi]"
+                                    class="qty-konversi"
+                                    value="${item.qty_konversi}">
+                                <input type="hidden" 
+                                    name="details[${index}][subtotal]" 
+                                    class="subtotal-jual"
+                                    value="${item.subtotal}">
+                                <input type="hidden" 
+                                    name="details[${index}][satuan_id]" 
+                                    class="satuan-id-awal"
+                                    value="${item.satuan_id}">
+                                <input type="hidden" 
+                                    name="details[${index}][qty_jual]" 
+                                    class="qty-jual"
+                                    value="${item.qty_jual}">
+
+
+                                <div class="col-2">
+                                    <input type="text" 
+                                        class="form-control" 
+                                        readonly
+                                        value="${item.nama_barang}"
+                                        title="${item.nama_barang}">
+                                </div>
+
+                                <div class="col-2">
+                                    <input type="text" 
+                                        class="form-control" 
+                                        readonly
+                                        value="${item.nama_satuan}"
+                                        title="${item.nama_satuan}">
+                                </div>
+
+                                <div class="col-1">
+                                    <input type="text" 
+                                        class="form-control" 
+                                        readonly
+                                        value="${item.qty_jual}">
+                                </div>
+
+                                <div class="col-1">
+                                    <input type="text" 
+                                        class="form-control text-end" 
+                                        readonly
+                                        value="${item.subtotal}"
+                                        title="${item.subtotal}">
+                                </div>
+
+                                <div class="col-2">
+                                    <select class="form-control satuan-select-retur"
+                                        id="retur-satuan-${index}"
+                                        name="details[${index}][satuan_id]"
+                                        data-barang-id="${item.barang_id}">
+                                        <option value="${item.satuan_id}" selected>${item.nama_satuan}</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-1">
+                                    <input type="number" 
+                                        class="form-control qty-retur"
+                                        name="details[${index}][qty_retur]"
+                                        data-id="${index}"
+                                        id="qty_retur"
+                                        value="0">
+                                </div>
+
+                                <div class="col-2">
+                                    <input type="number" 
+                                        class="form-control harga-retur"
+                                        name="details[${index}][harga_retur]"
+                                        value="${item.harga_jual}"
+                                        title="${item.harga_jual}" readonly>
+                                </div>
+
+                                <div class="col-1">
+                                    <input type="text" 
+                                        class="form-control subtotal-retur"
+                                        readonly
+                                        name="details[${index}][subtotal_retur]"
+                                        value="0">
+                                </div>
+
+                            </div>
+                        `;
+
+                    });
+
+                    $('#detail-container').html(detailHtml);
+
+                    // isi opsi select satuan retur (distinct) per barang_id
+                    $('#detail-container .satuan-select-retur').each(function() {
+                        const index = $(this).attr('id').replace('retur-satuan-', '');
+                        const barangId = $(this).data('barang-id');
+                        const selectedSatuanId = $(this).val();
+                        const selectedNamaSatuan = $(this).find('option:selected').text();
+
+                        if (barangId) {
+                            loadSatuanRetur(index, barangId, selectedSatuanId, selectedNamaSatuan);
+                        }
+                    });
+
+                } else {
+                    alert("Gagal mengambil detail retur!");
+                }
+            },
+            error: function() {
+                alert("Error saat mengambil detail retur!");
+            }
+        });
+    }
+
+    $(document).on('keyup', '#qty_retur', function() {
+        var id = $(this).data('id');
+        var subTotalPenjualan = $(`input[name="details[${id}][subtotal]"]`).val();
+        subTotalPenjualan = parseFloat(subTotalPenjualan);
+        var qtyKonversiPenjualan = $(`input[name="details[${id}][qty_konversi]"]`).val();
+        qtyKonversiPenjualan = parseFloat(qtyKonversiPenjualan);
+        var qtyRetur = $(this).val();
+        qtyRetur = parseFloat(qtyRetur);
+        var subTotalRetur = 0;
+        var qtyJual = $(`input[name="details[${id}][qty_jual]"]`).val();
+        qtyJual = parseFloat(qtyJual);
+
+        if (qtyRetur < 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: "Qty retur tidak boleh < 0"
+            }).then(function() {
+                setTimeout(() => {
+                    $("input[name='details["+id+"][qty_retur]']").focus().select();
+                }, 500);
+            });
+        }
+
+        var satuanIdPenjualan = $(`input[name="details[${id}][satuan_id]"]`).val();
+        var satuanIdRetur = $(`#retur-satuan-${id}`).val();
+
+        var hargaRetur = 0;
+
+        if (satuanIdPenjualan == satuanIdRetur) {
+            hargaRetur = subTotalPenjualan / qtyJual;
+            hargaRetur = Math.round(hargaRetur);
+        } else {
+            hargaRetur = subTotalPenjualan / qtyKonversiPenjualan;
+            hargaRetur = Math.round(hargaRetur);
+        }
+
+        subTotalRetur = qtyRetur * hargaRetur;
+        subTotalRetur = Math.round(subTotalRetur);
+
+        if (isNaN(subTotalRetur)) {
+            subTotalRetur = 0;
+        }
+
+        if (subtotal < 0) {
+            subTotalRetur = 0;
+        }
+
+        console.log("INI ID RETURNYA DUDE==>", id);
+        console.log("INI SUBTOTAL PENJUALAN RETURNYA DUDE==>", subTotalPenjualan);
+        console.log("INI QTY KONVERSINYA DUDE RETURNYA DUDE==>", qtyKonversiPenjualan);
+        console.log("INI HARGA RETUR SATUANNYA DUDE RETURNYA DUDE==>", hargaRetur);
+        console.log("INI HARGA RETUR SUBTOTAL DUDE RETURNYA DUDE==>", subTotalRetur);
+
+        if (subTotalRetur > subTotalPenjualan) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: "Subtotal retur tidak boleh lebih besar dari subtotal penjualan!"
+            }).then(function() {
+                setTimeout(() => {
+                    $("input[name='details["+id+"][qty_retur]']").val(0);
+                    $("input[name='details["+id+"][harga_retur]']").val(0);
+                    $("input[name='details["+id+"][subtotal_retur]']").val(0);
+                    $('[name=details['+id+'][qty_retur]]').focus().select();
+                }, 500);
+            });
+
+            return false;
+        }
+
+        $("input[name='details["+id+"][harga_retur]']").val(hargaRetur);
+        $("input[name='details["+id+"][subtotal_retur]']").val(subTotalRetur);
+    });
+
+    $(document).on('click', "#btnSimpanRetur", function() {
+
+    if ($("#penjualan_id").val().trim() === "") {
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: "Pilih nomor penjualan atau scan faktur penjualan terlebih dahulu!"
+        }).then(function() {
+
+            setTimeout(() => {
+
+                $('input[name="kode_penjualan_retur"]')
+                    .focus()
+                    .select();
+
+            }, 500);
+
+        });
+
+        return false;
+    }
+
+    var kodePenjualanRetur = $("#kode_penjualan_retur").val().trim();
+    var penjualanId = $("#penjualan_id").val().trim();
+    var grandTotalRetur = parseFloat($("#grand_total").val()) || 0;
+
+    var formDataRetur = new FormData();
+
+    formDataRetur.append(
+        'kode_penjualan_retur',
+        kodePenjualanRetur
+    );
+
+    formDataRetur.append(
+        'penjualan_id',
+        penjualanId
+    );
+
+    formDataRetur.append(
+        'grand_total_retur',
+        grandTotalRetur
+    );
+
+    // ambil semua input detail
+    $(".detail-row").each(function(index) {
+
+        formDataRetur.append(
+            `details[${index}][barang_id]`,
+            $(this).find('.barang-id').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][qty_konversi]`,
+            $(this).find('.qty-konversi').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][subtotal_jual]`,
+            $(this).find('.subtotal-jual').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][satuan_id_awal]`,
+            $(this).find('.satuan-id-awal').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][qty_jual]`,
+            $(this).find('.qty-jual').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][satuan_id]`,
+            $(this).find('.satuan-select-retur').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][qty_retur]`,
+            $(this).find('.qty-retur').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][harga_retur]`,
+            $(this).find('.harga-retur').val()
+        );
+
+        formDataRetur.append(
+            `details[${index}][subtotal_retur]`,
+            $(this).find('.subtotal-retur').val()
+        );
+
+    });
+
+    $.ajax({
+
+        url: "{{ route('penjualan.retur.store') }}",
+
+        type: "POST",
+
+        data: formDataRetur,
+
+        processData: false,
+
+        contentType: false,
+
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+        },
+
+        beforeSend: function () {
+
+            $("#btnSimpanRetur")
+                .prop("disabled", true)
+                .text("Proses...");
+
+        },
+        success: function (response) {
+                
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: response.message,
+                        showConfirmButton: false,
+                        timer: 1000
+                    }).then(function() {
+                        setTimeout(() => {
+                            $("#potongan").val(response.data.grand_total_retur);
+                            $("#grandPotongan").val(response.data.grand_total_retur);
+                            $("#returId").val(response.data.penjualan_retur_id);
+                            $("#returModal").modal('hide');
+
+                            updateRingkasan();
+                        }, 500);
+                    });
+                }
+            },
+
+    });
+
+});
 
 });
 </script>

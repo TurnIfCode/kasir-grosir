@@ -73,6 +73,7 @@
                             <th>Jumlah Item</th>
                             <th>Total Modal</th>
                             <th>Total Penjualan</th>
+                            <th>Potongan</th>
                             <th>Pembulatan</th>
                             <th>Grand Total</th>
                             <th>Dibayar</th>
@@ -98,7 +99,7 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <div class="card bg-primary text-white">
                             <div class="card-body">
                                 <h6>Total Transaksi</h6>
@@ -106,45 +107,30 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card bg-success text-white">
-                            <div class="card-body">
-                                <h6>Total Penjualan</h6>
-                                <h4 id="total-penjualan">Rp 0</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-3">
-                        <div class="card bg-secondary text-white">
-                            <div class="card-body">
-                                <h6>Total Pembulatan</h6>
-                                <h4 id="total-pembulatan">Rp 0</h4>
-                            </div>
-                        </div>
-                    </div>
+
                     <div class="col-md-3">
                         <div class="card bg-dark text-white">
                             <div class="card-body">
                                 <h6>Total Laba Kotor</h6>
-                                <h4 id="total-grand-total">Rp 0</h4>
+                                <h4 id="total-laba-kotor">Rp 0</h4>
                             </div>
                         </div>
                     </div>
+
                     <div class="col-md-3">
                         <div class="card bg-danger text-white">
                             <div class="card-body">
-                                <h6>Total Modal (HPP)</h6>
+                                <h6>Total Modal</h6>
                                 <h4 id="total-modal">Rp 0</h4>
                             </div>
                         </div>
                     </div>
+
                     <div class="col-md-3">
                         <div class="card bg-success text-white">
                             <div class="card-body">
                                 <h6>Laba Bersih</h6>
-                                <h4 id="total-laba">Rp 0</h4>
+                                <h4 id="total-laba-bersih">Rp 0</h4>
                             </div>
                         </div>
                     </div>
@@ -200,10 +186,30 @@
                     { data: 'jumlah_item', searchable: false },
                     { data: 'total_modal_formatted', searchable: false },
                     { data: 'total_formatted', searchable: false },
+                    { data: 'potongan_formatted', searchable: false },
                     { data: 'pembulatan_formatted', searchable: false },
                     { data: 'grand_total_formatted', searchable: false },
-                    { data: 'dibayar_formatted', searchable: false },
-                    { data: 'kembalian_formatted', searchable: false },
+
+                    // nilai mentah dibutuhkan untuk ringkasan + tampil format rupiah
+                    { 
+                        data: 'dibayar', 
+                        visible: true, 
+                        searchable: false,
+                        render: function(data) {
+                            var n = parseFloat(data) || 0;
+                            return 'Rp ' + n.toLocaleString('id-ID');
+                        }
+                    },
+                    { 
+                        data: 'kembalian', 
+                        visible: true, 
+                        searchable: false,
+                        render: function(data) {
+                            var n = parseFloat(data) || 0;
+                            return 'Rp ' + n.toLocaleString('id-ID');
+                        }
+                    },
+
                     { data: 'metode_pembayaran', searchable: false },
                     { data: 'kasir_name', searchable: false },
                     { data: 'laba_kotor_formatted', searchable: false },
@@ -220,35 +226,35 @@
             });
 
             function updateSummary() {
-                var info = table.page.info();
-                $('#total-transaksi').text(info.recordsTotal);
-
                 // Calculate totals from current page data
                 var pageData = table.rows({ page: 'current' }).data();
                 var totals = {
-                    penjualan: 0,
-                    pembulatan: 0,
-                    grand_total: 0,
-                    modal: 0,
+                    transaksi: 0, // jumlah transaksi (count)
                     laba_kotor: 0,
-                    laba_bersih: 0
+                    modal: 0
                 };
 
                 pageData.each(function(row) {
-                    totals.penjualan += parseFloat(row.total) || 0;
-                    totals.pembulatan += parseFloat(row.pembulatan) || 0;
-                    totals.grand_total += parseFloat(row.grand_total) || 0;
+                    totals.transaksi += 1;
+
+                    // Total Laba Kotor = (dibayar - kembalian)
+                    var dibayar = parseFloat(row.dibayar) || 0;
+                    var kembalian = parseFloat(row.kembalian) || 0;
+                    totals.laba_kotor += (dibayar - kembalian);
+
+                    // Total Modal = sum(harga_beli) = total_hpp dari backend
                     totals.modal += parseFloat(row.total_hpp) || 0;
-                    totals.laba_kotor += parseFloat(row.laba) || 0;
-                    totals.laba_bersih += parseFloat(row.laba) || 0;
                 });
 
-                $('#total-penjualan').text('Rp ' + totals.penjualan.toLocaleString('id-ID'));
-                $('#total-pembulatan').text('Rp ' + totals.pembulatan.toLocaleString('id-ID'));
-                $('#total-grand-total').text('Rp ' + totals.grand_total.toLocaleString('id-ID'));
+                // Total transaksi = jumlah penjualan (count rows)
+                $('#total-transaksi').text(totals.transaksi);
+
+                $('#total-laba-kotor').text('Rp ' + totals.laba_kotor.toLocaleString('id-ID'));
                 $('#total-modal').text('Rp ' + totals.modal.toLocaleString('id-ID'));
-                $('#total-laba').text('Rp ' + (totals.grand_total - totals.modal).toLocaleString('id-ID'));
-                $('#total-laba-bersih').text('Rp ' + totals.laba_bersih.toLocaleString('id-ID'));
+
+                // Laba Bersih = (dibayar - kembalian) - Total modal
+                var laba_bersih = totals.laba_kotor - totals.modal;
+                $('#total-laba-bersih').text('Rp ' + laba_bersih.toLocaleString('id-ID'));
             }
 
             $('#btnFilter').on('click', function() {
