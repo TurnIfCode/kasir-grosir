@@ -59,7 +59,7 @@
     <div class="line"></div>
 
     <div class="bold">Item | Qty | Subtotal</div>
-    <div>-------------------------------</div>
+    <div>------------------------------</div>
 
     @foreach($penjualan->details as $detail)
 
@@ -80,10 +80,13 @@
         <span>Total</span>
         <span>{{ number_format($penjualan->total,0,',','.') }}</span>
     </div>
-    <div class="row">
-        <span>Potongan</span>
-        <span>-{{ number_format($penjualan->potongan,0,',','.') }}</span>
-    </div>
+    @if ($penjualan->potongan != 0)
+        <div class="row">
+            <span>Potongan</span>
+            <span>-{{ number_format($penjualan->potongan,0,',','.') }}</span>
+        </div>
+    @endif
+    
 
     <div class="row">
         <span>Pembulatan</span>

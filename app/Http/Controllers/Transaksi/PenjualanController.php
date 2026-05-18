@@ -124,7 +124,7 @@ class PenjualanController extends Controller
         $hitungStok = 0;
 
         //disini simpan penjualan detailnya
-        foreach ($request->modalDetail as $detail) {
+        foreach ($request->details as $detail) {
             //disini ambil data barang
             $barang = Barang::find($detail['barang_id']);
             $harga_beli = round($barang->harga_beli,2);
@@ -239,6 +239,7 @@ class PenjualanController extends Controller
         $tanggal_penjualan      = trim($request->tanggal_penjualan);
         $pelanggan_id           = trim($request->pelanggan_id);
         $catatan                = trim($request->catatan);
+
 
         $kode_penjualan         = trim($kode_penjualan);
         $tanggal_penjualan      = date('Y-m-d', strtotime($tanggal_penjualan));
