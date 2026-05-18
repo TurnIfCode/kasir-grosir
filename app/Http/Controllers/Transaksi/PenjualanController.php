@@ -94,6 +94,146 @@ class PenjualanController extends Controller
         ]);
     }
 
+    public function storePenjualanCepat(Request $request) {
+
+        $kode_penjualan         = $this->generateKodePenjualan();
+        $tanggal_penjualan      = date('Y-m-d');
+        $pelanggan_id           = 1;
+        $catatan                = '-';
+        $potongan               = 0;
+
+        //disini simpan penjualan
+        $penjualan = new Penjualan();
+        $penjualan->kode_penjualan = $kode_penjualan;
+        $penjualan->tanggal_penjualan = $tanggal_penjualan;
+        $penjualan->pelanggan_id = $pelanggan_id;
+        $penjualan->total = 0;
+        $penjualan->diskon = 0;
+        $penjualan->ppn = 0;
+        $penjualan->grand_total = 0;
+        $penjualan->catatan = $catatan;
+        $penjualan->created_by = auth()->id();
+        $penjualan->created_at = now();
+        $penjualan->updated_by = auth()->id();
+        $penjualan->updated_at = now();
+        $penjualan->save();
+
+        $satuan_konversi = 0;
+        $subTotal = 0;
+
+        $hitungStok = 0;
+
+        //disini simpan penjualan detailnya
+        foreach ($request->modalDetail as $detail) {
+            //disini ambil data barang
+            $barang = Barang::find($detail['barang_id']);
+            $harga_beli = round($barang->harga_beli,2);
+
+            // Find conversion
+            $konversi = KonversiSatuan::where('barang_id', $detail['barang_id'])
+                ->where('satuan_konversi_id', $detail['satuan_id'])
+                ->where('status', 'aktif')
+                ->first();
+            if ($konversi) {
+                $satuan_konversi = $detail['qty']*$konversi->nilai_konversi;
+                $satuan_konversi = round($satuan_konversi);
+            } else {
+                $satuan_konversi = $detail['qty'];
+            }
+
+            $harga_jual = $detail['subtotal']/$satuan_konversi;
+            $harga_jual = round($harga_jual,0);
+
+            $penjualanDetail = new PenjualanDetail();
+            $penjualanDetail->penjualan_id = $penjualan->id;
+            $penjualanDetail->barang_id = $detail['barang_id'];
+            $penjualanDetail->satuan_id = $detail['satuan_id'];
+            $penjualanDetail->qty = $detail['qty'];
+            $penjualanDetail->qty_konversi = $satuan_konversi;
+            $penjualanDetail->harga_beli = $harga_beli;
+            $penjualanDetail->harga_jual = $harga_jual;
+            $penjualanDetail->subtotal = $detail['subtotal'];
+            $penjualanDetail->created_by = auth()->id();
+            $penjualanDetail->created_at = now();
+            $penjualanDetail->updated_by = auth()->id();
+            $penjualanDetail->updated_at = now();
+            $penjualanDetail->save();
+
+            $subTotal += $detail['subtotal'];
+
+            //disini ambil data barang untuk update stok saat penjualan
+            $dataBarang = Barang::find($detail['barang_id']);
+            $stokSebelum = round($dataBarang->stok,2);
+            $hitungStok = $stokSebelum - $satuan_konversi;
+            $hitungStok = round($hitungStok);
+
+            // Update stok barang
+            $dataBarang->stok = $hitungStok;
+            $dataBarang->updated_by = auth()->id();
+            $dataBarang->updated_at = now();
+            $dataBarang->save();
+
+            $insertLogBarang = new Log();
+            $insertLogBarang->keterangan = 'Update Stok Barang | No. Penjualan : '.$kode_penjualan.' | Barang : '.$dataBarang->nama_barang.' | Stok Sebelum : '.number_format($stokSebelum, 0, ',', '.').' | Stok Setelah : '.number_format($hitungStok, 0, ',', '.');
+            $insertLogBarang->created_by = auth()->id();
+            $insertLogBarang->created_at = now();
+            $insertLogBarang->save();
+        }
+
+        $subTotal = round($subTotal,2);
+
+        $remainder = ($subTotal-$potongan) % 1000;
+        $pembulatan = 0;
+
+        if ($remainder >= 1 && $remainder <= 499) {
+            $pembulatan = 500 - $remainder;
+        } else if ($remainder >= 501) {
+            $pembulatan = 1000 - $remainder;
+        }
+        $pembulatan = round($pembulatan,2);
+        $grandTotal = ($subTotal-$potongan)+($pembulatan);
+        $grandTotal = round($grandTotal);
+
+        $kembalian = 0;
+
+        //disini insert ke pembayaran
+        $penjualanPembayaran = new PenjualanPembayaran();
+        $penjualanPembayaran->penjualan_id = $penjualan->id;
+        $penjualanPembayaran->metode = 'tunai';
+        $penjualanPembayaran->nominal =  $grandTotal;
+        $penjualanPembayaran->created_by = auth()->id();
+        $penjualanPembayaran->created_at = now();
+        $penjualanPembayaran->updated_by = auth()->id();
+        $penjualanPembayaran->updated_at = now();
+        $penjualanPembayaran->save();
+
+        //disini sum subtotal untuk ke subtotal master
+        $penjualanUpdate = Penjualan::find($penjualan->id);
+        $penjualanUpdate->jenis_pembayaran = 'tunai';
+        $penjualanUpdate->dibayar = $grandTotal;
+        $penjualanUpdate->kembalian = $kembalian;
+        $penjualanUpdate->total = $subTotal;
+        $penjualanUpdate->potongan = $potongan;
+        $penjualanUpdate->pembulatan = $pembulatan;
+        $penjualanUpdate->grand_total = $grandTotal;
+        $penjualanUpdate->status = 'selesai';
+        $penjualanUpdate->updated_by = auth()->id();
+        $penjualanUpdate->updated_at = now();
+        $penjualanUpdate->save();
+
+        $log = new Log();
+        $log->keterangan = 'Tambah Penjualan | No. Penjualan : '.$penjualanUpdate->kode_penjualan.' | Grand Total Penjualan : Rp. '.number_format($penjualanUpdate->grand_total, 0, ',', '.');
+        $log->created_by = auth()->id();
+        $log->created_at = now();
+        $log->save();
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Penjualan berhasil',
+            'data'      => $penjualanUpdate
+        ]);
+    }
+
     public function store(Request $request) {
         $kode_penjualan         = $this->generateKodePenjualan();
         $tanggal_penjualan      = trim($request->tanggal_penjualan);
@@ -837,6 +977,4 @@ class PenjualanController extends Controller
             ], 500);
         }
     }
-
-
 }

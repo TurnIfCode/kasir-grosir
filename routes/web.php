@@ -238,6 +238,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [PenjualanController::class, 'index'])->name('penjualan.index');
         Route::get('/data', [PenjualanController::class, 'data'])->name('penjualan.data');
         Route::get('/{satuanId}/get-satuan', [PenjualanController::class, 'getSatuan'])->name('penjualan.get-satuan');
+        Route::post('/store-penjualan-cepat', [PenjualanController::class, 'storePenjualanCepat'])->name('penjualan.jual-cepat');
 
         // Route::post('/', [PenjualanController::class, 'store'])->name('penjualan.store');
 
