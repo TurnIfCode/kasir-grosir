@@ -3105,6 +3105,152 @@ $(document).ready(function () {
         });
 
     });
+
+    // =====================================================
+    // MODAL JUAL CEPAT
+    // SCAN BARCODE → ENTER
+    // =====================================================
+
+    $(document).on("keypress", ".modal-autocomplete-barang", function (e) {
+
+        if (e.which === 13) {
+
+            e.preventDefault();
+
+            let row =
+                $(this).data("id");
+
+            let barcode =
+                $(this).val().trim();
+
+            if (barcode === "") {
+                return;
+            }
+
+            // =====================================
+            // SEARCH BARCODE
+            // =====================================
+            $.ajax({
+
+                url: "{{ route('barang.search') }}",
+
+                type: "GET",
+
+                data: {
+                    term: barcode
+                },
+
+                success: function (res) {
+
+                    // =====================================
+                    // BARANG DITEMUKAN
+                    // =====================================
+                    if (
+                        res.success &&
+                        res.data &&
+                        res.data.length > 0
+                    ) {
+
+                        let barang =
+                            res.data[0];
+
+                        // =====================================
+                        // DEFAULT VALUE
+                        // =====================================
+
+                        let qtyInput =
+                            $("#modal_qty\\[" + row + "\\]");
+
+                        let hargaInput =
+                            $("#modal_harga_jual\\[" + row + "\\]");
+
+                        let subtotalInput =
+                            $("#modal_subtotal\\[" + row + "\\]");
+
+                        // qty
+                        if (
+                            qtyInput.val() == 0 ||
+                            qtyInput.val() == "" ||
+                            qtyInput.val() == null
+                        ) {
+                            qtyInput.val(1);
+                        }
+
+                        // harga
+                        if (
+                            hargaInput.val() == 0 ||
+                            hargaInput.val() == "" ||
+                            hargaInput.val() == null
+                        ) {
+                            hargaInput.val(0);
+                        }
+
+                        // subtotal
+                        if (
+                            subtotalInput.val() == 0 ||
+                            subtotalInput.val() == "" ||
+                            subtotalInput.val() == null
+                        ) {
+                            subtotalInput.val(0);
+                        }
+
+                        // =====================================
+                        // PILIH BARANG
+                        // =====================================
+                        pilihBarangAutoModal(
+                            row,
+                            barang
+                        );
+
+                    }
+
+                    // =====================================
+                    // BARANG TIDAK ADA
+                    // =====================================
+                    else {
+
+                        Swal.fire({
+
+                            icon: "warning",
+
+                            title: "Barcode Tidak Ditemukan",
+
+                            text: "Barang tidak ditemukan"
+
+                        });
+
+                        $("#modal_barang\\[" + row + "\\]")
+                            .focus()
+                            .select();
+
+                    }
+
+                },
+
+                // =====================================
+                // ERROR AJAX
+                // =====================================
+                error: function (xhr) {
+
+                    console.error(xhr);
+
+                    Swal.fire({
+
+                        icon: "error",
+
+                        title: "Error",
+
+                        text: "Terjadi kesalahan server"
+
+                    });
+
+                }
+
+            });
+
+        }
+
+    });
 });
 </script>
 
