@@ -141,18 +141,18 @@
                                             <th width="150">Total</th>
                                             <td class="text-end">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
                                         </tr>
-                                        <tr>
-                                            <th>Diskon</th>
-                                            <td class="text-end">Rp {{ number_format($penjualan->diskon, 0, ',', '.') }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Subtotal</th>
-                                            <td class="text-end">Rp {{ number_format($penjualan->total - $penjualan->diskon, 0, ',', '.') }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>PPN</th>
-                                            <td class="text-end">Rp {{ number_format($penjualan->ppn, 0, ',', '.') }}</td>
-                                        </tr>
+                                        @if ($penjualan->potongan != 0)
+                                            <tr>
+                                                <th>Potongan</th>
+                                                <td class="text-end">- Rp {{ number_format($penjualan->potongan, 0, ',', '.') }}</td>
+                                            </tr>
+                                        @endif
+                                        @if ($penjualan->pembulatan != 0)
+                                            <tr>
+                                                <th>Pembulatan</th>
+                                                <td class="text-end">Rp {{ number_format($penjualan->pembulatan, 0, ',', '.') }}</td>
+                                            </tr>
+                                        @endif
                                         <tr class="border-top">
                                             <th><strong>Grand Total</strong></th>
                                             <td class="text-end"><strong>Rp {{ number_format($penjualan->grand_total, 0, ',', '.') }}</strong></td>

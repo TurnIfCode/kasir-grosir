@@ -108,13 +108,12 @@
 
             <form id="detailContainer" class="mt-2">
                 <input type="hidden" value="ecer" id="tipe_harga_default" name="tipe_harga_default">
-                <!-- ROW 0 -->
                 <div class="row align-items-center g-2 py-2 border-bottom detail-row" data-row="0">
 
                     <div class="col-4">
-                        <input type="text" class="form-control barang-autocomplete"
-                            name="detail[0][barang]" id="barang[0]" data-id="0" placeholder="Cari barang...">
+                        <input type="text" class="form-control barang-autocomplete" name="detail[0][barang]" id="barang[0]" data-id="0" placeholder="Cari barang...">
                         <input type="hidden" name="detail[0][barang_id]" id="barang_id[0]" data-id="0">
+                        <input type="hidden" name="detail[0][is_paket]" id="is_paket[0]" data-id="0" value="false">
                     </div>
 
                     <div class="col-2">
@@ -133,13 +132,11 @@
                     </div>
 
                     <div class="col-1">
-<input type="number" class="form-control harga-jual-input"
-                            name="detail[0][harga_jual]" id="harga_jual[0]" data-id="0" readonly>
+                        <input type="number" class="form-control harga-jual-input" name="detail[0][harga_jual]" id="harga_jual[0]" data-id="0" readonly>
                     </div>
 
                     <div class="col-1">
-<input type="number" class="form-control subtotal-input"
-                            name="detail[0][subtotal]" id="subtotal[0]" data-id="0" readonly>
+                        <input type="number" class="form-control subtotal-input" name="detail[0][subtotal]" id="subtotal[0]" data-id="0" readonly>
                     </div>
 
                     <div class="col-1">
@@ -521,14 +518,18 @@ $(document).ready(function () {
 
     toggleRemoveButton();
 
+    var isPaket = false;
+
     // =====================================================
     // EVENT LISTENER GLOBAL BARANG (input / keyup / change)
     // =====================================================
     $(document).on("input keyup change", ".barang-autocomplete", function (e) {
         let row = $(this).data("id");
         let val = $(this).val();
-        
+        isPaket = false; // Reset flag paket setiap kali input berubah
     });
+
+    
 
     // =====================================================
     // SCAN BARCODE → ENTER
@@ -538,12 +539,12 @@ $(document).ready(function () {
         if (e.which === 13) { // ENTER
             e.preventDefault();
 
+            isPaket = false;
+
             let row = $(this).data("id");
             let barcode = $(this).val().trim();
 
             if (barcode === "") return;
-
-            
 
             // Gunakan route barang.search
             $.ajax({
@@ -569,9 +570,14 @@ $(document).ready(function () {
 
                         pilihBarangAuto(row, barang);
 
+                        // 🔥 CEK PAKET SETELAH BARANG DIPILIH
+                        setTimeout(() => {
+                            cekPaketBarang();
+                        }, 200);
+
                     } else {
                         alert("Barcode tidak ditemukan!");
-                        $("#barang\\[" + row + "\\]").select();
+                        $("#barang\\[" + row + "\\]").focus().select();
                     }
                 }
             });
@@ -586,6 +592,7 @@ $(document).ready(function () {
 
         let input = $(this);
         let dataId = input.data("id");
+        isPaket = false;
 
         input.autocomplete({
             minLength: 3,
@@ -884,9 +891,10 @@ $(document).ready(function () {
                 qty = qty ? Math.round(qty) : 1;
 
                 let subtotal = Math.round(qty * harga);
+                const subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
 
                 $("#harga_jual\\[" + dataId + "\\]").val(harga);
-                $("#subtotal\\[" + dataId + "\\]").val(subtotal);
+                $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
                 updateRingkasan();
             },
             error: function (err) {
@@ -923,7 +931,7 @@ $(document).ready(function () {
                         $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
                     } else if (
                         tipeHarga == 'grosir' &&
-                        result.data.kategori.nama_kategori.toLowerCase() == 'barang timbangan'
+                        result.data.kategori.kode_kategori.toLowerCase() == 'tbg'
                     ) {
                         if (satuanId == 35 || satuanId == 33) {
                             subtotal = qty*hargaJual;
@@ -944,8 +952,23 @@ $(document).ready(function () {
                         subtotal = Math.round(subtotal);
                         $("#subtotal\\[" + dataId + "\\]").val(subtotal);
                     } else {
-                        subtotal = qty*hargaJual;
-                        subtotal = Math.round(subtotal);
+                        let isPaketValue = $("#is_paket\\[" + dataId + "\\]").val();
+                        if (isPaketValue === undefined) {
+                            isPaketValue = false;
+                        } else if (isPaketValue === 'true') {
+                            isPaketValue = true;
+                        } else {
+                            isPaketValue = false;
+                        }
+
+                        if (isPaketValue) {
+                            subtotal = qty*hargaJual;
+                            subtotal = Math.round(subtotal);
+                        } else {
+                            let hitungSubTotal = qty*hargaJual;
+                            const subTotalDetail = loadPembulatanSubtotalDetail(hitungSubTotal);
+                            subtotal = subTotalDetail;
+                        }
                         $("#subtotal\\[" + dataId + "\\]").val(subtotal);
                     }
                     
@@ -994,7 +1017,7 @@ $(document).ready(function () {
             // remainder >= 500, bulat ke 1000
             pembulatan = 1000 - remainder;
         }
-        subTotalDetail = subtotal+pembulatan;
+        subTotalDetail = (subtotal)+(pembulatan);
         subTotalDetail = Math.round(subTotalDetail);
 
         return subTotalDetail;
@@ -1016,6 +1039,7 @@ $(document).ready(function () {
                     id="barang[${newIndex}]" data-id="${newIndex}">
                 <input type="hidden" name="detail[${newIndex}][barang_id]"
                     id="barang_id[${newIndex}]" data-id="${newIndex}">
+                <input type="hidden" name="detail[${newIndex}][is_paket]" id="is_paket[${newIndex}]" value="false">
             </div>
 
             <div class="col-2">
@@ -1111,6 +1135,7 @@ $(document).ready(function () {
 
     $(document).on("click", ".remove-row", function () {
         $(this).closest(".detail-row").remove();
+        cekPaketBarang();
         updateRingkasan();
         toggleRemoveButton();
     });
@@ -1231,6 +1256,22 @@ $(document).ready(function () {
         return barangIds;
     }
 
+    function getTipeHargaMap() {
+        let tipeHargaMap = {};
+
+        $(".detail-row").each(function () {
+            let idx = $(this).data("row");
+            let barangId = $("#barang_id\\[" + idx + "\\]").val();
+            let tipeHarga = $("#tipe_harga\\[" + idx + "\\]").val();
+
+            if (barangId && tipeHarga) {
+                tipeHargaMap[barangId] = tipeHarga;
+            }
+        });
+
+        return tipeHargaMap;
+    }
+
     function getSatuanBarangId() {
         let satuanIds = [];
 
@@ -1266,6 +1307,7 @@ $(document).ready(function () {
         let barangIds = getListBarangId();
         let qtyMap = getBarangQtyMap();
         let satuanIds = getSatuanBarangId();
+        let tipeHargaMap = getTipeHargaMap();
 
         if (barangIds.length === 0) return;
 
@@ -1276,12 +1318,18 @@ $(document).ready(function () {
             data: {
                 barang_ids: barangIds,
                 qty_map: qtyMap,
-                satuan_ids: satuanIds
+                satuan_ids: satuanIds,
+                tipe_harga_map: tipeHargaMap
             },
             success: function (result) {
                 
-                if (result.success && result.paket_details.length > 0) {
-                    applyPaketToItems(result.paket_details);
+                if (result.success) {
+                    if (result.paket_details && result.paket_details.length > 0) {
+                        applyPaketToItems(result.paket_details);
+                    } else {
+                        applyHargaNonPaketToItems(result.updated_items);
+                    }
+                    
                     updateRingkasan();
                 }
             },
@@ -1291,7 +1339,16 @@ $(document).ready(function () {
         });
     }
 
+    function applyHargaNonPaketToItems(updatedItems) {
+        console.log("INI HARGA NON PAKET", updatedItems);
+        updatedItems.forEach(function(item) {
+            updateItemPriceFromPaket(item.barang_id, item.harga_baru, item.subtotal_baru);
+        });
+    }
+
     function applyPaketToItems(paketDetails) {
+        console.log("INI PAKET DETAILSNYA DUDE==>", paketDetails);
+        
         // Loop through each paket detail
         paketDetails.forEach(function(paket) {
             paket.items.forEach(function(item) {
@@ -1310,7 +1367,7 @@ $(document).ready(function () {
             if (rowBarangId == barangId) {
                 // Update harga jual dengan harga paket
                 $("#harga_jual\\[" + idx + "\\]").val(hargaPaket);
-                
+                $("#is_paket\\[" + idx + "\\]").val('true'); // Tandai bahwa ini barang paket
                 // Update subtotal dengan subtotal paket
                 $("#subtotal\\[" + idx + "\\]").val(subtotalPaket);
             }
