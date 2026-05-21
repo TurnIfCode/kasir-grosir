@@ -792,6 +792,18 @@ class PembelianController extends Controller
                 $barang->save();
             }
         }
+
+        //nah disini cari harga untuk jual modal
+        $hargaModal = HargaBarang::where('barang_id', $barangId)
+                    ->where('satuan_id', $barang->satuan_id)
+                    ->where('tipe_harga', 'modal')
+                    ->orderBy('harga', 'asc')
+                    ->first();
+        if ($hargaModal) {
+            $hargaModal->harga = round($barang->harga_beli);
+            $hargaModal->updated_at = now();
+            $hargaModal->save();
+        }
     }
 
     private function generateKodePembelian()

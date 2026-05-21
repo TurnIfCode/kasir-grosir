@@ -460,11 +460,15 @@ class PenjualanController extends Controller
     }
     
 
-    public function getPaketBarang(Request $request) {
-        // Terima request barang_ids dan qty dari frontend
-        $barangIds = $request->barang_ids;
-        $qtyMap = $request->qty_map;
-        $totalBarang = count($barangIds);
+    public function getPaketBarang(Request $request)
+    {
+        // ============================================
+        // AMBIL DATA DARI FRONTEND
+        // ============================================
+
+        $barangIds = $request->barang_ids ?? [];
+        $qtyMap    = $request->qty_map ?? [];
+        $satuanIds = $request->satuan_ids ?? [];
 
         if (empty($barangIds)) {
             return response()->json([
@@ -473,12 +477,47 @@ class PenjualanController extends Controller
             ]);
         }
 
+        // ============================================
+        // VALIDASI SATUAN
+        // Jika satuan_ids != barang.satuan_id
+        // maka JANGAN lakukan query paket
+        // ============================================
 
+        foreach ($barangIds as $index => $barangId) {
 
-        // Logika prioritas paket yang benar:
-        // 1. Cek paket jenis 'tidak' - hanya jika bisa membentuk paket lengkap
-        // 2. Jika tidak bisa, cek paket jenis 'campur'
-        
+            $requestSatuanId = $satuanIds[$index] ?? null;
+
+            $barang = \App\Models\Barang::select('id', 'satuan_id')
+                ->where('id', $barangId)
+                ->first();
+
+            // Jika barang tidak ditemukan
+            if (!$barang) {
+                return response()->json([
+                    'success' => true,
+                    'paket_details' => [],
+                    'updated_items' => [],
+                    'subtotal_akhir' => 0
+                ]);
+            }
+
+            // Jika satuan berbeda
+            if ((int)$barang->satuan_id !== (int)$requestSatuanId) {
+
+                // STOP TOTAL
+                return response()->json([
+                    'success' => true,
+                    'paket_details' => [],
+                    'updated_items' => [],
+                    'subtotal_akhir' => 0
+                ]);
+            }
+        }
+
+        // ============================================
+        // HASIL DEFAULT
+        // ============================================
+
         $result = [
             'success' => true,
             'paket_details' => [],
@@ -486,138 +525,179 @@ class PenjualanController extends Controller
             'subtotal_akhir' => 0
         ];
 
-        // Cek paket 'tidak' terlebih dahulu
+        // ============================================
+        // CEK PAKET JENIS TIDAK
+        // ============================================
+
         $paketsTidak = \App\Models\Paket::where('jenis', 'tidak')
+            ->where('status', 'aktif')
             ->orderBy('harga')
             ->get();
-            
+
         $foundPaketTidak = false;
+
         foreach ($paketsTidak as $paket) {
+
             // Ambil detail paket
             $paketDetails = \App\Models\PaketDetail::where('paket_id', $paket->id)
                 ->pluck('barang_id')
                 ->toArray();
 
-            // Cek apakah barang yang ada di penjualan ada di paket_detail
+            // Cek barang yang cocok
             $matchingBarangs = array_intersect($barangIds, $paketDetails);
-            
-            if (empty($matchingBarangs)) continue;
 
-            // Hitung total qty dari barang yang match
+            if (empty($matchingBarangs)) {
+                continue;
+            }
+
+            // Hitung total qty
             $totalQtyPaket = 0;
+
             foreach ($matchingBarangs as $barangId) {
+
                 if (isset($qtyMap[$barangId])) {
                     $totalQtyPaket += $qtyMap[$barangId];
                 }
             }
 
-            // Validasi syarat paket aktif: total qty >= paket.total_qty
-            if ($totalQtyPaket < $paket->total_qty) continue;
+            // Qty tidak memenuhi syarat paket
+            if ($totalQtyPaket < $paket->total_qty) {
+                continue;
+            }
 
-            // Jika paket 'tidak' bisa dibuat, proses dan hentikan
+            // Harga paket per item
             $hargaSatuanPaket = floor($paket->harga / $paket->total_qty);
 
             $paketDetail = [
-                'paket_id' => $paket->id,
-                'nama_paket' => $paket->nama,
-                'harga_paket' => $paket->harga,
-                'harga_satuan_paket' => $hargaSatuanPaket,
-                'total_qty_paket' => $paket->total_qty,
-                'jenis_paket' => $paket->jenis,
-                'items' => []
+                'paket_id'            => $paket->id,
+                'nama_paket'          => $paket->nama,
+                'harga_paket'         => $paket->harga,
+                'harga_satuan_paket'  => $hargaSatuanPaket,
+                'total_qty_paket'     => $paket->total_qty,
+                'jenis_paket'         => $paket->jenis,
+                'items'               => []
             ];
 
             foreach ($matchingBarangs as $barangId) {
+
                 $qty = $qtyMap[$barangId] ?? 0;
-                
+
                 if ($qty > 0) {
+
                     $barang = \App\Models\Barang::find($barangId);
-                    
+
                     $paketDetail['items'][] = [
-                        'barang_id' => $barangId,
-                        'barang_nama' => $barang->nama_barang,
-                        'qty' => $qty,
-                        'harga_setelah_paket' => $hargaSatuanPaket,
-                        'subtotal_setelah_paket' => $qty * $hargaSatuanPaket
+                        'barang_id'               => $barangId,
+                        'barang_nama'             => $barang->nama_barang,
+                        'qty'                     => $qty,
+                        'harga_setelah_paket'     => $hargaSatuanPaket,
+                        'subtotal_setelah_paket'  => $qty * $hargaSatuanPaket
                     ];
                 }
             }
 
             if (!empty($paketDetail['items'])) {
+
                 $result['paket_details'][] = $paketDetail;
+
                 $foundPaketTidak = true;
-                break; // Hentikan setelah paket 'tidak' pertama yang valid ditemukan
+
+                // Stop setelah menemukan paket tidak
+                break;
             }
         }
 
-        // Jika tidak ada paket 'tidak' yang valid, cek paket 'campur'
+        // ============================================
+        // CEK PAKET CAMPUR
+        // ============================================
+
         if (!$foundPaketTidak) {
+
             $paketsCampur = \App\Models\Paket::where('jenis', 'campur')
+                ->where('status', 'aktif')
                 ->orderBy('harga')
                 ->get();
 
             foreach ($paketsCampur as $paket) {
+
                 // Ambil detail paket
                 $paketDetails = \App\Models\PaketDetail::where('paket_id', $paket->id)
                     ->pluck('barang_id')
                     ->toArray();
 
-                // Cek apakah barang yang ada di penjualan ada di paket_detail
+                // Cek barang yang cocok
                 $matchingBarangs = array_intersect($barangIds, $paketDetails);
-                
-                if (empty($matchingBarangs)) continue;
 
-                // Hitung total qty dari barang yang match
+                if (empty($matchingBarangs)) {
+                    continue;
+                }
+
+                // Hitung total qty
                 $totalQtyPaket = 0;
+
                 foreach ($matchingBarangs as $barangId) {
+
                     if (isset($qtyMap[$barangId])) {
                         $totalQtyPaket += $qtyMap[$barangId];
                     }
                 }
 
-                // Validasi syarat paket aktif: total qty >= paket.total_qty
-                if ($totalQtyPaket < $paket->total_qty) continue;
+                // Qty tidak memenuhi syarat paket
+                if ($totalQtyPaket < $paket->total_qty) {
+                    continue;
+                }
 
-                // Jika paket 'campur' bisa dibuat, proses
+                // Harga paket per item
                 $hargaSatuanPaket = floor($paket->harga / $paket->total_qty);
 
                 $paketDetail = [
-                    'paket_id' => $paket->id,
-                    'nama_paket' => $paket->nama,
-                    'harga_paket' => $paket->harga,
-                    'harga_satuan_paket' => $hargaSatuanPaket,
-                    'total_qty_paket' => $paket->total_qty,
-                    'jenis_paket' => $paket->jenis,
-                    'items' => []
+                    'paket_id'            => $paket->id,
+                    'nama_paket'          => $paket->nama,
+                    'harga_paket'         => $paket->harga,
+                    'harga_satuan_paket'  => $hargaSatuanPaket,
+                    'total_qty_paket'     => $paket->total_qty,
+                    'jenis_paket'         => $paket->jenis,
+                    'items'               => []
                 ];
 
                 foreach ($matchingBarangs as $barangId) {
+
                     $qty = $qtyMap[$barangId] ?? 0;
-                    
+
                     if ($qty > 0) {
+
                         $barang = \App\Models\Barang::find($barangId);
-                        
+
                         $paketDetail['items'][] = [
-                            'barang_id' => $barangId,
-                            'barang_nama' => $barang->nama_barang,
-                            'qty' => $qty,
-                            'harga_setelah_paket' => $hargaSatuanPaket,
-                            'subtotal_setelah_paket' => $qty * $hargaSatuanPaket
+                            'barang_id'               => $barangId,
+                            'barang_nama'             => $barang->nama_barang,
+                            'qty'                     => $qty,
+                            'harga_setelah_paket'     => $hargaSatuanPaket,
+                            'subtotal_setelah_paket'  => $qty * $hargaSatuanPaket
                         ];
                     }
                 }
 
                 if (!empty($paketDetail['items'])) {
+
                     $result['paket_details'][] = $paketDetail;
-                    break; // Hentikan setelah paket 'campur' pertama yang valid ditemukan
+
+                    // Stop setelah menemukan paket campur
+                    break;
                 }
             }
         }
 
-        // Hitung subtotal akhir
+        // ============================================
+        // HITUNG SUBTOTAL AKHIR
+        // ============================================
+
         $subtotalAkhir = 0;
+
         foreach ($result['paket_details'] as $paketDetail) {
+
             foreach ($paketDetail['items'] as $item) {
+
                 $subtotalAkhir += $item['subtotal_setelah_paket'];
             }
         }

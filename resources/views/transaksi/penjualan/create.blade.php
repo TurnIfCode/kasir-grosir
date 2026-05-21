@@ -1231,6 +1231,21 @@ $(document).ready(function () {
         return barangIds;
     }
 
+    function getSatuanBarangId() {
+        let satuanIds = [];
+
+        $(".detail-row").each(function () {
+            let idx = $(this).data("row");
+            let satuanId = $("#satuan_id\\[" + idx + "\\]").val();
+
+            if (satuanId) {
+                satuanIds.push(parseInt(satuanId));
+            }
+        });
+
+        return satuanIds;
+    }
+
     function getBarangQtyMap() {
         let qtyMap = {};
 
@@ -1250,6 +1265,7 @@ $(document).ready(function () {
     function cekPaketBarang() {
         let barangIds = getListBarangId();
         let qtyMap = getBarangQtyMap();
+        let satuanIds = getSatuanBarangId();
 
         if (barangIds.length === 0) return;
 
@@ -1259,7 +1275,8 @@ $(document).ready(function () {
             type: "GET",
             data: {
                 barang_ids: barangIds,
-                qty_map: qtyMap
+                qty_map: qtyMap,
+                satuan_ids: satuanIds
             },
             success: function (result) {
                 
