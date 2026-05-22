@@ -890,8 +890,18 @@ $(document).ready(function () {
                 let qty = $("#qty\\[" + dataId + "\\]").val();
                 qty = qty ? Math.round(qty) : 1;
 
+                // disini cek dulu tipe harganya
+                console.log("TIPE HARGA DEFAULT", defaultTipe);
+                
+
                 let subtotal = Math.round(qty * harga);
-                const subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
+                let subTotalDetail = 0;
+                if (defaultTipe === 'modal') {
+                    subTotalDetail = Math.round(qty * harga);
+                } else {
+                    subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
+                }
+                console.log("INI SUBTOTAL DETAILNYA DUDE==>", subTotalDetail);
 
                 $("#harga_jual\\[" + dataId + "\\]").val(harga);
                 $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
@@ -915,7 +925,7 @@ $(document).ready(function () {
                 if (result.success) {
                     
                     var subtotal = 0;
-                    if (
+                    if (//ini untuk rokok legal grosir satuan batang (id 2)
                         result.data.kategori.kode_kategori.toLowerCase() == 'rokok' &&
                         result.data.jenis == 'legal' &&
                         tipeHarga == 'grosir' &&
@@ -930,22 +940,98 @@ $(document).ready(function () {
                         const subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
                         $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
                     } else if (
+                        result.data.kategori.kode_kategori.toLowerCase() == 'rokok'
+                        && tipeHarga == 'modal'
+                        && satuanId == 2
+                        )
+                    { //untuk rokok
+                        subtotal = (qty*hargaJual);
+                        subtotal = Math.round(subtotal);
+
+                        $("#subtotal\\[" + dataId + "\\]").val(subtotal);
+                    } else if ( //ini untuk barang timbangan
                         tipeHarga == 'grosir' &&
                         result.data.kategori.kode_kategori.toLowerCase() == 'tbg'
                     ) {
-                        if (satuanId == 35 || satuanId == 33) {
-                            subtotal = qty*hargaJual;
-                            subtotal = Math.ceil(subtotal/1000)*1000;
-                        } else if(result.data.id == 2193 && satuanId == 34 && qty % 5 === 0) {
-                            subtotal = qty*(hargaJual-1000);
-                        } else if (result.data.id == 2181 && satuanId == 34 && qty % 5 === 0) {
-                                subtotal = qty*(hargaJual-1400);
-                        } else if (result.data.id == 325 && satuanId == 34 && qty % 5 === 0) {
-                            subtotal = qty*(hargaJual-200);
-                        } else if (result.data.id == 334 && satuanId == 34 && qty % 5 === 0) {
-                            subtotal = qty*(hargaJual-400);
-                        } else if (result.data.id == 2977 && satuanId == 24 && qty % 10 === 0) {
-                            subtotal = qty*(hargaJual-1000);
+                        if (
+                            result.data.id == 325 && satuanId == 34
+                            || result.data.id == 334 && satuanId == 34
+                        ) {//untuk gula pasir & minyak curah
+                            // Harga normal
+                            let hargaNormal = hargaJual;
+                            // Harga diskon
+                            let hargaDiskon = hargaJual - 100;
+
+                            // Hitung kelipatan 5
+                            let kelipatan5 = Math.floor(qty / 5);
+
+                            // Sisa qty
+                            let sisaQty = qty % 5;
+                            if (sisaQty < 0) {
+                                sisaQty = 0;
+                            }
+
+                            // Subtotal:
+                            // kelipatan 5 => harga diskon
+                            // sisa => harga normal
+                            subtotal = (kelipatan5 * 5 * hargaDiskon) + (sisaQty * hargaNormal);
+                        } else if (result.data.id == 2193 && satuanId == 34) {
+                            // Harga normal
+                            let hargaNormal = hargaJual;
+                            // Harga diskon
+                            let hargaDiskon = hargaJual - 1000;
+
+                            // Hitung kelipatan 5
+                            let kelipatan5 = Math.floor(qty / 5);
+
+                            // Sisa qty
+                            let sisaQty = qty % 5;
+                            if (sisaQty < 0) {
+                                sisaQty = 0;
+                            }
+
+                            // Subtotal:
+                            // kelipatan 5 => harga diskon
+                            // sisa => harga normal
+                            subtotal = (kelipatan5 * 5 * hargaDiskon) + (sisaQty * hargaNormal);
+                        } else if (result.data.id == 2181 && satuanId == 34) {
+                            // Harga normal
+                            let hargaNormal = hargaJual;
+                            // Harga diskon
+                            let hargaDiskon = hargaJual - 1400;
+
+                            // Hitung kelipatan 5
+                            let kelipatan5 = Math.floor(qty / 5);
+
+                            // Sisa qty
+                            let sisaQty = qty % 5;
+                            if (sisaQty < 0) {
+                                sisaQty = 0;
+                            }
+
+                            // Subtotal:
+                            // kelipatan 5 => harga diskon
+                            // sisa => harga normal
+                            subtotal = (kelipatan5 * 5 * hargaDiskon) + (sisaQty * hargaNormal);
+                        } else if (result.data.id == 2977 && satuanId == 24) {
+                            // Harga normal
+                            let hargaNormal = hargaJual;
+                            // Harga diskon
+                            let hargaDiskon = hargaJual - 1000;
+
+                            // Hitung kelipatan 10
+                            let kelipatan10 = Math.floor(qty / 10);
+
+                            // Sisa qty
+                            let sisaQty = qty % 10;
+                            if (sisaQty < 0) {
+                                sisaQty = 0;
+                            }
+
+                            // Subtotal:
+                            // kelipatan 10 => harga diskon
+                            // sisa => harga normal
+                            subtotal = (kelipatan10 * 10 * hargaDiskon) + (sisaQty * hargaNormal);
                         } else {
                             subtotal = qty*hargaJual;
                         }
@@ -960,6 +1046,9 @@ $(document).ready(function () {
                         } else {
                             isPaketValue = false;
                         }
+
+                        console.log("IS PAKET VALUE==>", isPaketValue);
+                        
 
                         if (isPaketValue) {
                             subtotal = qty*hargaJual;
@@ -2430,7 +2519,6 @@ $(document).ready(function () {
                         satuanId == 2
 
                     ) {
-
                         if (qty > 0 && qty <= 4) {
 
                             subtotal =
@@ -2541,6 +2629,17 @@ $(document).ready(function () {
 
                         $("#modal_subtotal\\[" + dataId + "\\]")
                             .val(subtotal);
+                    } else if (result.data.kategori.kode_kategori.toLowerCase() == "rokok" &&
+                        result.data.jenis == "legal" &&
+                        tipeHarga == "modal" &&
+                        satuanId == 1) {
+
+                        subtotal = qty * hargaJual;
+
+                        subtotal = Math.round(subtotal);
+
+                        $("#modal_subtotal\\[" + dataId + "\\]")
+                            .val(subTotalDetail);
                     }
 
                     // =====================================

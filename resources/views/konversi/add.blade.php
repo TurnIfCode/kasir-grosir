@@ -6,9 +6,9 @@
       @csrf
 
       <div class="form-group">
-        <label for="barang_id">Pilih Barang *</label>
+        <label for="barang_nama">Pilih Barang *</label>
         <input type="text" class="form-control barang-autocomplete" id="barang_nama" name="barang_nama" placeholder="Ketik nama, kode barang atau scan barcode" required>
-        <input type="hidden" name="barang_id" id="barang_id" required>
+        <input type="hidden" name="barang_id" id="barang_id">
       </div>
 
       <div class="form-group">
@@ -68,6 +68,7 @@
         <thead>
           <tr>
             <th>No</th>
+            <th>Barang</th>
             <th>Satuan Dasar</th>
             <th>Satuan Konversi</th>
             <th>Nilai Konversi</th>
@@ -108,6 +109,7 @@ $(document).ready(function() {
           response.data.forEach(function(k, index) {
             html += '<tr>';
             html += '<td>' + (index + 1) + '</td>';
+            html += '<td>' + k.barang + '</td>';
             html += '<td>' + k.satuan_dasar + '</td>';
             html += '<td>' + k.satuan_konversi + '</td>';
             html += '<td>' + k.nilai_konversi + '</td>';

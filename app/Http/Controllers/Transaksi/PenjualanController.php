@@ -266,7 +266,7 @@ class PenjualanController extends Controller
         $penjualan->updated_at = now();
         $penjualan->save();
 
-        $satuan_konversi = 0;
+        $qty_konversi = 0;
         $subTotal = 0;
 
         $hitungStok = 0;
@@ -283,28 +283,30 @@ class PenjualanController extends Controller
                 ->where('status', 'aktif')
                 ->first();
             if ($konversi) {
-                $satuan_konversi = $detail['qty']*$konversi->nilai_konversi;
-                $satuan_konversi = round($satuan_konversi);
+                $qty_konversi = round($detail['qty'],2)*round($konversi->nilai_konversi,2);
+                $qty_konversi = round($qty_konversi,2);
             } else {
-                $satuan_konversi = $detail['qty'];
+                $qty_konversi = round($detail['qty'],2);
             }
 
-            $harga_jual = $detail['subtotal']/$satuan_konversi;
+            $harga_jual = round($detail['subtotal'],2)/$qty_konversi;
             $harga_jual = round($harga_jual,0);
+            $subtotal   = $harga_jual*$qty_konversi;
+            $subtotal   = round($subtotal,2);
 
-            $penjualanDetail = new PenjualanDetail();
-            $penjualanDetail->penjualan_id = $penjualan->id;
-            $penjualanDetail->barang_id = $detail['barang_id'];
-            $penjualanDetail->satuan_id = $detail['satuan_id'];
-            $penjualanDetail->qty = $detail['qty'];
-            $penjualanDetail->qty_konversi = $satuan_konversi;
-            $penjualanDetail->harga_beli = $harga_beli;
-            $penjualanDetail->harga_jual = $harga_jual;
-            $penjualanDetail->subtotal = $detail['subtotal'];
-            $penjualanDetail->created_by = auth()->id();
-            $penjualanDetail->created_at = now();
-            $penjualanDetail->updated_by = auth()->id();
-            $penjualanDetail->updated_at = now();
+            $penjualanDetail                = new PenjualanDetail();
+            $penjualanDetail->penjualan_id  = $penjualan->id;
+            $penjualanDetail->barang_id     = $detail['barang_id'];
+            $penjualanDetail->satuan_id     = $detail['satuan_id'];
+            $penjualanDetail->qty           = $detail['qty'];
+            $penjualanDetail->qty_konversi  = $qty_konversi;
+            $penjualanDetail->harga_beli    = $harga_beli;
+            $penjualanDetail->harga_jual    = $harga_jual;
+            $penjualanDetail->subtotal      = $subtotal;
+            $penjualanDetail->created_by    = auth()->id();
+            $penjualanDetail->created_at    = now();
+            $penjualanDetail->updated_by    = auth()->id();
+            $penjualanDetail->updated_at    = now();
             $penjualanDetail->save();
 
             $subTotal += $detail['subtotal'];
@@ -312,8 +314,8 @@ class PenjualanController extends Controller
             //disini ambil data barang untuk update stok saat penjualan
             $dataBarang = Barang::find($detail['barang_id']);
             $stokSebelum = round($dataBarang->stok,2);
-            $hitungStok = $stokSebelum - $satuan_konversi;
-            $hitungStok = round($hitungStok);
+            $hitungStok = $stokSebelum - $qty_konversi;
+            $hitungStok = round($hitungStok,2);
 
             // Update stok barang
             $dataBarang->stok = $hitungStok;
@@ -495,16 +497,36 @@ class PenjualanController extends Controller
         }
 
         // ============================================
+        // AMBIL ID KATEGORI ROKOK
+        // ============================================
+
+        $kategoriRokok = \App\Models\Kategori::where('kode_kategori', 'ROKOK')
+            ->first();
+
+        // ============================================
         // AMBIL DATA BARANG
+        // TIDAK TERMASUK KATEGORI ROKOK
         // ============================================
 
         $barangs = \App\Models\Barang::select(
                 'id',
                 'nama_barang',
                 'satuan_id',
-                'harga_jual'
+                'harga_jual',
+                'kategori_id'
             )
             ->whereIn('id', $barangIds)
+
+            // ============================================
+            // EXCLUDE ROKOK
+            // ============================================
+
+            ->when($kategoriRokok, function ($query) use ($kategoriRokok) {
+
+                $query->where('kategori_id', '!=', $kategoriRokok->id);
+
+            })
+
             ->get()
             ->keyBy('id');
 
@@ -518,14 +540,21 @@ class PenjualanController extends Controller
 
             $barang = $barangs->get($barangId);
 
-            // Barang tidak ditemukan
+            // ============================================
+            // BARANG TIDAK DITEMUKAN
+            // ATAU TERMASUK ROKOK
+            // ============================================
+
             if (!$barang) {
-                return response()->json($defaultResponse);
+                continue;
             }
 
-            // Satuan berbeda
+            // ============================================
+            // SATUAN BERBEDA
+            // ============================================
+
             if ((int)$barang->satuan_id !== (int)$requestSatuanId) {
-                return response()->json($defaultResponse);
+                continue;
             }
         }
 
@@ -536,10 +565,19 @@ class PenjualanController extends Controller
         $result = $defaultResponse;
 
         // ============================================
+        // FILTER BARANG NON ROKOK
+        // ============================================
+
+        $barangIdsNonRokok = $barangs->pluck('id')->toArray();
+
+        // ============================================
         // CEK APAKAH ADA PAKET
         // ============================================
 
-        $paketBarangIds = \App\Models\PaketDetail::whereIn('barang_id', $barangIds)
+        $paketBarangIds = \App\Models\PaketDetail::whereIn(
+                'barang_id',
+                $barangIdsNonRokok
+            )
             ->pluck('barang_id')
             ->unique()
             ->toArray();
@@ -559,7 +597,7 @@ class PenjualanController extends Controller
         ) use ($barangs) {
 
             // ============================================
-            // CEK HARGA BARANG CUSTOM
+            // CEK HARGA CUSTOM
             // ============================================
 
             $hargaBarang = \App\Models\HargaBarang::where('barang_id', $barangId)
@@ -568,14 +606,16 @@ class PenjualanController extends Controller
                 ->where('status', 'aktif')
                 ->first();
 
-            // Jika ditemukan harga custom
+            // ============================================
+            // JIKA ADA HARGA CUSTOM
+            // ============================================
+
             if ($hargaBarang) {
                 return $hargaBarang->harga;
             }
 
             // ============================================
-            // JIKA TIDAK ADA
-            // GUNAKAN HARGA DEFAULT BARANG
+            // HARGA DEFAULT BARANG
             // ============================================
 
             $barang = $barangs->get($barangId);
@@ -592,7 +632,7 @@ class PenjualanController extends Controller
         // ============================================
 
         $cekPaket = function ($jenisPaket) use (
-            $barangIds,
+            $barangIdsNonRokok,
             $qtyMap,
             $barangs,
             &$result
@@ -618,7 +658,7 @@ class PenjualanController extends Controller
                 // ============================================
 
                 $matchingBarangs = array_intersect(
-                    $barangIds,
+                    $barangIdsNonRokok,
                     $paketBarangIds
                 );
 
@@ -684,6 +724,8 @@ class PenjualanController extends Controller
                     }
 
                     $subtotal = $qty * $hargaSatuanPaket;
+                    // disini hitung dulu pembulatannya baru masukin ke subtotal akhir
+                    $subtotal = round($subtotal, 2);
 
                     $paketDetail['items'][] = [
                         'barang_id'               => $barangId,
@@ -695,9 +737,9 @@ class PenjualanController extends Controller
 
                     $result['updated_items'][] = [
                         'barang_id'     => $barangId,
-                        'harga_baru'    => round($hargaSatuanPaket,2),
-                        'subtotal_baru' => round($subtotal,2),
-                        'qty'           => round($qty,2)
+                        'harga_baru'    => round($hargaSatuanPaket, 2),
+                        'subtotal_baru' => round($subtotal, 2),
+                        'qty'           => round($qty, 2)
                     ];
                 }
 
@@ -711,7 +753,9 @@ class PenjualanController extends Controller
                     $result['is_paket'] = true;
 
                     foreach ($paketDetail['items'] as $item) {
-                        $result['subtotal_akhir'] += $item['subtotal_setelah_paket'];
+
+                        $result['subtotal_akhir'] +=
+                            $item['subtotal_setelah_paket'];
                     }
 
                     return true;
@@ -744,7 +788,7 @@ class PenjualanController extends Controller
 
             $subtotalAkhir = 0;
 
-            foreach ($barangIds as $index => $barangId) {
+            foreach ($barangIdsNonRokok as $index => $barangId) {
 
                 $barang = $barangs->get($barangId);
 
@@ -775,9 +819,9 @@ class PenjualanController extends Controller
                 $result['updated_items'][] = [
                     'barang_id'     => $barangId,
                     'barang_nama'   => $barang->nama_barang,
-                    'qty'           => round($qty,2),
-                    'harga_baru'    => round($harga,2),
-                    'subtotal_baru' => round($subtotal,2)
+                    'qty'           => round($qty, 2),
+                    'harga_baru'    => round($harga, 2),
+                    'subtotal_baru' => round($subtotal, 2)
                 ];
             }
 

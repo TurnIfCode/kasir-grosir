@@ -335,40 +335,62 @@
         });
 
         function loadSatuan(barangId) {
+
             $.ajax({
                 url: '{{ route("barang.satuan", ":id") }}'.replace(':id', barangId),
                 type: 'GET',
+
                 success: function(data) {
+
                     if (data.success === true) {
 
-                        // PERBAIKAN PENTING DI SINI
                         var satuanSelect = $('[name="satuan_id"]');
 
-                        satuanSelect.empty().append('<option value="">Pilih Satuan</option>');
+                        satuanSelect.empty().append(
+                            '<option value="">Pilih Satuan</option>'
+                        );
 
                         $.each(data.data, function(index, satuan) {
+
                             satuanSelect.append(
-                                '<option value="' + satuan.satuan_id + '" data-harga="' + satuan.harga_beli + '">'
-                                + satuan.nama_satuan +
+                                '<option value="' + satuan.satuan_id + '" data-harga="' + satuan.harga_beli + '">' +
+                                satuan.nama_satuan +
                                 '</option>'
                             );
                         });
 
                         satuanSelect.prop('disabled', false);
 
+                        // ============================================
+                        // AMBIL NILAI_KONVERSI TERBESAR
+                        // ============================================
 
                         if (data.data.length > 0) {
-                            // Cari satuan dengan nilai_konversi tertinggi
-                            let highestKonversi = data.data.reduce(function(max, current) {
-                                return (current.nilai_konversi > max.nilai_konversi) ? current : max;
-                            });
-                            
-                            // Set select ke satuan dengan nilai konversi tertinggi
-                            satuanSelect.val(highestKonversi.satuan_id);
-                            $('[name="qty"]').val(1);
-                            $('[name="harga_beli"]').val(highestKonversi.harga_beli);
 
-                            $('[name="subtotal"]').val(highestKonversi.harga_beli);
+                            let highestKonversi = data.data.reduce(function(max, current) {
+
+                                return parseFloat(current.nilai_konversi) >
+                                    parseFloat(max.nilai_konversi)
+                                    ? current
+                                    : max;
+
+                            });
+
+                            // ============================================
+                            // SET SELECT OTOMATIS
+                            // ============================================
+
+                            satuanSelect.val(highestKonversi.satuan_id);
+
+                            $('[name="qty"]').val(1);
+
+                            $('[name="harga_beli"]').val(
+                                highestKonversi.harga_beli
+                            );
+
+                            $('[name="subtotal"]').val(
+                                highestKonversi.harga_beli
+                            );
                         }
                     }
                 }

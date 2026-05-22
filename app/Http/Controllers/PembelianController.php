@@ -627,39 +627,98 @@ class PembelianController extends Controller
                     } else if (strtolower($kodeKategori) == 'tbg') {
                         if ($cekKonversi) {
                             //disini ambil harga jual sebelum
-                            $hargaJualSebelum = $dataHarga->harga;
-                            $hargaJualSebelum = round($hargaJualSebelum,2);
+                            //disini cek dulu harga jualnya ecer atau grosir
+                            if (strtolower($dataHarga->tipe_harga) == 'ecer') {
+                                $hargaJualSebelum = $dataHarga->harga;
+                                $hargaJualSebelum = round($hargaJualSebelum,2);
 
-                            //disini ambil harga_beli sebelum
-                            $nilaiKonversi = round($cekKonversi->nilai_konversi,2);
-                            
-                            $hitungHargaBeliSebelum = $hargaBeliSebelum*$nilaiKonversi;
-                            $hitungHargaBeliSebelum = round($hitungHargaBeliSebelum,2);
+                                //disini ambil harga_beli sebelum
+                                $nilaiKonversi = round($cekKonversi->nilai_konversi,2);
+                                
+                                $hitungHargaBeliSebelum = $hargaBeliSebelum*$nilaiKonversi;
+                                $hitungHargaBeliSebelum = round($hitungHargaBeliSebelum,2);
 
-                            //hitung harga_beli baru
-                            $hitungHargaBeliBaru = $hargaBeliDasar*$nilaiKonversi;
-                            $hitungHargaBeliBaru = round($hitungHargaBeliBaru);
+                                //hitung harga_beli baru
+                                $hitungHargaBeliBaru = $hargaBeliDasar*$nilaiKonversi;
+                                $hitungHargaBeliBaru = round($hitungHargaBeliBaru);
 
-                            //hitung selisih harga beli
-                            $selisihHargaBeli = $hitungHargaBeliBaru-$hitungHargaBeliSebelum;
-                            $selisihHargaBeli = round($selisihHargaBeli,2);
+                                //hitung selisih harga beli
+                                $selisihHargaBeli = $hitungHargaBeliBaru-$hitungHargaBeliSebelum;
+                                $selisihHargaBeli = round($selisihHargaBeli,2);
 
-                            //hitung pembulatannya
-                            $remainderSelisih = round($selisihHargaBeli % 1000);
-                            if ($remainderSelisih < 0) {
-                                $pembulatanSelisih = 1000+$remainderSelisih;
-                            } else if ($pembulatanSelisih > 0) {
-                                $pembulatanSelisih = 1000-$remainderSelisih;
+                                //hitung pembulatannya
+                                $remainderSelisih = round($selisihHargaBeli % 1000);
+                                if ($remainderSelisih == 0) {
+                                    $pembulatanSelisih = 0;
+                                } else if ($remainderSelisih < 0) {
+                                    $pembulatanSelisih = 1000+$remainderSelisih;
+                                } else if ($remainderSelisih > 0) {
+                                    $pembulatanSelisih = 1000-$remainderSelisih;
+                                }
+
+                                $hargaJual = $hargaJualSebelum+($selisihHargaBeli+($pembulatanSelisih));
+                                $hargaJual = round($hargaJual);
+
+                                $hargaJual = floor($hargaJual/1000)*1000;
+
+                                $dataHarga->harga = $hargaJual;
+                                $dataHarga->updated_at = now();
+                                $dataHarga->save();
+                            } else if (strtolower($dataHarga->tipe_harga) == 'grosir') {
+                                //disini cek dulu dia punya harga jual ecer atau tidak
+                                $dataHargaEcer = HargaBarang::where('barang_id', $barangId)
+                                ->where('satuan_id', $dataHarga->satuan_id)
+                                ->where('tipe_harga', 'ecer')
+                                ->first();
+                                if ($dataHargaEcer) {
+                                    $hargaJualSebelum   = $dataHargaEcer->harga;
+                                    $hargaJualSebelum   = round($hargaJualSebelum,2);
+
+                                    $hargaJual          = $hargaJualSebelum-500;
+                                    $hargaJual          = round($hargaJual,2);
+
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+                                } else {
+                                    $hargaJualSebelum = $dataHarga->harga;
+                                    $hargaJualSebelum = round($hargaJualSebelum,2);
+
+                                    //disini ambil harga_beli sebelum
+                                    $nilaiKonversi = round($cekKonversi->nilai_konversi,2);
+                                    
+                                    $hitungHargaBeliSebelum = $hargaBeliSebelum*$nilaiKonversi;
+                                    $hitungHargaBeliSebelum = round($hitungHargaBeliSebelum,2);
+
+                                    //hitung harga_beli baru
+                                    $hitungHargaBeliBaru = $hargaBeliDasar*$nilaiKonversi;
+                                    $hitungHargaBeliBaru = round($hitungHargaBeliBaru);
+
+                                    //hitung selisih harga beli
+                                    $selisihHargaBeli = $hitungHargaBeliBaru-$hitungHargaBeliSebelum;
+                                    $selisihHargaBeli = round($selisihHargaBeli,2);
+
+                                    //hitung pembulatannya
+                                    $remainderSelisih = round($selisihHargaBeli % 1000);
+                                    $remainderSelisih = round($selisihHargaBeli % 1000);
+                                    if ($remainderSelisih == 0) {
+                                        $pembulatanSelisih = 0;
+                                    } else if ($remainderSelisih < 0) {
+                                        $pembulatanSelisih = 1000+$remainderSelisih;
+                                    } else if ($remainderSelisih > 0) {
+                                        $pembulatanSelisih = 1000-$remainderSelisih;
+                                    }
+
+                                    $hargaJual = $hargaJualSebelum+($selisihHargaBeli+($pembulatanSelisih));
+                                    $hargaJual = round($hargaJual);
+
+                                    $hargaJual = floor($hargaJual/1000)*1000;
+
+                                    $dataHarga->harga = $hargaJual;
+                                    $dataHarga->updated_at = now();
+                                    $dataHarga->save();
+                                }
                             }
-
-                            $hargaJual = $hargaJualSebelum+($selisihHargaBeli+($pembulatanSelisih));
-                            $hargaJual = round($hargaJual);
-
-                            $hargaJual = floor($hargaJual/1000)*1000;
-
-                            $dataHarga->harga = $hargaJual;
-                            $dataHarga->updated_at = now();
-                            $dataHarga->save();
                         } else if (!$cekKonversi) {
                             //disini ambil data konversi dengan nilai_konversi paling tinggi
                             $konversiTertinggi = KonversiSatuan::where('barang_id', $barangId)
@@ -721,7 +780,9 @@ class PembelianController extends Controller
 
                     //hitung pembulatannya
                     $remainderSelisih = round($selisihHargaBeli % 1000);
-                    if ($remainderSelisih < 0) {
+                    if ($remainderSelisih == 0) {
+                        $pembulatanSelisih = 0;
+                    } else if ($remainderSelisih < 0) {
                         $pembulatanSelisih = 1000+$remainderSelisih;
                     } else if ($pembulatanSelisih > 0) {
                         $pembulatanSelisih = 1000-$remainderSelisih;
@@ -748,7 +809,9 @@ class PembelianController extends Controller
 
                     //hitung pembulatannya
                     $remainderSelisih = round($selisihHargaBeli % 1000);
-                    if ($remainderSelisih < 0) {
+                    if ($remainderSelisih == 0) {
+                        $pembulatanSelisih = 0;
+                    } else if ($remainderSelisih < 0) {
                         $pembulatanSelisih = 1000+$remainderSelisih;
                     } else if ($pembulatanSelisih > 0) {
                         $pembulatanSelisih = 1000-$remainderSelisih;
@@ -790,6 +853,18 @@ class PembelianController extends Controller
                 $barang->updated_by = auth()->id();
                 $barang->updated_at = now();
                 $barang->save();
+            } else {
+                //disini ambil harga jual terendah
+                $hargaJualTerendah = HargaBarang::where('barang_id', $barangId)
+                                    ->orderBy('harga', 'asc')
+                                    ->first();
+                if ($hargaJualTerendah) {
+                    $hargaJual = round($hargaJualTerendah->harga,2);
+                    $barang->harga_jual = $hargaJual;
+                    $barang->updated_by = auth()->id();
+                    $barang->updated_at = now();
+                    $barang->save();
+                }
             }
         }
 
