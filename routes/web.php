@@ -19,6 +19,7 @@ use App\Http\Controllers\KasController;
 use App\Http\Controllers\KasSaldoController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\Transaksi\ReturPenjualan;
+use App\Http\Controllers\Transaksi\PenjualanKhususController;
 
 use App\Http\Controllers\LaporanStokController;
 use App\Http\Controllers\Master\PaketController;
@@ -221,6 +222,17 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('penjualan')->group(function () {
         Route::get('/create', [PenjualanController::class, 'create'])->name('penjualan.create');
+
+        // Khusus (untuk menu kasir khusus)
+        Route::prefix('khusus')->group(function () {
+            Route::get('/index', [PenjualanKhususController::class, 'index'])->name('penjualan_khusus.index');
+            Route::get('/create', [PenjualanKhususController::class, 'create'])->name('penjualan_khusus.create');
+            Route::post('/store', [PenjualanKhususController::class, 'store'])->name('penjualan_khusus.store');
+            Route::get('/data', [PenjualanKhususController::class, 'data'])->name('penjualan_khusus.data');
+            Route::get('/{id}', [PenjualanKhususController::class, 'show'])->name('penjualan_khusus.show');
+            Route::get('/{id}/print', [PenjualanController::class, 'print'])->name('penjualan_khusus.print');
+        });
+
         Route::get('/barang/{barangId}/get-satuan-harga-jual', 
             [PenjualanController::class, 'getSatuanBarang']
         )->name('penjualan.get-satuan-barang');
@@ -236,6 +248,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/get-paket-barang', [PenjualanController::class, 'getPaketBarang'])->name('penjualan.get-paket-barang');
         Route::post('/store', [PenjualanController::class, 'store'])->name('penjualan.store');
         Route::get('/', [PenjualanController::class, 'index'])->name('penjualan.index');
+        // /penjualan/data tidak dipakai lagi (disiapkan tetap agar kompatibel)
         Route::get('/data', [PenjualanController::class, 'data'])->name('penjualan.data');
         Route::get('/{satuanId}/get-satuan', [PenjualanController::class, 'getSatuan'])->name('penjualan.get-satuan');
         Route::post('/store-penjualan-cepat', [PenjualanController::class, 'storePenjualanCepat'])->name('penjualan.jual-cepat');

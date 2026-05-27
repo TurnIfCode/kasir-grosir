@@ -3375,6 +3375,10 @@ $(document).ready(function () {
                             barang
                         );
 
+                        setTimeout(() => {
+                            cekPaketBarang();
+                        }, 200);
+
                     }
 
                     // =====================================

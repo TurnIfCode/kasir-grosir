@@ -459,11 +459,32 @@
             <a href="#menuPenjualan" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPenjualan" role="button" aria-expanded="false">
               <i class="fas fa-shopping-cart"></i> Penjualan
             </a>
-        <ul class="collapse nav flex-column ms-3" id="menuPenjualan" data-bs-parent="#sidebarMenu">
-          <li><a class="nav-link" href="{{ route('penjualan.create') }}">Tambah Penjualan</a></li>
-          <li><a class="nav-link" href="{{ route('penjualan.index') }}">Lihat Daftar</a></li>
-        </ul>
-      </li>
+            <ul class="collapse nav flex-column ms-3" id="menuPenjualan" data-bs-parent="#sidebarMenu">
+
+              <!-- Tunai -->
+              <li class="nav-item">
+                <a href="#menuPenjualanTunai" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPenjualanTunai" role="button" aria-expanded="false">
+                  Tunai
+                </a>
+                <ul class="collapse nav flex-column ms-3" id="menuPenjualanTunai" data-bs-parent="#menuPenjualan">
+                  <li><a class="nav-link" href="{{ route('penjualan.create') }}">Tambah</a></li>
+                  <li><a class="nav-link" href="{{ route('penjualan.index') }}">Data</a></li>
+                </ul>
+              </li>
+
+              <!-- Khusus -->
+              <li class="nav-item">
+                <a href="#menuPenjualanKhusus" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuPenjualanKhusus" role="button" aria-expanded="false">
+                  Khusus
+                </a>
+                <ul class="collapse nav flex-column ms-3" id="menuPenjualanKhusus" data-bs-parent="#menuPenjualan">
+                  <li><a class="nav-link" href="{{ route('penjualan_khusus.create') }}">Tambah</a></li>
+                  <li><a class="nav-link" href="{{ route('penjualan_khusus.index') }}">Data</a></li>
+                </ul>
+              </li>
+
+            </ul>
+          </li>
       @endif
 
       @if(auth()->user()->role == 'ADMIN')
