@@ -208,6 +208,12 @@
       background: white;
       border: none;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+      right: 0 !important;
+      left: auto !important;
+
+      max-width: calc(100vw - 20px);
+      overflow-x: hidden;
     }
 
     .dropdown-item:hover {
