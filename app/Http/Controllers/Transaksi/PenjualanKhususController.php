@@ -119,7 +119,7 @@ class PenjualanKhususController extends Controller
             }
 
             $harga_jual = round($detail['subtotal'],2)/$qty_konversi;
-            $harga_jual = round($harga_jual,0);
+            $harga_jual = round($harga_jual,2);
             $subtotal   = $harga_jual*$qty_konversi;
             $subtotal   = round($subtotal,2);
 

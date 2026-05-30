@@ -150,6 +150,13 @@
             </select>
           </div>
           <div class="form-group mb-3">
+            <label for="edit_jenis" class="form-label">Jenis</label>
+            <select class="form-control" id="edit_jenis" name="edit_jenis">
+              <option value="legal">Legal</option>
+              <option value="ilegal">Ilegal</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
             <label for="edit_status" class="form-label">Status</label>
             <select class="form-control" id="edit_status" name="status">
               <option value="aktif">Aktif</option>
@@ -432,6 +439,7 @@ $(document).ready(function() {
           detailHtml += '<tr><td><strong>Harga Jual</strong></td><td>Rp ' + (barang.harga_jual ? number_format(barang.harga_jual, 0, ',', '.') : '0') + '</td></tr>';
           detailHtml += '<tr><td><strong>Multi Satuan</strong></td><td>' + (barang.multi_satuan ? 'Ya' : 'Tidak') + '</td></tr>';
           detailHtml += '<tr><td><strong>Deskripsi</strong></td><td>' + (barang.deskripsi || '-') + '</td></tr>';
+          detailHtml += '<tr><td><strong>Jenis</strong></td><td>' + (barang.jenis || 'Legal') + '</td></tr>';
           detailHtml += '<tr><td><strong>Status</strong></td><td>' + (barang.status || 'aktif') + '</td></tr>';
 
           // Display barcodes
@@ -475,6 +483,7 @@ $(document).ready(function() {
           $('#edit_harga_jual').val(barang.harga_jual ? barang.harga_jual: '0');
           $('#edit_multi_satuan').val(barang.multi_satuan || 0);
           $('#edit_deskripsi').val(barang.deskripsi || '');
+          $('#edit_jenis').val(barang.jenis);
           $('#edit_status').val(barang.status || 'aktif');
 
           

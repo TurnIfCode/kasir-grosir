@@ -58,6 +58,13 @@
         </select>
       </div>
       <div class="mb-3">
+        <label for="jenis" class="form-label">Jenis</label>
+        <select class="form-control" id="jenis" name="jenis">
+          <option value="legal">Legal</option>
+          <option value="ilegal">Ilegal</option>
+        </select>
+      </div>
+      <div class="mb-3">
         <label for="status" class="form-label">Status</label>
         <select class="form-control" id="status" name="status">
           <option value="aktif">Aktif</option>

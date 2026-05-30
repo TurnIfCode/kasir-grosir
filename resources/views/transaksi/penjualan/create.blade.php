@@ -1096,10 +1096,10 @@ $(document).ready(function () {
 
         if (remainder === 0) {
             pembulatan = 0;
-        } else if (remainder >= 1 && remainder < 300) {
+        } else if (remainder >= 1 && remainder < 199) {
             // Bulat ke 0
             pembulatan = -remainder;
-        } else if (remainder >= 300 && remainder <= 500) {
+        } else if (remainder >= 200 && remainder <= 500) {
             // Bulat ke 500
             pembulatan = 500 - remainder;
         } else {

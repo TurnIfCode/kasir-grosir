@@ -146,6 +146,7 @@ class BarangController extends Controller
         $harga_jual     = trim($request->harga_jual);
         $deskripsi      = trim($request->deskripsi);
         $multi_satuan   = trim($request->multi_satuan);
+        $jenis          = trim($request->jenis);
         $status         = trim($request->status);
 
         //disni cek kategori
@@ -255,6 +256,7 @@ class BarangController extends Controller
         $barang->stok = $stok;
         $barang->harga_beli = $harga_beli;
         $barang->harga_jual = $harga_jual;
+        $barang->jenis = $jenis;
         $barang->multi_satuan = $multi_satuan;
         $barang->deskripsi = $deskripsi;
         $barang->status = $status;
@@ -294,9 +296,9 @@ class BarangController extends Controller
             'nama_barang' => $barang->nama_barang,
             'kategori_id' => $barang->kategori_id,
             'satuan_id' => $barang->satuan_id,
-            'stok' => $barang->stok,
-            'harga_beli' => $barang->harga_beli,
-            'harga_jual' => $barang->harga_jual,
+            'stok' => round($barang->stok,2),
+            'harga_beli' => round($barang->harga_beli,2),
+            'harga_jual' => round($barang->harga_jual,2),
             'multi_satuan' => $barang->multi_satuan,
             'deskripsi' => $barang->deskripsi,
             'status' => $barang->status,
@@ -372,6 +374,7 @@ class BarangController extends Controller
         $deskripsi      = trim($request->deskripsi);
         $multi_satuan   = trim($request->multi_satuan);
         $status         = trim($request->status);
+        $jenis          = trim($request->jenis);
 
         $barang = Barang::find($id);
         if (!$barang) {
@@ -459,6 +462,7 @@ class BarangController extends Controller
         $barang->multi_satuan = $multi_satuan;
         $barang->deskripsi = $deskripsi;
         $barang->status = $status;
+        $barang->jenis = $jenis;
         $barang->updated_by = auth()->id();
         $barang->updated_at = now();
         $barang->save();

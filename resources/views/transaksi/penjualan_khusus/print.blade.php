@@ -86,13 +86,12 @@
             <span>-{{ number_format($penjualan->potongan,0,',','.') }}</span>
         </div>
     @endif
-    
-
-    <div class="row">
-        <span>Pembulatan</span>
-        <span>{{ number_format($penjualan->pembulatan,0,',','.') }}</span>
-    </div>
-
+    @if ($penjualan->pembulatan != 0)
+        <div class="row">
+            <span>Pembulatan</span>
+            <span>{{ number_format($penjualan->pembulatan,0,',','.') }}</span>
+        </div>
+    @endif
     <div class="row bold">
         <span>GRAND TOTAL</span>
         <span>{{ number_format($penjualan->grand_total,0,',','.') }}</span>
@@ -103,12 +102,12 @@
         <span>DIBAYAR</span>
         <span>{{ number_format($penjualan->dibayar,0,',','.') }}</span>
     </div>
-
-    <div class="row">
-        <span>KEMBALIAN</span>
-        <span>{{ number_format($penjualan->kembalian,0,',','.') }}</span>
-    </div>
-
+    @if ($penjualan->kembalian != 0)
+        <div class="row">
+            <span>KEMBALIAN</span>
+            <span>{{ number_format($penjualan->kembalian,0,',','.') }}</span>
+        </div>
+    @endif
     <!-- QR code (generated from kode_penjualan) -->
     @php
         $qrValue = (string) ($penjualan->kode_penjualan ?? '');
