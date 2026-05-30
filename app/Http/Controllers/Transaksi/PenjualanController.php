@@ -468,10 +468,12 @@ class PenjualanController extends Controller
         // AMBIL DATA DARI FRONTEND
         // ============================================
 
+
         $barangIds     = $request->barang_ids ?? [];
         $qtyMap        = $request->qty_map ?? [];
         $satuanIds     = $request->satuan_ids ?? [];
         $tipeHargaMap  = $request->tipe_harga_map ?? [];
+        $barangSatuanMap = [];
 
         // ============================================
         // RESPONSE DEFAULT
@@ -505,7 +507,6 @@ class PenjualanController extends Controller
 
         // ============================================
         // AMBIL DATA BARANG
-        // TIDAK TERMASUK KATEGORI ROKOK
         // ============================================
 
         $barangs = \App\Models\Barang::select(
@@ -516,10 +517,6 @@ class PenjualanController extends Controller
                 'kategori_id'
             )
             ->whereIn('id', $barangIds)
-
-            // ============================================
-            // EXCLUDE ROKOK
-            // ============================================
 
             ->when($kategoriRokok, function ($query) use ($kategoriRokok) {
 
@@ -535,23 +532,14 @@ class PenjualanController extends Controller
         // ============================================
 
         foreach ($barangIds as $index => $barangId) {
-
+            $barangSatuanMap[$barangId] = $satuanIds[$index] ?? null;
             $requestSatuanId = $satuanIds[$index] ?? null;
 
             $barang = $barangs->get($barangId);
 
-            // ============================================
-            // BARANG TIDAK DITEMUKAN
-            // ATAU TERMASUK ROKOK
-            // ============================================
-
             if (!$barang) {
                 continue;
             }
-
-            // ============================================
-            // SATUAN BERBEDA
-            // ============================================
 
             if ((int)$barang->satuan_id !== (int)$requestSatuanId) {
                 continue;
@@ -596,27 +584,15 @@ class PenjualanController extends Controller
             $tipeHarga
         ) use ($barangs) {
 
-            // ============================================
-            // CEK HARGA CUSTOM
-            // ============================================
-
             $hargaBarang = \App\Models\HargaBarang::where('barang_id', $barangId)
                 ->where('satuan_id', $satuanId)
                 ->where('tipe_harga', $tipeHarga)
                 ->where('status', 'aktif')
                 ->first();
 
-            // ============================================
-            // JIKA ADA HARGA CUSTOM
-            // ============================================
-
             if ($hargaBarang) {
                 return $hargaBarang->harga;
             }
-
-            // ============================================
-            // HARGA DEFAULT BARANG
-            // ============================================
 
             $barang = $barangs->get($barangId);
 
@@ -645,17 +621,9 @@ class PenjualanController extends Controller
 
             foreach ($pakets as $paket) {
 
-                // ============================================
-                // DETAIL PAKET
-                // ============================================
-
                 $paketBarangIds = \App\Models\PaketDetail::where('paket_id', $paket->id)
                     ->pluck('barang_id')
                     ->toArray();
-
-                // ============================================
-                // BARANG YANG COCOK
-                // ============================================
 
                 $matchingBarangs = array_intersect(
                     $barangIdsNonRokok,
@@ -666,10 +634,6 @@ class PenjualanController extends Controller
                     continue;
                 }
 
-                // ============================================
-                // HITUNG TOTAL QTY
-                // ============================================
-
                 $totalQtyPaket = 0;
 
                 foreach ($matchingBarangs as $barangId) {
@@ -679,25 +643,13 @@ class PenjualanController extends Controller
                     $totalQtyPaket += (int)$qty;
                 }
 
-                // ============================================
-                // TIDAK MEMENUHI QTY
-                // ============================================
-
                 if ($totalQtyPaket < $paket->total_qty) {
                     continue;
                 }
 
-                // ============================================
-                // HARGA SATUAN PAKET
-                // ============================================
-
                 $hargaSatuanPaket = floor(
                     $paket->harga / $paket->total_qty
                 );
-
-                // ============================================
-                // DETAIL PAKET
-                // ============================================
 
                 $paketDetail = [
                     'paket_id'             => $paket->id,
@@ -724,7 +676,6 @@ class PenjualanController extends Controller
                     }
 
                     $subtotal = $qty * $hargaSatuanPaket;
-                    // disini hitung dulu pembulatannya baru masukin ke subtotal akhir
                     $subtotal = round($subtotal, 2);
 
                     $paketDetail['items'][] = [
@@ -742,10 +693,6 @@ class PenjualanController extends Controller
                         'qty'           => round($qty, 2)
                     ];
                 }
-
-                // ============================================
-                // JIKA ADA ITEM
-                // ============================================
 
                 if (!empty($paketDetail['items'])) {
 
@@ -780,52 +727,55 @@ class PenjualanController extends Controller
         }
 
         // ============================================
-        // JIKA TIDAK ADA PAKET
-        // MAKA GUNAKAN HARGA NORMAL
+        // AMBIL BARANG YANG SUDAH MASUK PAKET
         // ============================================
 
-        if (empty($result['paket_details'])) {
+        $barangYangSudahDipaketkan = [];
 
-            $subtotalAkhir = 0;
+        foreach ($result['updated_items'] as $item) {
 
-            foreach ($barangIdsNonRokok as $index => $barangId) {
+            $barangYangSudahDipaketkan[] = $item['barang_id'];
+        }
 
-                $barang = $barangs->get($barangId);
+        // ============================================
+        // HITUNG BARANG YANG TIDAK MASUK PAKET
+        // ============================================
 
-                if (!$barang) {
-                    continue;
-                }
+        foreach ($barangIdsNonRokok as $barangId) {
 
-                $qty = $qtyMap[$barangId] ?? 0;
-
-                $satuanId = $satuanIds[$index] ?? null;
-
-                $tipeHarga = $tipeHargaMap[$barangId] ?? null;
-
-                // ============================================
-                // AMBIL HARGA
-                // ============================================
-
-                $harga = $getHargaBarang(
-                    $barangId,
-                    $satuanId,
-                    $tipeHarga
-                );
-
-                $subtotal = $qty * $harga;
-
-                $subtotalAkhir += $subtotal;
-
-                $result['updated_items'][] = [
-                    'barang_id'     => $barangId,
-                    'barang_nama'   => $barang->nama_barang,
-                    'qty'           => round($qty, 2),
-                    'harga_baru'    => round($harga, 2),
-                    'subtotal_baru' => round($subtotal, 2)
-                ];
+            if (in_array($barangId, $barangYangSudahDipaketkan)) {
+                continue;
             }
 
-            $result['subtotal_akhir'] = $subtotalAkhir;
+            $barang = $barangs->get($barangId);
+
+            if (!$barang) {
+                continue;
+            }
+
+            $qty = $qtyMap[$barangId] ?? 0;
+
+            $satuanId = $barangSatuanMap[$barangId] ?? null;
+
+            $tipeHarga = $tipeHargaMap[$barangId] ?? null;
+
+            $harga = $getHargaBarang(
+                $barangId,
+                $satuanId,
+                $tipeHarga
+            );
+
+            $subtotal = $qty * $harga;
+
+            $result['subtotal_akhir'] += $subtotal;
+
+            $result['updated_items'][] = [
+                'barang_id'     => $barangId,
+                'barang_nama'   => $barang->nama_barang,
+                'qty'           => round($qty, 2),
+                'harga_baru'    => round($harga, 2),
+                'subtotal_baru' => round($subtotal, 2)
+            ];
         }
 
         // ============================================
@@ -833,7 +783,10 @@ class PenjualanController extends Controller
         // ============================================
 
         return response()->json($result);
+
+
     }
+
 
 
     private function generateKodePenjualan(): string
