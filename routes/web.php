@@ -370,6 +370,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/penjualan-barang/export-pdf', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'exportPDF'])->name('laporan.penjualan-barang.export_pdf');
         Route::get('/penjualan-barang/export-excel', [\App\Http\Controllers\LaporanPenjualanBarangController::class, 'exportExcel'])->name('laporan.penjualan-barang.export_excel');
 
+        Route::get('/stok-minimum-barang-jenis-supplier', [\App\Http\Controllers\LaporanStokMinimumBarangJenisSupplierController::class, 'index'])->name('laporan.stok-minimum-barang-jenis-supplier');
+        Route::get('/stok-minimum-barang-jenis-supplier/data', [\App\Http\Controllers\LaporanStokMinimumBarangJenisSupplierController::class, 'data'])->name('laporan.stok-minimum-barang-jenis-supplier.data');
+        Route::get('/stok-minimum-barang-jenis-supplier/export-pdf', [\App\Http\Controllers\LaporanStokMinimumBarangJenisSupplierController::class, 'exportPDF'])->name('laporan.stok-minimum-barang-jenis-supplier.export_pdf');
     });
 
     // Stok Opname Routes

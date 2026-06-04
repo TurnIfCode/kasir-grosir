@@ -80,13 +80,15 @@ class JenisBarangController extends Controller
 
     public function store(Request $request)
     {
-        $kode_jenis  = trim($request->input('kode_jenis'));
-        $nama_jenis  = trim($request->input('nama_jenis'));
-        $kategori_id = $request->input('kategori_id');
-        $barang_id   = $request->input('barang_id');
-        $supplier_id = $request->input('supplier_id');
-        $deskripsi   = trim($request->input('deskripsi'));
-        $status      = trim($request->input('status'));
+        $kode_jenis     = trim($request->input('kode_jenis'));
+        $nama_jenis     = trim($request->input('nama_jenis'));
+        $kategori_id    = $request->input('kategori_id');
+        $barang_id      = $request->input('barang_id');
+        $supplier_id    = $request->input('supplier_id');
+        $deskripsi      = trim($request->input('deskripsi'));
+        $status         = trim($request->input('status'));
+
+        $barang_ids     = $request->input('barang_ids', []);
 
         if (empty($kode_jenis)) {
             return response()->json([
@@ -116,15 +118,6 @@ class JenisBarangController extends Controller
             ]);
         }
 
-        // cek jenis barang sudah ada atau belum
-        $cekJenisBarang = JenisBarang::where('kode_jenis', $kode_jenis)->first();
-        if ($cekJenisBarang) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kode jenis sudah terdaftar'
-            ]);
-        }
-
         if (empty($status)) {
             return response()->json([
                 'success' => false,
@@ -132,25 +125,31 @@ class JenisBarangController extends Controller
             ]);
         }
 
-        $jenisBarangModel = new JenisBarang();
-        $jenisBarangModel->kode_jenis = $kode_jenis;
-        $jenisBarangModel->nama_jenis = $nama_jenis;
-        $jenisBarangModel->kategori_id = $kategori_id;
-        $jenisBarangModel->barang_id = $barang_id;
-        $jenisBarangModel->supplier_id = $supplier_id;
-        $jenisBarangModel->deskripsi = $deskripsi;
-        $jenisBarangModel->status = $status;
-        $jenisBarangModel->created_by = auth()->check() ? auth()->user()->id : null;
-        $jenisBarangModel->updated_by = auth()->check() ? auth()->user()->id : null;
-        $jenisBarangModel->created_at = now();
-        $jenisBarangModel->updated_at = now();
-        $jenisBarangModel->save();
+        if (count($barang_ids) > 0) {
+            foreach ($barang_ids as $barangId) {
+                $jenisBarangModel = new JenisBarang();
+                $jenisBarangModel->kode_jenis = $kode_jenis;
+                $jenisBarangModel->nama_jenis = $nama_jenis;
+                $jenisBarangModel->kategori_id = $kategori_id;
+                $jenisBarangModel->barang_id = $barangId;
+                $jenisBarangModel->supplier_id = $supplier_id;
+                $jenisBarangModel->deskripsi = $deskripsi;
+                $jenisBarangModel->status = $status;
+                $jenisBarangModel->created_by = auth()->check() ? auth()->user()->id : null;
+                $jenisBarangModel->updated_by = auth()->check() ? auth()->user()->id : null;
+                $jenisBarangModel->created_at = now();
+                $jenisBarangModel->updated_at = now();
+                $jenisBarangModel->save();
 
-        $newLog = new Log();
-        $newLog->keterangan = 'Menambahkan jenis barang baru: ' . $jenisBarangModel->nama_jenis . ' (Kode Jenis: ' . $jenisBarangModel->kode_jenis . ')';
-        $newLog->created_by = auth()->id();
-        $newLog->created_at = now();
-        $newLog->save();
+                $newLog = new Log();
+                $newLog->keterangan = 'Menambahkan jenis barang baru: ' . $jenisBarangModel->nama_jenis . ' (Kode Jenis: ' . $jenisBarangModel->kode_jenis . ')';
+                $newLog->created_by = auth()->id();
+                $newLog->created_at = now();
+                $newLog->save();
+            }
+        } 
+
+        
 
         return response()->json([
             'success' => true,

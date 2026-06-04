@@ -151,7 +151,7 @@
           </div>
           <div class="form-group mb-3">
             <label for="edit_jenis" class="form-label">Jenis</label>
-            <select class="form-control" id="edit_jenis" name="edit_jenis">
+            <select class="form-control" id="edit_jenis" name="jenis">
               <option value="legal">Legal</option>
               <option value="ilegal">Ilegal</option>
             </select>

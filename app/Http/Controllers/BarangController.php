@@ -215,14 +215,14 @@ class BarangController extends Controller
         if ($cekNamaBarang > 0) {
             return response()->json([
                 'success'   => false,
-                'message'   => 'Nama barang harus diisi',
+                'message'   => 'Nama barang sudah terdaftar',
                 'form'      => 'nama_barang'
             ]);
         }
 
-        $stok = round($stok);
-        $harga_beli = round($harga_beli);
-        $harga_jual = round($harga_jual);
+        $stok = round($stok,2);
+        $harga_beli = round($harga_beli,2);
+        $harga_jual = round($harga_jual,2);
 
         if ($stok < 0) {
             return response()->json([

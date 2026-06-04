@@ -18,14 +18,17 @@
         <input type="hidden" id="kategori_id" name="kategori_id" required>
       </div>
       <div class="mb-3">
-        <label for="barang_autocomplete" class="form-label">Barang*</label>
-        <input type="text" class="form-control" id="barang_autocomplete" name="barang_nama" placeholder="Ketik nama barang" required>
-        <input type="hidden" id="barang_id" name="barang_id" required>
-      </div>
-      <div class="mb-3">
         <label for="supplier_autocomplete" class="form-label">Supplier*</label>
         <input type="text" class="form-control" id="supplier_autocomplete" name="supplier_nama" placeholder="Ketik nama supplier" required>
         <input type="hidden" id="supplier_id" name="supplier_id" required>
+      </div>
+      <div class="mb-3">
+        <label for="barang_ids" class="form-label">Daftar Barang*</label>
+        
+        <!-- Preserve select2 autocomplete used for searching barang -->
+        <select id="barang_ids" name="barang_ids[]" class="form-select" multiple="multiple" style="width: 100%;">
+          <!-- Options will be loaded by select2 ajax -->
+        </select>
       </div>
       <div class="mb-3">
         <label for="deskripsi">Deskripsi</label>
@@ -41,9 +44,12 @@
       <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
     </form>
   </div>
-
+</div>
+@include('layout.footer')
 <script>
 $(document).ready(function() {
+  $("[name=kode_jenis]").focus().select();
+
   // Autocomplete kategori
   $('#kategori_autocomplete').autocomplete({
     source: function(request, response) {
@@ -72,32 +78,65 @@ $(document).ready(function() {
     }
   });
 
-  // Autocomplete barang
-  $('#barang_autocomplete').autocomplete({
-    source: function(request, response) {
-      $.ajax({
-        url: '{{ route("jenis_barang.search.barang") }}',
-        dataType: 'json',
-        data: { q: request.term },
-        success: function(data) {
-          if (data.success) {
-            response($.map(data.data, function(item) {
+  $('#barang_ids').select2({
+      placeholder: 'Cari dan pilih barang',
+      allowClear: true,
+      multiple: true,
+      width: '100%',
+      ajax: {
+          url: '{{ route("jenis_barang.search.barang") }}',
+          dataType: 'json',
+          delay: 250,
+
+          data: function(params) {
               return {
-                label: item.nama_barang,
-                value: item.nama_barang,
-                id: item.id
+                  q: params.term || '',
+                  exclude_ids: $('#barang_ids').val() || []
               };
-            }));
-          }
-        }
-      });
-    },
-    minLength: 2,
-    select: function(event, ui) {
-      $('#barang_id').val(ui.item.id);
-      $('#barang_autocomplete').val(ui.item.value);
-      return false;
-    }
+          },
+
+          processResults: function(data) {
+
+              let selectedIds = $('#barang_ids').val() || [];
+
+              let results = [];
+
+              if (data.success) {
+
+                  $.each(data.data, function(index, item) {
+
+                      // Jangan tampilkan yang sudah dipilih
+                      if ($.inArray(item.id.toString(), selectedIds) === -1) {
+
+                          results.push({
+                              id: item.id,
+                              text: item.nama_barang
+                          });
+
+                      }
+
+                  });
+
+              }
+
+              return {
+                  results: results
+              };
+          },
+
+          cache: false
+      },
+      minimumInputLength: 2
+  });
+
+  $('#barang_ids').on('select2:select', function () {
+
+      $(this).select2('close');
+
+      setTimeout(() => {
+          $(this).select2('open');
+      }, 100);
+
   });
 
   // Autocomplete supplier
@@ -139,13 +178,13 @@ $(document).ready(function() {
           required: true,
           minlength: 3
         },
-        kategori_id: {
+        kategori_nama: {
           required: true
         },
-        barang_id: {
+        barang_ids: {
           required: true
         },
-        supplier_id: {
+        supplier_nama: {
           required: true
         }
       },
@@ -158,13 +197,13 @@ $(document).ready(function() {
           required: "Nama jenis wajib diisi",
           minlength: "Nama jenis minimal 3 karakter"
         },
-        kategori_id: {
+        kategori_nama: {
           required: "Kategori wajib dipilih"
         },
-        barang_id: {
+        barang_ids: {
           required: "Barang wajib dipilih"
         },
-        supplier_id: {
+        supplier_nama: {
           required: "Supplier wajib dipilih"
         }
       },
@@ -202,7 +241,7 @@ $(document).ready(function() {
     });
   });
 });
+
 </script>
-
-
-@include('layout.footer')
+</body>
+</html>
