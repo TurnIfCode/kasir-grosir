@@ -1,3 +1,4 @@
+@section('title', 'Tambah Barang - GrosirIndo')
 @include('layout.header')
 <div class="container-fluid">
   <h3 class="mb-4">Tambah Barang</h3>

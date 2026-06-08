@@ -1,3 +1,4 @@
+@section('title', 'Profil Toko - GrosirIndo')
 @include('layout.header')
 
 <div class="container-fluid">

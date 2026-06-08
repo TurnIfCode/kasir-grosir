@@ -1,7 +1,8 @@
+@section('title', 'Data Paket - GrosirIndo')
 @include('layout.header')
 
 <div class="container-fluid">
-    <h3 class="mb-4">Daftar Paket</h3>
+    <h3 class="mb-4">Data Paket</h3>
 
     <a href="{{ route('master.paket.create') }}" class="btn btn-primary mb-3">Tambah Paket</a>
 
@@ -29,7 +30,7 @@
 </div>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"/>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
 
 <script>
 $(document).ready(function() {

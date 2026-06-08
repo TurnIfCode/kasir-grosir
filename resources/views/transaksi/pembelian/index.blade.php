@@ -1,3 +1,4 @@
+@section('title', 'Daftar Pembelian - GrosirIndo')
 @include('layout.header')
 
 <div class="container-fluid">

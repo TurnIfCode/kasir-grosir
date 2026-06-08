@@ -120,21 +120,35 @@ class LaporanStokController extends Controller
         $tanggalAwal = $request->tanggal_awal;
         $tanggalAkhir = $request->tanggal_akhir;
         $barangId = $request->barang_id;
-        $tipe = $request->tipe; // 'masuk' atau 'keluar'
+        $tipe = $request->tipe; // masuk atau keluar
 
         if ($tipe === 'masuk') {
-            // Stok Masuk dari Pembelian
+
+            // STOK MASUK (PEMBELIAN)
             $query = DB::table('pembelian_detail as pd')
                 ->join('pembelian as p', 'pd.pembelian_id', '=', 'p.id')
                 ->join('barang as b', 'pd.barang_id', '=', 'b.id')
                 ->join('satuan as s', 'pd.satuan_id', '=', 's.id')
                 ->leftJoin('supplier as sup', 'p.supplier_id', '=', 'sup.id')
+
+                ->leftJoin('konversi_satuan as ks', function ($join) {
+                    $join->on('pd.barang_id', '=', 'ks.barang_id')
+                        ->on('pd.satuan_id', '=', 'ks.satuan_konversi_id');
+                })
+
                 ->select([
                     'p.tanggal_pembelian as tanggal',
                     DB::raw("'Pembelian' as jenis_transaksi"),
-
                     'p.kode_pembelian as nomor_transaksi',
-                    'pd.qty_konversi as jumlah',
+
+                    DB::raw("
+                        CASE
+                            WHEN ks.nilai_konversi IS NOT NULL
+                            THEN pd.qty * ks.nilai_konversi
+                            ELSE pd.qty
+                        END as jumlah
+                    "),
+
                     DB::raw('0 as stok_akhir'),
                     'b.nama_barang',
                     's.nama_satuan',
@@ -143,24 +157,41 @@ class LaporanStokController extends Controller
                     DB::raw('COALESCE(sup.nama_supplier, "-") as supplier')
                 ])
                 ->where('p.status', 'selesai')
-                ->when($tanggalAwal && $tanggalAkhir, function($q) use ($tanggalAwal, $tanggalAkhir) {
+                ->when($tanggalAwal && $tanggalAkhir, function ($q) use ($tanggalAwal, $tanggalAkhir) {
                     $q->whereBetween('p.tanggal_pembelian', [$tanggalAwal, $tanggalAkhir]);
                 })
-                ->when($barangId, fn($q) => $q->where('pd.barang_id', $barangId))
+                ->when($barangId, function ($q) use ($barangId) {
+                    $q->where('pd.barang_id', $barangId);
+                })
                 ->orderBy('p.tanggal_pembelian', 'desc');
+
         } else {
 
-            // Stok Keluar dari Penjualan
+            // STOK KELUAR (PENJUALAN)
             $query = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'pd.penjualan_id', '=', 'p.id')
                 ->join('barang as b', 'pd.barang_id', '=', 'b.id')
                 ->join('satuan as s', 'pd.satuan_id', '=', 's.id')
                 ->leftJoin('pelanggan as pel', 'p.pelanggan_id', '=', 'pel.id')
+
+                ->leftJoin('konversi_satuan as ks', function ($join) {
+                    $join->on('pd.barang_id', '=', 'ks.barang_id')
+                        ->on('pd.satuan_id', '=', 'ks.satuan_konversi_id');
+                })
+
                 ->select([
                     'p.tanggal_penjualan as tanggal',
                     DB::raw("'Penjualan' as jenis_transaksi"),
                     'p.kode_penjualan as nomor_transaksi',
-                    'pd.qty_konversi as jumlah',
+
+                    DB::raw("
+                        CASE
+                            WHEN ks.nilai_konversi IS NOT NULL
+                            THEN pd.qty * ks.nilai_konversi
+                            ELSE pd.qty
+                        END as jumlah
+                    "),
+
                     DB::raw('0 as stok_akhir'),
                     'b.nama_barang',
                     's.nama_satuan',
@@ -169,19 +200,36 @@ class LaporanStokController extends Controller
                     DB::raw('COALESCE(pel.nama_pelanggan, "-") as pelanggan')
                 ])
                 ->where('p.status', 'selesai')
-                ->when($tanggalAwal && $tanggalAkhir, function($q) use ($tanggalAwal, $tanggalAkhir) {
+                ->when($tanggalAwal && $tanggalAkhir, function ($q) use ($tanggalAwal, $tanggalAkhir) {
                     $q->whereBetween('p.tanggal_penjualan', [$tanggalAwal, $tanggalAkhir]);
                 })
-                ->when($barangId, fn($q) => $q->where('pd.barang_id', $barangId))
+                ->when($barangId, function ($q) use ($barangId) {
+                    $q->where('pd.barang_id', $barangId);
+                })
                 ->orderBy('p.tanggal_penjualan', 'desc');
         }
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->editColumn('tanggal', fn($row) => \Carbon\Carbon::parse($row->tanggal)->format('d/m/Y'))
-            ->editColumn('harga_beli', fn($row) => $tipe === 'masuk' ? 'Rp ' . number_format($row->harga_beli, 0, ',', '.') : '-')
-            ->editColumn('harga_jual', fn($row) => $tipe === 'keluar' ? 'Rp ' . number_format($row->harga_jual, 0, ',', '.') : '-')
-            ->editColumn('subtotal', fn($row) => 'Rp ' . number_format($row->subtotal, 0, ',', '.'))
+            ->editColumn('tanggal', function ($row) {
+                return \Carbon\Carbon::parse($row->tanggal)->format('d/m/Y');
+            })
+            ->editColumn('jumlah', function ($row) {
+                return number_format($row->jumlah, 2, ',', '.');
+            })
+            ->editColumn('harga_beli', function ($row) use ($tipe) {
+                return $tipe === 'masuk'
+                    ? 'Rp ' . number_format($row->harga_beli, 0, ',', '.')
+                    : '-';
+            })
+            ->editColumn('harga_jual', function ($row) use ($tipe) {
+                return $tipe === 'keluar'
+                    ? 'Rp ' . number_format($row->harga_jual, 0, ',', '.')
+                    : '-';
+            })
+            ->editColumn('subtotal', function ($row) {
+                return 'Rp ' . number_format($row->subtotal, 0, ',', '.');
+            })
             ->make(true);
     }
 
@@ -298,29 +346,49 @@ class LaporanStokController extends Controller
             ->select([
                 'b.kode_barang',
                 'b.nama_barang',
+
                 DB::raw('COALESCE(k.nama_kategori, "-") as nama_kategori'),
                 DB::raw('COALESCE(s.nama_satuan, "-") as nama_satuan'),
+
                 'sod.stok_sistem',
                 'sod.stok_fisik as stok_real',
+
                 DB::raw('(sod.stok_fisik - sod.stok_sistem) as selisih'),
+
                 'sod.keterangan',
-                'so.tanggal'
+
+                // alias agar cocok dengan DataTables
+                'so.tanggal as tanggal_opname'
             ])
-            ->when($tanggalAwal && $tanggalAkhir, function($q) use ($tanggalAwal, $tanggalAkhir) {
+            ->when($tanggalAwal && $tanggalAkhir, function ($q) use ($tanggalAwal, $tanggalAkhir) {
                 $q->whereBetween('so.tanggal', [$tanggalAwal, $tanggalAkhir]);
             })
-            ->when($kategoriId, fn($q) => $q->where('b.kategori_id', $kategoriId))
+            ->when($kategoriId, function ($q) use ($kategoriId) {
+                $q->where('b.kategori_id', $kategoriId);
+            })
             ->orderBy('so.tanggal', 'desc');
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->editColumn('tanggal', fn($row) => \Carbon\Carbon::parse($row->tanggal)->format('d/m/Y'))
-            ->addColumn('selisih_formatted', function($row) {
-                $selisih = $row->selisih;
-                $color = $selisih > 0 ? 'text-success' : ($selisih < 0 ? 'text-danger' : 'text-muted');
-                $prefix = $selisih > 0 ? '+' : '';
-                return '<span class="' . $color . '">' . $prefix . $selisih . '</span>';
+
+            ->editColumn('tanggal_opname', function ($row) {
+                return $row->tanggal_opname
+                    ? \Carbon\Carbon::parse($row->tanggal_opname)->format('d/m/Y')
+                    : '-';
             })
+
+            ->addColumn('selisih_formatted', function ($row) {
+                $selisih = (float)$row->selisih;
+
+                $color = $selisih > 0
+                    ? 'text-success'
+                    : ($selisih < 0 ? 'text-danger' : 'text-muted');
+
+                $prefix = $selisih > 0 ? '+' : '';
+
+                return '<span class="' . $color . '">' . $prefix . number_format($selisih, 2, ',', '.') . '</span>';
+            })
+
             ->rawColumns(['selisih_formatted'])
             ->make(true);
     }

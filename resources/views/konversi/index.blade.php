@@ -1,3 +1,4 @@
+@section('title', 'Data Konversi Satuan - GrosirIndo')
 @include('layout.header')
 <div class="container-fluid">
   <h3 class="mb-4">Data Konversi Satuan</h3>

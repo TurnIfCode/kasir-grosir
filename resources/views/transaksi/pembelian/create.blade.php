@@ -1,5 +1,5 @@
 
-@section('title', 'Tambah Pembelian')
+@section('title', 'Tambah Pembelian - GrosirIndo')
 @include('layout.header')
 <div class="container-fluid py-4">
     <!-- Header Section -->

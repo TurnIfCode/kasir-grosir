@@ -1,3 +1,4 @@
+@section('title', 'Edit Paket - GrosirIndo')
 @include('layout.header')
 
 <div class="container-fluid">
@@ -68,8 +69,9 @@
 
 @include('layout.footer')
 
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+
+<script src="{{ asset('js/select2.min.js') }}"></script>
 
 <script>
 $(document).ready(function() {

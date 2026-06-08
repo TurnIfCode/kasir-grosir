@@ -1,4 +1,4 @@
-@section('title', 'Penjualan')
+@section('title', 'Tambah Penjualan Tunai - GrosirIndo')
 @include('layout.header')
 <div class="container-fluid py-2 py-md-4">
     <!-- Header Section -->
@@ -890,10 +890,6 @@ $(document).ready(function () {
                 let qty = $("#qty\\[" + dataId + "\\]").val();
                 qty = qty ? Math.round(qty) : 1;
 
-                // disini cek dulu tipe harganya
-                console.log("TIPE HARGA DEFAULT", defaultTipe);
-                
-
                 let subtotal = Math.round(qty * harga);
                 let subTotalDetail = 0;
                 if (defaultTipe === 'modal') {
@@ -901,7 +897,6 @@ $(document).ready(function () {
                 } else {
                     subTotalDetail = loadPembulatanSubtotalDetail(subtotal);
                 }
-                console.log("INI SUBTOTAL DETAILNYA DUDE==>", subTotalDetail);
 
                 $("#harga_jual\\[" + dataId + "\\]").val(harga);
                 $("#subtotal\\[" + dataId + "\\]").val(subTotalDetail);
@@ -1037,7 +1032,34 @@ $(document).ready(function () {
                         }
                         subtotal = Math.round(subtotal);
                         $("#subtotal\\[" + dataId + "\\]").val(subtotal);
-                    } else {
+                    } 
+                    // =====================================
+                    // UNTUK BARANG GRUP
+                    // =====================================
+                    else if (
+                        result.data.id == 3241 ||
+                        result.data.id == 3251 ||
+                        result.data.id == 3252
+                    ) {
+
+                        console.log("INI BARANG IDNYA DUDE==>", result.data.id);
+                        
+
+                        subtotal = qty * hargaJual;
+
+                        subtotal = Math.round(subtotal);
+
+                        const subTotalDetail =
+                            loadPembulatanSubtotalDetail(
+                                subtotal
+                            );
+                        console.log("INI SUBTOTAL DETAILNYA DUDE==>", subTotalDetail);
+                        
+
+                        $("#subtotal\\[" + dataId + "\\]")
+                            .val(subTotalDetail);
+                    }
+                    else {
                         let isPaketValue = $("#is_paket\\[" + dataId + "\\]").val();
                         if (isPaketValue === undefined) {
                             isPaketValue = false;
@@ -1413,6 +1435,8 @@ $(document).ready(function () {
             success: function (result) {
                 
                 if (result.success) {
+                    console.log("RESULT PAKETNYA DUDE==>", result.paket_details.length);
+                    
                     if (result.paket_details && result.paket_details.length > 0) {
                         applyPaketToItems(result.paket_details);
                     } else {
@@ -1431,7 +1455,11 @@ $(document).ready(function () {
     function applyHargaNonPaketToItems(updatedItems) {
         console.log("INI HARGA NON PAKET", updatedItems);
         updatedItems.forEach(function(item) {
-            updateItemPriceFromPaket(item.barang_id, item.harga_baru, item.subtotal_baru);
+            console.log("INI HARGA SUBTOTAL NONPAKET==>", item.subtotal_baru);
+            
+            const subTotalBaru = loadPembulatanSubtotalDetail(item.subtotal_baru);
+            
+            updateItemPriceFromPaket(item.barang_id, item.harga_baru, subTotalBaru);
         });
     }
 
@@ -1441,8 +1469,9 @@ $(document).ready(function () {
         // Loop through each paket detail
         paketDetails.forEach(function(paket) {
             paket.items.forEach(function(item) {
+                const subTotalBaru = loadPembulatanSubtotalDetail(item.subtotal_setelah_paket);
                 // Update harga dan subtotal di UI untuk barang yang masuk paket
-                updateItemPriceFromPaket(item.barang_id, item.harga_setelah_paket, item.subtotal_setelah_paket);
+                updateItemPriceFromPaket(item.barang_id, item.harga_setelah_paket, subTotalBaru);
             });
         });
     }
@@ -2637,6 +2666,32 @@ $(document).ready(function () {
                         subtotal = qty * hargaJual;
 
                         subtotal = Math.round(subtotal);
+
+                        $("#modal_subtotal\\[" + dataId + "\\]")
+                            .val(subTotalDetail);
+                    }
+                    // =====================================
+                    // UNTUK BARANG GRUP
+                    // =====================================
+                    else if (
+                        result.data.id == 3241 ||
+                        result.data.id == 3251 ||
+                        result.data.id == 3252
+                    ) {
+
+                        console.log("INI BARANG ID DARI DETAIL NYA DUDE==>", result.data.id);
+                        
+
+                        subtotal = qty * hargaJual;
+
+                        subtotal = Math.round(subtotal);
+
+                        const subTotalDetail =
+                            loadPembulatanSubtotalDetail(
+                                subtotal
+                            );
+                        console.log("SUBTOTAL DETAINYA DUDEL==>", subTotalDetail);
+                        
 
                         $("#modal_subtotal\\[" + dataId + "\\]")
                             .val(subTotalDetail);

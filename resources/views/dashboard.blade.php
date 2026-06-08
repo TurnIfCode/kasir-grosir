@@ -1,3 +1,4 @@
+@section('title', 'Dashboard - GrosirIndo')
 @include('layout.header')
 
 <style>

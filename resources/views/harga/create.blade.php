@@ -1,3 +1,4 @@
+@section('title', 'Tambah Harga Barang - GrosirIndo')
 @include('layout.header')
 
 <div class="container-fluid">
