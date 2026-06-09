@@ -8,7 +8,7 @@ return [
 
         'short_name' => 'Kasir',
 
-        'start_url' => '/',
+        'start_url' => '/dashboard',
 
         'background_color' => '#ffffff',
 
