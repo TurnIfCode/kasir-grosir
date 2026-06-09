@@ -240,6 +240,27 @@
       color: red;
     }
   </style>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+
+        window.addEventListener('load', function () {
+
+            navigator.serviceWorker
+                .register('/sw.js')
+
+                .then(function(registration) {
+                    console.log('SW Registered:', registration);
+                })
+
+                .catch(function(error) {
+                    console.error('SW Error:', error);
+                });
+
+        });
+
+  }
+  </script>
 </head>
 
 <body>
