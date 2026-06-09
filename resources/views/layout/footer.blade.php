@@ -4,6 +4,10 @@
   @stack('scripts')
 
   <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+    }
+
     $(window).on('load', function() {
       var currentPath = window.location.pathname;
       $('.nav-link').each(function() {
