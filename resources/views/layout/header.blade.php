@@ -6,6 +6,15 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'GrosirIndo')</title>
   <link rel="icon" href="{{ asset('assets/icon/icon.ico') }}">
+  <link rel="manifest" href="/manifest.json">
+
+  <meta name="theme-color" content="#0d6efd">
+
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <meta name="apple-mobile-web-app-title" content="GrosirIndo">
 
   <!-- Bootstrap CSS -->
   <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
